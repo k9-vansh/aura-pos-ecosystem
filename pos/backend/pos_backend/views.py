@@ -5,7 +5,7 @@ def root_portal_view(request):
     host = request.get_host().lower()
     is_local = host.startswith('localhost') or host.startswith('127.0.0.1')
     
-    frontend_base = os.getenv('FRONTEND_URL', 'https://aura-pos-ecosystem.vercel.app').rstrip('/')
+    frontend_base = os.getenv('FRONTEND_URL', 'https://aura-pos-ecosystem-distecosystem.vercel.app').rstrip('/')
     
     till_url = 'http://localhost:4200/' if is_local else f'{frontend_base}/'
     owner_url = 'http://localhost:5190/' if is_local else f'{frontend_base}/owner/'
