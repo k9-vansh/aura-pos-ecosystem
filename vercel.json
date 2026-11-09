@@ -19,7 +19,7 @@
     { "source": "/notifications/:path*", "destination": "https://aura-pos-backend.onrender.com/notifications/:path*" },
     { "source": "/app-settings/:path*", "destination": "https://aura-pos-backend.onrender.com/app-settings/:path*" },
     { "source": "/sap-sync/:path*", "destination": "https://aura-pos-backend.onrender.com/sap-sync/:path*" },
-    { "source": "/admin/:path*", "destination": "https://aura-pos-backend.onrender.com/admin/:path*" },
+    { "source": "/django-admin/:path*", "destination": "https://aura-pos-backend.onrender.com/admin/:path*" },
     { "source": "/media/:path*", "destination": "https://aura-pos-backend.onrender.com/media/:path*" },
     { "source": "/owner/:path*", "destination": "/owner/index.html" },
     { "source": "/staff/:path*", "destination": "/staff/index.html" },
