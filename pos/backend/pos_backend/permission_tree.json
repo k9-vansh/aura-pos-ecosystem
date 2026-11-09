@@ -1,0 +1,314 @@
+{
+  "_comment": [
+    "THE canonical list of modules and submodules a role can be granted.",
+    "",
+    "The Roles screen draws itself from this file, the menu and route guard read it,",
+    "and the server enforces against it. frontend/src/app/services/permission-tree.json",
+    "is a copy of this file; backend/accounts/tests_permission_tree.py asserts the two",
+    "are identical, so they cannot drift again.",
+    "",
+    "Per module / submodule:",
+    "  key      what is stored in Role.permissions",
+    "  label    what the Roles screen shows",
+    "  help     one line saying what the grant lets a person do (shown under the label)",
+    "  route    the page it opens (a module's page, or an Admin sub-page)",
+    "  verbs    which of read/create/update/delete mean something here. Left out = all four.",
+    "           A report has only 'read'; offering Add/Edit/Delete on it was noise.",
+    "  actions  extra ticks (Cancel a bill, Lock payroll...) granted one by one",
+    "",
+    "A role that can Add, Edit or Delete, or holds an action tick, can always View",
+    "(the server makes that so when a role is saved).",
+    "",
+    "'legacy_aliases' maps keys that older saved roles used to the keys they now mean."
+  ],
+  "modules": [
+    {
+      "key": "overview",
+      "label": "Home",
+      "route": "home",
+      "always_readable": true,
+      "help": "The landing page. Everyone can open it; this controls the revenue figures on it.",
+      "submodules": [
+        { "key": "home", "label": "Home figures", "verbs": ["read"],
+          "help": "See today's collection, revenue and target on the Home page." }
+      ]
+    },
+    {
+      "key": "dashboard",
+      "label": "Dashboard",
+      "route": "dashboard",
+      "help": "Charts and analytics for the business.",
+      "submodules": [
+        { "key": "summary", "label": "Overview", "verbs": ["read"],
+          "help": "The Overview tab: today's headline figures, bills, appointments and top performers." },
+        { "key": "revenues", "label": "Revenue", "verbs": ["read"],
+          "help": "The Revenue tab: sales by day, month, payment method and centre." },
+        { "key": "clients", "label": "Clients", "verbs": ["read"],
+          "help": "The Clients tab: new and repeat clients, spend and visits." },
+        { "key": "finance", "label": "Finance", "verbs": ["read"],
+          "help": "The Finance tab: memberships and value cards sold, used and outstanding." },
+        { "key": "services_products", "label": "Services & Products", "verbs": ["read"],
+          "help": "The Services & Products tab: what sold, how much, and who bought it." },
+        { "key": "staff", "label": "Staff", "verbs": ["read"],
+          "help": "The Staff tab: each person's sales, services and commission." },
+        { "key": "usage_report", "label": "Usage Report", "verbs": ["read"],
+          "help": "The Usage Report tab, for the marketing team: how every offer, coupon, membership, card, package and cashback is performing, what is coming up, and checks that the numbers agree. It holds no other dashboard figures." }
+      ]
+    },
+    {
+      "key": "logs",
+      "label": "Logs",
+      "route": "logs",
+      "help": "The activity trail of who did what.",
+      "submodules": [
+        { "key": "activity", "label": "Activity Log", "verbs": ["read"],
+          "help": "Read the audit log of changes made in the system." }
+      ]
+    },
+    {
+      "key": "admin",
+      "label": "Admin",
+      "help": "Administration pages. Holding an Admin page is a position of trust.",
+      "submodules": [
+        { "key": "bills", "label": "Bills", "route": "bills", "verbs": ["read"],
+          "help": "List and open every bill; cancel or change payment if ticked below.",
+          "actions": [
+            { "key": "cancel", "label": "Cancel a bill" },
+            { "key": "change_payment", "label": "Change a bill's payment method" }
+          ] },
+        { "key": "changes", "label": "Changes", "route": "changes", "verbs": ["read"],
+          "help": "The log of changes made to bills." },
+        { "key": "master_pins", "label": "Master PINs", "route": "master-pins", "verbs": ["read"],
+          "help": "See each branch's master PIN of the day: the PIN a manager can give at the till when a client has forgotten theirs." },
+        { "key": "manager_discounts", "label": "Manager Discounts", "route": "manager-discounts", "verbs": ["read"],
+          "help": "Report of discounts managers gave on bills." },
+        { "key": "centers", "label": "Centres", "route": "centers",
+          "help": "Add and edit salon centres, their GST details and targets.",
+          "actions": [ { "key": "bulk_import", "label": "Bulk import centres" } ] },
+        { "key": "users", "label": "Users", "route": "users",
+          "help": "Create users, give them a role and centres, deactivate them.",
+          "actions": [ { "key": "reset_password", "label": "Reset a user's password" } ] },
+        { "key": "roles", "label": "Roles & Permissions", "route": "roles",
+          "help": "Create roles and choose what each role can see and do." },
+        { "key": "services", "label": "Services", "route": "services",
+          "help": "The service catalogue: names, prices, tax and per-centre prices." },
+        { "key": "clients", "label": "Clients", "route": "clients",
+          "help": "The customer list, their bills and wallet history.",
+          "actions": [
+            { "key": "blacklist", "label": "Blacklist a client" },
+            { "key": "merge", "label": "Merge duplicate clients" },
+            { "key": "bulk_upload", "label": "Bulk upload clients" }
+          ] },
+        { "key": "settings", "label": "Settings", "route": "settings",
+          "help": "Business-wide settings: receipts, GST, billing rules." },
+        { "key": "sap_sync", "label": "SAP Sync", "route": "sap-sync",
+          "help": "See what has been sent to SAP and what failed.",
+          "actions": [
+            { "key": "retry", "label": "Retry a posting" },
+            { "key": "resolve", "label": "Mark a posting as done by hand" }
+          ] },
+        { "key": "approvals", "label": "Approvals", "route": "approvals",
+          "help": "Choose what needs an approver's yes and who approves; see the history." },
+        { "key": "integrations", "label": "Integrations & Notifications", "route": "integrations",
+          "help": "E-mail and WhatsApp connections and who is notified of what.",
+          "actions": [ { "key": "send_test", "label": "Send a test message" } ] }
+      ]
+    },
+    {
+      "key": "billing",
+      "label": "Billing",
+      "route": "billing",
+      "help": "The till: raising bills and looking back at them.",
+      "submodules": [
+        { "key": "invoices", "label": "Invoice History", "verbs": ["read"],
+          "help": "See past and held bills and print receipts.",
+          "actions": [
+            { "key": "cancel", "label": "Cancel a bill" },
+            { "key": "change_payment", "label": "Change a bill's payment method" }
+          ] },
+        { "key": "new_invoice", "label": "New Invoice",
+          "help": "Raise a bill: add items, take payment, hold a draft, apply offers." }
+      ]
+    },
+    {
+      "key": "appointments",
+      "label": "Appointments",
+      "route": "appointments",
+      "help": "The booking calendar.",
+      "submodules": [
+        { "key": "calendar", "label": "Calendar",
+          "help": "See and make bookings.",
+          "actions": [
+            { "key": "assign_staff", "label": "Assign or change the stylist" },
+            { "key": "cancel", "label": "Cancel an appointment" },
+            { "key": "restore", "label": "Restore a cancelled appointment" },
+            { "key": "check_in", "label": "Check a client in" },
+            { "key": "no_show", "label": "Mark a no-show" }
+          ] }
+      ]
+    },
+    {
+      "key": "staff",
+      "label": "Staff",
+      "route": "staff",
+      "help": "The team: records, service logs, payroll.",
+      "submodules": [
+        { "key": "directory", "label": "Directory",
+          "help": "The staff list and their basic details.",
+          "actions": [ { "key": "set_app_pin", "label": "Set a staff app PIN" } ] },
+        { "key": "profile", "label": "Staff Profile (salary & commission)",
+          "help": "See and change salary and commission figures. Without this they are hidden." },
+        { "key": "logs", "label": "Service Logs",
+          "help": "What each person did, from bills.",
+          "actions": [ { "key": "add_manual", "label": "Add or change a service log by hand" } ] },
+        { "key": "reports", "label": "Reports", "verbs": ["read"],
+          "help": "Staff performance and activity reports." },
+        { "key": "management", "label": "Management",
+          "help": "Transfers between centres, tool tracking, designations." },
+        { "key": "payrolls", "label": "Payrolls",
+          "help": "Monthly payroll records. Holds salary figures.",
+          "actions": [
+            { "key": "generate", "label": "Generate payroll" },
+            { "key": "lock", "label": "Lock payroll" },
+            { "key": "unlock", "label": "Unlock payroll" },
+            { "key": "mark_paid", "label": "Mark payroll paid" }
+          ] }
+      ]
+    },
+    {
+      "key": "inventory",
+      "label": "Inventory",
+      "route": "inventory",
+      "help": "Products, vendors, purchasing and stock.",
+      "submodules": [
+        { "key": "products", "label": "Product Master",
+          "help": "The product list: prices, GST, reorder levels." },
+        { "key": "vendors", "label": "Vendor Master",
+          "help": "Suppliers and their contact details." },
+        { "key": "purchase_orders", "label": "Purchase Orders",
+          "help": "Order from vendors and receive goods. Shows costs." },
+        { "key": "po_history", "label": "PO History", "verbs": ["read"],
+          "help": "Look back at purchase orders." },
+        { "key": "checkout", "label": "Checkout",
+          "help": "Take stock out for salon use." },
+        { "key": "stock_history", "label": "Stock History", "verbs": ["read"],
+          "help": "The ledger of every stock movement." },
+        { "key": "audit", "label": "Stock Audit",
+          "help": "Correct recorded stock to a physical count." },
+        { "key": "stock_transfers", "label": "Stock Transfers",
+          "help": "Move stock between centres." },
+        { "key": "transfer_bills", "label": "Transfer Bills", "verbs": ["read"],
+          "help": "See the bills the centres attached when they received stock, with a summary across centres." },
+        { "key": "stock_requests", "label": "Make Stock Requests",
+          "help": "Ask for stock for a centre." },
+        { "key": "approve_stock_requests", "label": "Approve Stock Requests",
+          "verbs": ["read", "update"],
+          "help": "Tick Edit to approve or reject the stock requests of the centres they can access. They are also told by e-mail, with an Approve / Reject link." },
+        { "key": "fulfill_stock_requests", "label": "Fulfill Stock Requests",
+          "verbs": ["read", "update"],
+          "help": "Tick Edit to send an approved stock request: pick where it comes from and make the transfer. Also tick Stock Transfers (Add and Edit) so they can make and dispatch it." }
+      ]
+    },
+    {
+      "key": "marketing",
+      "label": "Marketing",
+      "route": "marketing",
+      "help": "Offers, memberships and customer messages.",
+      "submodules": [
+        { "key": "promotions", "label": "Campaign: Coupons & Promotions",
+          "help": "Discount, flat-price, trigger and cashback offers." },
+        { "key": "cards", "label": "Campaign: Value Cards",
+          "help": "Prepaid value cards." },
+        { "key": "memberships", "label": "Campaign: Memberships",
+          "help": "Membership plans." },
+        { "key": "packages", "label": "Campaign: Packages",
+          "help": "Prepaid service packages." },
+        { "key": "whatsapp", "label": "WhatsApp",
+          "help": "Customer WhatsApp messages and campaigns." },
+        { "key": "usage", "label": "Usage", "verbs": ["read"],
+          "help": "Analytics of how offers and cards are used." }
+      ]
+    },
+    {
+      "key": "finance",
+      "label": "Finance",
+      "route": "finance",
+      "help": "Reports, closings, petty cash and incentives.",
+      "submodules": [
+        { "key": "register_summary", "label": "Register Summary", "verbs": ["read"],
+          "help": "The day's takings by payment method." },
+        { "key": "monthly_sales", "label": "Monthly Sales", "verbs": ["read"],
+          "help": "Sales month by month." },
+        { "key": "detailed_revenues", "label": "Detailed Revenues", "verbs": ["read"],
+          "help": "Every bill with its figures." },
+        { "key": "refunds", "label": "Refunds", "verbs": ["read"],
+          "help": "Cancelled and refunded bills." },
+        { "key": "procurement", "label": "Procurement", "verbs": ["read"],
+          "help": "Spend with each vendor." },
+        { "key": "tax_report", "label": "Tax Report", "verbs": ["read"],
+          "help": "GST collected: B2B/B2C, by rate, by HSN/SAC." },
+        { "key": "service_drilldown", "label": "Service Drilldown", "verbs": ["read"],
+          "help": "Revenue by service and product." },
+        { "key": "staff_performance", "label": "Staff Performance", "verbs": ["read"],
+          "help": "Sales credited to each team member." },
+        { "key": "multi_salon", "label": "Multi Salon", "verbs": ["read"],
+          "help": "Compare centres side by side." },
+        { "key": "incentives", "label": "Incentives",
+          "help": "Staff incentive calculation and configuration." },
+        { "key": "pettycash", "label": "Closing & Petty Cash",
+          "help": "Petty cash entries and the daily closing.",
+          "actions": [ { "key": "amend_closing", "label": "Amend a recorded daily closing" } ] },
+        { "key": "shifts", "label": "Register Shifts",
+          "help": "Open and close till shifts." },
+        { "key": "manage", "label": "Manage (incentive rules)",
+          "help": "Create and edit incentive rules." }
+      ]
+    },
+    {
+      "key": "chat",
+      "label": "Chat",
+      "help": "The in-app messenger.",
+      "submodules": [
+        { "key": "messages", "label": "Messages",
+          "help": "Read and send messages to colleagues." }
+      ]
+    },
+    {
+      "key": "owner_app",
+      "label": "Owner App",
+      "help": "The owner's phone app: today, month, bills, staff and the weekly AI report.",
+      "submodules": [
+        { "key": "today", "label": "Today", "verbs": ["read"],
+          "help": "The day's takings, bills, clients and what clients still hold." },
+        { "key": "month", "label": "Month", "verbs": ["read"],
+          "help": "The month against its target, with charts." },
+        { "key": "invoices", "label": "Bills", "verbs": ["read"],
+          "help": "Every bill of a day and its receipt." },
+        { "key": "staff", "label": "Staff", "verbs": ["read"],
+          "help": "Sales and working hours of each team member." },
+        { "key": "ai_report", "label": "AI Report", "verbs": ["read", "create"],
+          "help": "The weekly written report; create asks for a fresh one." },
+        { "key": "master_pins", "label": "Master PINs", "verbs": ["read"],
+          "help": "See each branch's master PIN of the day (for a client who has forgotten their PIN)." },
+        { "key": "ai_keys", "label": "AI keys", "verbs": ["read", "update"],
+          "help": "Paste, switch and remove the AI service keys (OpenRouter, Claude, OpenAI and others) that write the weekly reports." },
+        { "key": "settings", "label": "Settings", "verbs": ["read", "update"],
+          "help": "Closing SMS numbers and report e-mails." }
+      ]
+    }
+  ],
+  "legacy_aliases": {
+    "modules": {
+      "appointment": "appointments",
+      "home": "overview"
+    },
+    "submodules": {
+      "marketing": {
+        "campaigns": ["promotions", "cards", "memberships", "packages"]
+      },
+      "dashboard": {
+        "analytics": ["summary", "revenues", "clients", "finance", "services_products", "staff"]
+      }
+    }
+  }
+}

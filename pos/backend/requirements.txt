@@ -1,0 +1,81 @@
+# Chilli Potato POS - backend dependencies
+#
+# Regenerated from the versions actually running in the deployment venv.
+# The previous file could not rebuild a working environment: it pinned
+# Django 5.2.3 while 6.1 was installed, pinned DRF 3.15.2 against 3.18.0, and
+# omitted `channels` and `daphne` entirely even though INSTALLED_APPS begins
+# with them - so a clean `pip install -r requirements.txt` raised
+# ModuleNotFoundError at startup.
+#
+# Verify with:  pip install -r requirements.txt && python manage.py check
+
+# ─── Core ────────────────────────────────────────────────────────────────────
+Django==6.1
+asgiref==3.12.1
+sqlparse==0.6.0
+
+# ─── ASGI / WebSockets (chat) ───────────────────────────────────────────────
+# Both are in INSTALLED_APPS and the app cannot start without them.
+channels==4.3.2
+daphne==4.2.3
+# Cross-process channel layer. Required as soon as you run more than one
+# worker: the in-memory layer does not deliver messages between processes.
+channels-redis>=4.2.0
+
+# ─── REST API ────────────────────────────────────────────────────────────────
+djangorestframework==3.18.0
+django-cors-headers==4.9.0
+
+# ─── Database ────────────────────────────────────────────────────────────────
+mysqlclient==2.2.8
+
+# ─── Production server ───────────────────────────────────────────────────────
+# The app is currently running under `manage.py runserver`, which is a
+# development server: single-process, auto-reloading, and not built to face
+# the internet. Run it under one of these instead.
+gunicorn>=22.0.0
+uvicorn[standard]>=0.30.0
+whitenoise==6.12.0
+
+# ─── Cache / throttling / idempotency ───────────────────────────────────────
+# Set REDIS_URL to activate. Without it the cache is per-process, so DRF
+# throttling and the checkout duplicate-submit guard do not hold across
+# workers.
+redis>=5.0.0
+django-redis>=5.4.0
+
+# ─── Files, imports and exports ─────────────────────────────────────────────
+pillow==12.3.0
+openpyxl==3.1.5
+pandas==3.0.5
+# pandas needs a date parser for read_excel/read_csv
+python-dateutil==2.9.0.post0
+
+# ─── Environment ─────────────────────────────────────────────────────────────
+python-dotenv==1.2.3
+
+# ─── Utilities ───────────────────────────────────────────────────────────────
+requests==2.34.2
+# SAP HANA driver. sap_utils.get_hana_batches reads the SAP batch table with it
+# for every sale, transfer and goods issue of a batch-managed item (nearly all
+# of them). It was missing from this file, so a server built from it could not
+# name batches and SAP refused those documents.
+hdbcli==2.29.27
+# Used by audit_logs.middleware for device/browser parsing. It was NOT present
+# in the deployment venv, and the import sits inside a try/except - so every
+# audit log row silently recorded device, browser and OS as "Unknown".
+user-agents>=2.2.0
+
+# ─── Removed on purpose ─────────────────────────────────────────────────────
+# `panda` and `mysql` were both installed in the venv. They are not the
+# packages that were wanted: `panda` (0.3.1) is unrelated to pandas, and
+# `mysql` (0.0.3) is an empty placeholder distribution. Neither is imported
+# anywhere in this codebase. Uninstall them:
+#     pip uninstall -y panda mysql
+#
+# Also previously listed and genuinely unused:
+#   djangorestframework_simplejwt, PyJWT  - this project uses Token auth
+#   drf-spectacular                       - optional API docs
+#   django-environ                        - replaced by python-dotenv
+#   dj-database-url                       - not imported
+#   django-filter                         - not imported

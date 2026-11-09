@@ -1,0 +1,56 @@
+# Dependencies — never commit or sync these. The repo currently carries a
+# Linux-built node_modules and venv through OneDrive, which is why the
+# production `ng build` fails on a Windows checkout with
+# "You installed esbuild for another platform".
+node_modules/
+venv/
+env/
+.venv/
+
+# Build output
+dist/
+.angular/
+staticfiles/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Secrets — never commit
+.env
+*.env
+!.env.example
+
+# Local databases and logs
+db.sqlite3
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.log
+
+# Local data dumps and report output (may hold customer or SAP data)
+backend/coa.json
+backend/neera.json
+backend/neeraj.json
+backend/check_report.txt
+nohup.out
+
+# Uploaded media
+media/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Scratch / one-off analysis output
+scan_*.py
+*_scan_results.json
+*_model_fields.json
+
+# Test-only logins written by seed_test_team
+TEST-LOGINS.md

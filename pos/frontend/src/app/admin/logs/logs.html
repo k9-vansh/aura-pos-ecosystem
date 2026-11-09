@@ -1,0 +1,139 @@
+<div class="lg-page">
+
+  <!-- Quick filters, search, dates -->
+  <div class="lg-top">
+    <div class="lg-pills">
+      <button type="button" class="lg-pill" [class.active]="pill === 'all'" (click)="setPill('all')">All activity</button>
+      <button type="button" class="lg-pill" [class.active]="pill === 'security'" (click)="setPill('security')">Sign-ins</button>
+      <button type="button" class="lg-pill" [class.active]="pill === 'accounts'" (click)="setPill('accounts')">People</button>
+      <button type="button" class="lg-pill" [class.active]="pill === 'finance'" (click)="setPill('finance')">Money</button>
+      <button type="button" class="lg-pill lg-pill-alert" [class.active]="pill === 'failed'" (click)="setPill('failed')">
+        Problems <span class="lg-count" *ngIf="failedCount">{{ failedCount }}</span>
+      </button>
+    </div>
+
+    <div class="lg-controls">
+      <input class="lg-input lg-search" type="text" [(ngModel)]="searchQuery" (keyup.enter)="onFilterChange()" placeholder="Search description, person, address">
+      <select class="lg-input lg-select" [(ngModel)]="selectedModule" (change)="onModuleChange()">
+        <option value="">All modules</option>
+        <option *ngFor="let m of availableModules; trackBy: trackByValue" [value]="m.value">{{ MODULE_LABELS[m.value] || m.value }} ({{ m.count }})</option>
+      </select>
+      <span class="lg-range">
+        <input class="lg-input" type="date" [(ngModel)]="pendingStartDate" aria-label="From date">
+        <span class="lg-to">to</span>
+        <input class="lg-input" type="date" [(ngModel)]="pendingEndDate" aria-label="To date">
+      </span>
+      <button type="button" class="lg-btn lg-btn-primary" (click)="onFilterChange()">Apply</button>
+      <button type="button" class="lg-btn" *ngIf="hasActiveFilters" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="lg-chips" *ngIf="availableActions.length">
+    <span class="lg-chips-label">Action</span>
+    <button type="button" class="lg-chip" *ngFor="let a of availableActions; trackBy: trackByValue"
+            [class.selected]="isActionSelected(a.value)" (click)="toggleAction(a.value)">
+      {{ actionLabel(a.value) }} <span class="lg-chip-n">{{ a.count }}</span>
+    </button>
+  </div>
+
+  <div class="lg-grid">
+
+    <!-- People -->
+    <div class="lg-card lg-people">
+      <div class="lg-people-head">
+        <input class="lg-input" type="text" [(ngModel)]="userSearch" placeholder="Find a person">
+        <span class="lg-small" *ngIf="!usersLoading">{{ filteredLogUsers.length }} in this period</span>
+      </div>
+      <button type="button" class="lg-btn lg-btn-block" *ngIf="selectedUserId" (click)="clearUser()">Show everyone</button>
+
+      <div class="lg-empty" *ngIf="usersLoading">Loading…</div>
+      <div class="lg-empty" *ngIf="!usersLoading && !filteredLogUsers.length">Nobody matches.</div>
+
+      <div class="lg-people-list" *ngIf="!usersLoading">
+        <button type="button" class="lg-person" *ngFor="let u of filteredLogUsers; trackBy: trackByValue"
+                [class.selected]="selectedUserId === u.user_id"
+                [class.warn]="u.kind === 'failed_login'"
+                (click)="selectUser(u)">
+          <span class="lg-avatar" [class.lg-avatar-warn]="u.kind === 'failed_login'" [class.lg-avatar-grey]="u.kind === 'anonymous'">{{ personInitial(u) }}</span>
+          <span class="lg-person-info">
+            <span class="lg-person-name">{{ u.name }}</span>
+            <span class="lg-person-meta">
+              {{ u.actions }} action{{ u.actions === 1 ? '' : 's' }}<ng-container *ngIf="u.role"> · {{ u.role }}</ng-container>
+              <ng-container *ngIf="u.last_active"> · {{ u.last_active | date:'MMM d, HH:mm' }}</ng-container>
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- The feed -->
+    <div class="lg-card lg-feed">
+      <div class="lg-feed-head">
+        <div class="lg-feed-title">
+          <strong>{{ selectedUserName || 'Everyone' }}</strong>
+          <span *ngIf="hasActiveFilters" class="lg-small"> · filtered</span>
+        </div>
+        <span class="lg-small">{{ logs.length }} of {{ totalCount | number }} records</span>
+      </div>
+
+      <div *ngIf="loading" class="lg-empty">Loading activity…</div>
+      <div *ngIf="!loading && logs.length === 0" class="lg-empty">Nothing matches these filters.</div>
+
+      <div class="lg-table-wrap" *ngIf="!loading && logs.length > 0">
+        <table class="lg-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th *ngIf="!selectedUserId">Who</th>
+              <th>What happened</th>
+              <th>Module</th>
+              <th>When</th>
+              <th>Where</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let log of logs; trackBy: trackById">
+              <tr class="lg-row" [class.open]="selectedLog?.id === log.id" [class.failed]="log.outcome !== 'success'" (click)="selectLog(log)">
+                <td><span class="lg-badge" [ngClass]="log._actionClass">{{ actionLabel(log.action) }}</span></td>
+                <td *ngIf="!selectedUserId" class="lg-who">{{ log.user_name || log.user_email || 'Not signed in' }}</td>
+                <td class="lg-what">{{ log.human_description || '-' }}</td>
+                <td class="lg-module">{{ moduleLabel(log.module) }}</td>
+                <td class="lg-when">{{ log.timestamp | date:'MMM d' }}<span>{{ log.timestamp | date:'HH:mm:ss' }}</span></td>
+                <td class="lg-where">
+                  <span class="lg-where-main">{{ log.location_label || log.center_name || 'Unknown place' }}</span>
+                  <span class="lg-where-pin" *ngIf="log.geo_lat != null">&#128205; Exact position · ±{{ log.geo_accuracy | number:'1.0-0' }} m</span>
+                  <span class="lg-where-ip">{{ log.ip_address || 'no address' }}<ng-container *ngIf="log._scopeText"> · {{ log._scopeText }}</ng-container></span>
+                </td>
+              </tr>
+
+              <tr class="lg-detail" *ngIf="selectedLog?.id === log.id">
+                <td [attr.colspan]="selectedUserId ? 5 : 6">
+                  <div class="lg-detail-grid">
+                    <div><span>Result</span><b [class.bad]="log.outcome !== 'success'">{{ log.outcome === 'success' ? 'Went through' : (log.outcome === 'blocked' ? 'Blocked (too many attempts)' : 'Did not go through') }}<ng-container *ngIf="log.status_code"> · HTTP {{ log.status_code }}</ng-container></b></div>
+                    <div *ngIf="log.user_role"><span>Role</span><b>{{ log.user_role }}</b></div>
+                    <div *ngIf="log.user_email"><span>Email</span><b>{{ log.user_email }}</b></div>
+                    <div *ngIf="log.center_name"><span>Branch</span><b>{{ log.center_name }}</b></div>
+                    <div *ngIf="log.entity_id"><span>Record</span><b>{{ log.entity_type }} #{{ log.entity_id }}</b></div>
+                    <div *ngIf="log.geo_city || log.geo_country"><span>Place</span><b>{{ log.geo_city }}<ng-container *ngIf="log.geo_region">, {{ log.geo_region }}</ng-container><ng-container *ngIf="log.geo_country && log.geo_country !== 'Local'">, {{ log.geo_country }}</ng-container></b></div>
+                    <div *ngIf="log.geo_lat != null"><span>Exact position</span><b><a class="lg-map" target="_blank" rel="noopener" [href]="'https://www.google.com/maps?q=' + log.geo_lat + ',' + log.geo_lng">{{ log.geo_lat }}, {{ log.geo_lng }}</a><ng-container *ngIf="log.geo_accuracy != null"> (within {{ log.geo_accuracy | number:'1.0-0' }} m)</ng-container></b></div>
+                    <div><span>Address</span><b>{{ log.ip_address || '-' }}<ng-container *ngIf="log._scopeText"> ({{ log._scopeText }})</ng-container></b></div>
+                    <div *ngIf="log.browser || log.os_info || log.device_type"><span>Device</span><b>{{ log.device_type }}<ng-container *ngIf="log.os_info"> · {{ log.os_info }}</ng-container><ng-container *ngIf="log.browser"> · {{ log.browser }}</ng-container></b></div>
+                    <div><span>Request</span><b class="lg-mono">{{ log.path }}</b></div>
+                  </div>
+                  <pre class="lg-payload" *ngIf="log._payloadText">{{ log._payloadText }}</pre>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="lg-pager" *ngIf="!loading && logs.length > 0">
+        <button type="button" class="lg-btn" (click)="goPrev()" [disabled]="!hasPrev">Previous</button>
+        <span class="lg-small">Page {{ currentPage }}</span>
+        <button type="button" class="lg-btn" (click)="goNext()" [disabled]="!hasNext">Next</button>
+      </div>
+    </div>
+
+  </div>
+</div>

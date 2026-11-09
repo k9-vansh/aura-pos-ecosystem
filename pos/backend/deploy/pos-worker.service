@@ -1,0 +1,44 @@
+# systemd unit for the POS background worker (pos_backend/jobs.py).
+#
+# The worker does everything a till must never wait for: SAP postings,
+# e-mail and WhatsApp notifications, and scheduled tasks (draft expiry, card
+# and cashback expiry, reminders, nightly reconciliation). Each job is claimed
+# by exactly one worker, so more capacity is just a second copy of this unit
+# (pos-worker@2) - nothing else changes.
+#
+#   sudo cp deploy/pos-worker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now pos-worker
+#   journalctl -u pos-worker -f
+#
+# CHANGE ME: WorkingDirectory, the venv path, and User/Group (same as pos-backend).
+
+[Unit]
+Description=Salon POS background worker (SAP, notifications, schedules)
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# CHANGE ME
+WorkingDirectory=/srv/pos/backend
+Environment="PATH=/srv/pos/venv/bin"
+ExecStart=/srv/pos/venv/bin/python manage.py run_workers --interval 5
+
+# A job interrupted by a stop is re-claimed after its lease expires.
+KillMode=mixed
+TimeoutStopSec=60
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=120
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+<div class="global-loading-bar" [class.active]="loadingService.isLoading$ | async"></div>
+<router-outlet></router-outlet>
+<app-toast></app-toast>
+<app-confirm></app-confirm>
+<button type="button" class="sound-toggle" data-no-sound (click)="toggleSound()"
+        [attr.aria-pressed]="soundOn()" [attr.aria-label]="soundOn() ? 'Mute sound effects' : 'Turn sound effects on'"
+        [title]="soundOn() ? 'Sound effects on (click to mute)' : 'Sound effects off (click to turn on)'">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    @if (soundOn()) {
+      <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+      <path d="M19 5a10 10 0 0 1 0 14"></path>
+    } @else {
+      <line x1="22" y1="9" x2="16" y2="15"></line>
+      <line x1="16" y1="9" x2="22" y2="15"></line>
+    }
+  </svg>
+</button>

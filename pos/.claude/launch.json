@@ -1,0 +1,46 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pos-api-sqlite",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-Command",
+        "Set-Location 'C:\\Users\\HP\\OneDrive - CINNTRA INFO TECH SOLUTIONS PRIVATE LIMITED\\Desktop\\aftercirapos\\aftercirapos\\malai-chaap\\backend'; $env:SAP_ENABLED='True'; $env:SAP_SCHEDULER='False'; $env:DJANGO_DEBUG='True'; $env:SERVER_GATEWAY='1'; & 'C:\\Users\\HP\\.venvs\\pos-sandbox\\Scripts\\python.exe' manage.py runserver 127.0.0.1:8001 --noreload"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "pos-api-sqlite-sap",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-Command",
+        "Set-Location 'C:\\Users\\HP\\OneDrive - CINNTRA INFO TECH SOLUTIONS PRIVATE LIMITED\\Desktop\\aftercirapos\\aftercirapos\\malai-chaap\\backend'; $env:SAP_ENABLED='True'; $env:SAP_SCHEDULER='True'; $env:DJANGO_DEBUG='True'; $env:SERVER_GATEWAY='1'; & 'C:\\Users\\HP\\.venvs\\pos-sandbox\\Scripts\\python.exe' manage.py runserver 127.0.0.1:8001 --noreload"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "pos-api-mysql",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-Command",
+        "Set-Location 'C:\\Users\\HP\\OneDrive - CINNTRA INFO TECH SOLUTIONS PRIVATE LIMITED\\Desktop\\aftercirapos\\aftercirapos\\malai-chaap\\backend'; $env:DB_ENGINE='mysql'; $env:SAP_ENABLED='False'; $env:SAP_SCHEDULER='False'; $env:DJANGO_DEBUG='True'; $env:SERVER_GATEWAY='1'; & 'C:\\Users\\HP\\.venvs\\pos-sandbox\\Scripts\\python.exe' manage.py runserver 127.0.0.1:8001 --noreload"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "pos-web",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-Command",
+        "Set-Location 'C:\\Users\\HP\\OneDrive - CINNTRA INFO TECH SOLUTIONS PRIVATE LIMITED\\Desktop\\aftercirapos\\aftercirapos\\malai-chaap\\frontend'; node node_modules/@angular/cli/bin/ng.js serve --port 4200"
+      ],
+      "port": 4200,
+      "url": "http://localhost:4200"
+    }
+  ]
+}

@@ -1,0 +1,1450 @@
+<div class="billing-page">
+
+  <!-- Unified Header -->
+  <div class="billing-subheader-row" style="padding: 16px 0; background: transparent; box-shadow: none; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; margin-bottom: 16px;">
+    
+    <!-- Left: Center Name -->
+    <div class="subheader-left" style="display: flex; align-items: center; gap: 8px;">
+
+      <app-location-selector
+        [centers]="centers"
+        [hasGlobalAccess]="hasGlobalAccess"
+        [(selectedCenterId)]="selectedCenterId"
+        (selectionChange)="onCenterChange()">
+      </app-location-selector>
+    </div>
+    
+    <!-- Middle: Tabs -->
+    <div class="main-tabs-row" style="display: flex; gap: 32px; margin: 0;">
+      <div class="main-tab" [class.active]="viewMode === 'new-invoice'" (click)="setViewMode('new-invoice')" style="padding-bottom: 4px; cursor: pointer; font-weight: 700; font-size: 14px; border-bottom: 2px solid transparent;" [style.color]="viewMode === 'new-invoice' ? '#e11d48' : '#64748b'" [style.borderBottomColor]="viewMode === 'new-invoice' ? '#e11d48' : 'transparent'">New Invoice</div>
+      <div class="main-tab" [class.active]="viewMode === 'landing'" (click)="setViewMode('landing')" style="padding-bottom: 4px; cursor: pointer; font-weight: 600; font-size: 14px; border-bottom: 2px solid transparent;" [style.color]="viewMode === 'landing' ? '#e11d48' : '#64748b'" [style.borderBottomColor]="viewMode === 'landing' ? '#e11d48' : 'transparent'">Drafts & History</div>
+    </div>
+
+    <!-- Right: Action Buttons -->
+    <div class="subheader-right" style="display: flex; gap: 12px; align-items: center;">
+      <button class="btn-open-invoices" (click)="setViewMode('landing')"
+        style="background: #fff; color: #64748b; border: 1px solid #e2e8f0; border-radius: 20px; padding: 8px 16px; font-weight: 600; cursor: pointer;"
+        title="View open/draft bills saved to the server">
+        <i class="fa fa-file-text-o" style="margin-right:5px;"></i>Draft Bills ({{ globalInvoices.length }})
+      </button>
+      <button class="btn-open-invoices" *ngIf="heldCarts.length > 0" (click)="showHeldCartsModal = true"
+        style="background: #f59e0b; color: #fff; border-radius: 20px; padding: 8px 16px; border: none; cursor: pointer;"
+        title="Resume a cart that was placed on hold (saved locally only)">
+        <i class="fa fa-pause-circle"></i> On Hold ({{ heldCarts.length }})
+      </button>
+      <button class="btn-new-invoice" *ngIf="isOwner || permissions.billing?.new_invoice?.create"
+        (click)="openNewInvoice()" style="background: #e11d48; color: #fff; font-weight: 600; border: none; border-radius: 20px; padding: 8px 16px; cursor: pointer;">+ New Invoice</button>
+    </div>
+  </div>
+
+  <!-- LANDING VIEW -->
+  <div class="billing-body landing-view" *ngIf="viewMode === 'landing'">
+    <app-billing-landing [globalInvoices]="globalInvoices" [appointments]="appointments" [staffActivity]="staffActivity"
+      [staffMembers]="staffMembers" [activityFeed]="activityFeed" (onInvoiceClick)="loadInvoice($event)" (onDeleteInvoice)="deleteDraftInvoice($event)">
+    </app-billing-landing>
+  </div>
+
+
+  <!-- NEW INVOICE VIEW -->
+  <div class="billing-body new-invoice-view" *ngIf="viewMode === 'new-invoice'">
+
+    <!-- Left Column: Client -->
+    <div class="panel-card col-client">
+      <!-- Client Search Header -->
+      <app-client-search
+        [clientSelected]="!!client"
+        (onSelectClient)="selectClient($event)"
+        (newClient)="newClient()"
+        (anonymousClient)="setAnonymousClient()">
+      </app-client-search>
+
+      <!-- Selected Client Profile Card -->
+      <div *ngIf="client && !client.is_anonymous" class="client-card-modern">
+        <!-- Client Top Header Banner -->
+        <div class="client-card-banner">
+          <div class="client-badge-avatar">
+            {{ (client.first_name ? client.first_name.charAt(0) : 'C').toUpperCase() }}
+          </div>
+          <div class="client-badge-details">
+            <div class="client-badge-name">{{ client.first_name }} {{ client.last_name || '' }}</div>
+            <div class="client-badge-phone">
+              <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              <span>{{ client.phone || 'No phone' }}</span>
+            </div>
+          </div>
+          <button type="button" class="btn-client-deselect" (click)="client = null; searchPhone = ''; clientHistory = []" title="Deselect client">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <!-- Sleek Form Grid -->
+        <div class="client-fields-grid">
+          <!-- Full Name -->
+          <div class="client-field-group">
+            <label class="client-field-label">Full Name</label>
+            <input type="text" placeholder="Client Name" [(ngModel)]="client.first_name" class="client-field-input">
+          </div>
+
+          <!-- Phone Number -->
+          <div class="client-field-group">
+            <label class="client-field-label">Phone Number</label>
+            <input type="text" placeholder="Phone Number" [(ngModel)]="client.phone" class="client-field-input">
+          </div>
+
+          <!-- Email & Birthday 2-Col -->
+          <div class="client-field-row">
+            <div class="client-field-group" style="flex: 1;">
+              <label class="client-field-label">Email</label>
+              <input type="email" placeholder="Email Address" [(ngModel)]="client.email" class="client-field-input">
+            </div>
+            <div class="client-field-group" style="flex: 1;">
+              <label class="client-field-label">Birthday</label>
+              <input type="date" [(ngModel)]="client.birthday" class="client-field-input">
+            </div>
+          </div>
+
+          <!-- Internal Notes -->
+          <div class="client-field-group">
+            <label class="client-field-label">Internal Notes</label>
+            <input type="text" placeholder="Add special notes..." [(ngModel)]="client.notes" class="client-field-input">
+          </div>
+
+          <!-- GSTIN (business clients) -->
+          <div class="client-field-group">
+            <label class="client-field-label">GSTIN</label>
+            <input type="text" placeholder="GSTIN (B2B only)" maxlength="15" [(ngModel)]="client.gst_number" class="client-field-input" style="text-transform: uppercase;">
+          </div>
+
+          <!-- Billing address for a B2B tax invoice / e-invoice -->
+          <div *ngIf="client.gst_number" style="display: flex; gap: 8px;">
+            <div class="client-field-group" style="flex: 3;">
+              <label class="client-field-label">Billing Address</label>
+              <input type="text" placeholder="Building, street, city" [(ngModel)]="client.address" class="client-field-input">
+            </div>
+            <div class="client-field-group" style="flex: 1;">
+              <label class="client-field-label">PIN</label>
+              <input type="text" placeholder="110017" maxlength="6" inputmode="numeric" [(ngModel)]="client.pin_code" class="client-field-input">
+            </div>
+          </div>
+
+          <!-- Gender & Save Action Row -->
+          <div class="client-bottom-row">
+            <div class="client-gender-pills">
+              <button type="button" [class.active]="client.gender === 'male'" (click)="client.gender = 'male'">Male</button>
+              <button type="button" [class.active]="client.gender === 'female'" (click)="client.gender = 'female'">Female</button>
+              <button type="button" [class.active]="client.gender === 'unknown' || !client.gender" (click)="client.gender = 'unknown'">Other</button>
+            </div>
+            <button type="button" class="btn-save-client-modern" (click)="saveClient()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 3px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anonymous Client Card -->
+      <div *ngIf="client && client.is_anonymous" class="client-card-modern" style="text-align: center; padding: 12px 8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 4px; display: inline-block;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <div style="font-size: 11.5px; font-weight: 800; color: #0f172a;">Anonymous Walk-in</div>
+        <p style="font-size: 9.5px; color: #64748b; margin: 2px 0 0 0;">Billing as guest without profile.</p>
+      </div>
+
+      <!-- Client Details Sections -->
+      <div *ngIf="client && client.id">
+        <!-- MEMBERSHIPS -->
+        <div class="client-section-wrap" *ngIf="client?.active_memberships?.length">
+          <div class="client-section-title">
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+              Memberships
+            </span>
+            <span class="client-badge-count count-amber">{{ client.active_memberships.length }} Active</span>
+          </div>
+          <div *ngFor="let am of client?.active_memberships; trackBy: trackById" class="client-membership-card">
+            <div class="membership-card-top">
+              <span class="membership-card-name">👑 {{ am.membership_detail?.name }}</span>
+              <span class="membership-discount-badge">{{ am.membership_detail?.discount_percent }}% OFF</span>
+            </div>
+            <div class="membership-card-footer">
+              <span>Expires: {{ am.expiry_date | date:'dd MMM yyyy' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BALANCES -->
+        <div class="client-section-wrap">
+          <div class="client-section-title">
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+              Balances
+            </span>
+          </div>
+          <div class="balances-cards-grid">
+            <!-- Advance Wallet -->
+            <div class="balance-card balance-advance">
+              <div class="balance-card-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12"/><path d="M6 8h12"/><path d="M6 13h8.5l-1 4"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg>
+                <span class="balance-card-title">Advance / Wallet</span>
+              </div>
+              <div class="balance-card-amount" [class.positive]="clientAdvanceBalance > 0">
+                ₹{{ (clientAdvanceBalance || 0) | number:'1.2-2' }}
+              </div>
+            </div>
+
+            <!-- Cashback Wallet -->
+            <div class="balance-card balance-cashback">
+              <div class="balance-card-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                <span class="balance-card-title">Cashback Wallet</span>
+              </div>
+              <div class="balance-card-amount" [class.positive]="clientCashbackBalance > 0">
+                ₹{{ (clientCashbackBalance || 0) | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Value Cards List -->
+          <div *ngIf="client?.active_value_cards?.length" style="margin-top: 5px;">
+            <div style="font-size: 8.5px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 3px;">
+              Active Value Cards ({{ client.active_value_cards.length }})
+            </div>
+            <div *ngFor="let vc of client?.active_value_cards; trackBy: trackById" class="client-valcard-item">
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="font-size: 12px;">💳</span>
+                <div>
+                  <div style="font-weight: 700; font-size: 10.5px; color: #0f172a;">{{ vc.value_card_detail?.title }}</div>
+                  <div style="font-size: 8.5px; color: #94a3b8;">Exp: {{ vc.expiry_date | date:'dd MMM yyyy' }}</div>
+                </div>
+              </div>
+              <div style="font-weight: 800; font-size: 11px; color: #2563eb;">
+                ₹{{ vc.balance | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVE PACKAGES -->
+        <div class="client-section-wrap" *ngIf="client?.active_packages?.length">
+          <div class="client-section-title">
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect width="22" height="5" x="1" y="3"></rect><line x1="10" x2="14" y1="12" y2="12"></line></svg>
+              Active Packages
+            </span>
+            <span class="client-badge-count count-indigo">{{ client.active_packages.length }} Active</span>
+          </div>
+          <div *ngFor="let ap of client?.active_packages; trackBy: trackById" class="client-package-card">
+            <div class="package-card-top">
+              <span class="package-card-name">📦 {{ ap.package_detail?.name || 'Custom Package' }}</span>
+              <span class="package-card-expiry" [class.expired]="isExpired(ap.expiry_date)">
+                Exp: {{ ap.expiry_date | date:'dd MMM yyyy' }}
+              </span>
+            </div>
+            <div class="package-services-list">
+              <ng-container *ngFor="let svcId of getPackageServiceKeys(ap); trackBy: trackById">
+                <div class="package-service-row">
+                  <span class="pkg-svc-name">{{ getServiceName(+svcId) }}</span>
+                  <div class="pkg-svc-actions">
+                    <span class="pkg-svc-left" [class.has-left]="ap.services_remaining[svcId] > 0">
+                      {{ ap.services_remaining[svcId] }} left
+                    </span>
+                    <button *ngIf="ap.services_remaining[svcId] > 0 && !isExpired(ap.expiry_date)" class="btn-redeem-pill" (click)="addRedeemableServiceToCart(svcId, ap)">
+                      REDEEM
+                    </button>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLIENT HISTORY -->
+        <div class="client-section-wrap">
+          <div class="client-section-title">
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              Client History
+            </span>
+            <span *ngIf="clientHistory.length" class="client-badge-count count-gray">{{ clientHistory.length }} Records</span>
+          </div>
+          <div class="client-history-scroll-box">
+            <table class="client-history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>ID</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let h of clientHistory; trackBy: trackById" [class.is-invoice]="h.type === 'Invoice'" [class.is-advance]="h.type === 'Advance'">
+                  <td style="white-space: nowrap; font-size: 9.5px; color: #64748b;">{{ h.date | date:'dd MMM yy' }}</td>
+                  <td>
+                    <span class="history-type-chip" 
+                          [class.chip-invoice]="h.type === 'Invoice' && h.status !== 'cancelled'" 
+                          [class.chip-advance]="h.type === 'Advance'"
+                          [ngStyle]="{'background': h.status === 'cancelled' ? '#fee2e2' : '', 'color': h.status === 'cancelled' ? '#ef4444' : ''}">
+                      {{ h.status === 'cancelled' ? 'CANCELLED' : h.type | uppercase }}
+                    </span>
+                  </td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <span style="font-weight: 600; font-size: 9.5px;">#{{ h.ref }}</span>
+                      <button *ngIf="h.type === 'Invoice'" (click)="viewInvoice(h.ref)" class="btn-history-view" title="View Receipt">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="text-align: right; font-weight: 700; font-size: 10px;" 
+                      [style.color]="h.type === 'Advance' && +h.amount < 0 ? '#ef4444' : (h.status === 'cancelled' ? '#94a3b8' : '#0f172a')"
+                      [style.text-decoration]="h.status === 'cancelled' ? 'line-through' : 'none'">
+                    ₹{{ h.amount | number:'1.0-2' }}
+                  </td>
+                </tr>
+                <tr *ngIf="!clientHistory || clientHistory.length === 0">
+                  <td colspan="4" style="text-align: center; padding: 18px 8px; color: #94a3b8; font-size: 10.5px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 4px; display: block; margin: 0 auto 4px auto;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    No history yet
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Column: Master Search & Tabs -->
+    <div class="panel-card col-middle">
+      <div class="middle-top-bar" style="margin-bottom: 6px;">
+        <div class="search-blocks-container" style="display: flex; gap: 6px; margin-bottom: 4px; position: relative;">
+          <!-- Services Search -->
+          <div class="search-input-wrap" style="flex:1; border-radius: 8px; display: flex; align-items: center; position: relative; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0 4px 0 8px; height: 28px;">
+            <i class="fa fa-scissors" style="font-size: 11px; color: #94a3b8; margin-right: 6px;"></i>
+            <input #serviceSearchInput type="text" placeholder="Services (F4)..." [(ngModel)]="serviceSearchTerm" (focus)="activeTab = 'services'" (ngModelChange)="activeTab = 'services'" style="width: 100%; border: none; outline: none; background: transparent; padding: 2px 0; font-size: 11px;">
+            <button type="button" class="btn-browse-trigger" (click)="toggleServiceDropdown($event)" [class.active]="activeTab === 'services'" title="Show all services">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Products Search -->
+          <div class="search-input-wrap" style="flex:1; border-radius: 8px; display: flex; align-items: center; position: relative; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0 4px 0 8px; height: 28px;">
+            <i class="fa fa-shopping-bag" style="font-size: 11px; color: #94a3b8; margin-right: 6px;"></i>
+            <input type="text" placeholder="Products..." [(ngModel)]="productSearchTerm" (focus)="activeTab = 'products'" (ngModelChange)="activeTab = 'products'" style="width: 100%; border: none; outline: none; background: transparent; padding: 2px 0; font-size: 11px;">
+            <button type="button" class="btn-browse-trigger" (click)="toggleProductDropdown($event)" [class.active]="activeTab === 'products'" title="Show all products">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="catalog-tabs-bar" *ngIf="!client?.is_anonymous">
+          <button type="button" class="catalog-tab-btn tab-cards" [class.active]="activeTab === 'cards'" (click)="setActiveTab('cards')">
+            <i class="fa fa-credit-card tab-icon"></i>
+            <span>Cards</span>
+          </button>
+          <button type="button" class="catalog-tab-btn tab-packages" [class.active]="activeTab === 'packages'" (click)="setActiveTab('packages')">
+            <i class="fa fa-gift tab-icon"></i>
+            <span>Packages</span>
+          </button>
+          <button type="button" class="catalog-tab-btn tab-memberships" [class.active]="activeTab === 'memberships'" (click)="setActiveTab('memberships')">
+            <i class="fa fa-star tab-icon"></i>
+            <span>Memberships</span>
+          </button>
+          <button type="button" class="catalog-tab-btn tab-advance" [class.active]="activeTab === 'advance'" (click)="setActiveTab('advance')">
+            <i class="fa fa-money tab-icon"></i>
+            <span>Advance</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STATES for middle column -->
+      <!-- 1. Selection List (If nothing is configuring) -->
+      <div *ngIf="!selectedItemForConfig" class="master-items-container">
+
+        <!-- SERVICES TAB OR SERVICES SEARCH -->
+        <div *ngIf="activeTab === 'services' || (activeTab === 'search' && serviceSearchTerm)">
+          <!-- Category Filter Chips -->
+          <div *ngIf="serviceCategories.length > 2" class="category-chips-row">
+            <button *ngFor="let cat of serviceCategories; trackBy: trackById" type="button" class="category-chip"
+              [class.active]="selectedServiceCategory === cat.name" (click)="selectServiceCategory(cat.name)">
+              <span>{{ cat.name }}</span>
+              <span class="chip-count">{{ cat.count }}</span>
+            </button>
+          </div>
+
+          <div *ngIf="groupedServices.length === 0"
+            class="empty-message text-center mt-3" style="font-size: 11px; color: #94a3b8; padding: 20px 0;">
+            No services found matching "{{ serviceSearchTerm }}".
+          </div>
+
+          <!-- Grouped by Category -->
+          <div *ngFor="let group of groupedServices; trackBy: trackById" class="category-group-section">
+            <div class="category-group-header">
+              <div class="cat-title">
+                <i class="fa {{ getCategoryIcon(group.category) }} cat-icon"></i>
+                <span>{{ group.category }}</span>
+              </div>
+              <span class="cat-badge">{{ group.items.length }} {{ group.items.length === 1 ? 'service' : 'services' }}</span>
+            </div>
+
+            <div class="addable-list" style="gap: 2px;">
+              <div *ngFor="let s of group.items; let i = index; trackBy: trackById" class="addable-item"
+                [style.background]="s.name?.includes('[Redeem]') ? '#f0fdf4' : '#f8fafc'" 
+                style="display: flex; align-items: center; padding: 4px 8px; border-radius: 5px; border: 1px solid #f1f5f9; cursor: pointer; transition: all 0.15s ease;"
+                (click)="openConfig(s, 'service')">
+                <span style="font-size: 8.5px; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 1px 4px; border-radius: 3px; margin-right: 6px; flex-shrink: 0;">Svc</span>
+                <div style="font-weight: 600; font-size: 11px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [style.color]="s.name?.includes('[Redeem]') ? '#10b981' : '#0f172a'">{{ s.name }}</div>
+                <div style="font-weight: 700; font-size: 10.5px; margin-left: 6px; flex-shrink: 0;" [style.color]="s.name?.includes('[Redeem]') ? '#10b981' : '#0f172a'">₹{{ getEffectivePrice(s) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRODUCTS TAB OR PRODUCTS SEARCH -->
+        <div *ngIf="activeTab === 'products' || (activeTab === 'search' && productSearchTerm && !serviceSearchTerm)">
+          <!-- Category Filter Chips -->
+          <div *ngIf="productCategories.length > 2" class="category-chips-row">
+            <button *ngFor="let cat of productCategories; trackBy: trackById" type="button" class="category-chip"
+              [class.active]="selectedProductCategory === cat.name" (click)="selectProductCategory(cat.name)">
+              <span>{{ cat.name }}</span>
+              <span class="chip-count">{{ cat.count }}</span>
+            </button>
+          </div>
+
+          <div *ngIf="groupedProducts.length === 0"
+            class="empty-message text-center mt-3" style="font-size: 11px; color: #94a3b8; padding: 20px 0;">
+            No products found matching "{{ productSearchTerm }}".
+          </div>
+
+          <!-- Grouped by Category -->
+          <div *ngFor="let group of groupedProducts; trackBy: trackById" class="category-group-section">
+            <div class="category-group-header">
+              <div class="cat-title">
+                <i class="fa fa-shopping-bag cat-icon"></i>
+                <span>{{ group.category }}</span>
+              </div>
+              <span class="cat-badge">{{ group.items.length }} {{ group.items.length === 1 ? 'item' : 'items' }}</span>
+            </div>
+
+            <div class="addable-list" style="gap: 2px;">
+              <div *ngFor="let p of group.items; let i = index; trackBy: trackById" class="addable-item"
+                [class.out-of-stock-item]="p.current_stock <= 0" 
+                style="display: flex; align-items: center; padding: 4px 8px; border-radius: 5px; border: 1px solid #f1f5f9; background: #f8fafc; cursor: pointer; transition: all 0.15s ease;"
+                (click)="openConfig(p, 'product')">
+                <span style="font-size: 8.5px; font-weight: 700; background: #fef3c7; color: #b45309; padding: 1px 4px; border-radius: 3px; margin-right: 6px; flex-shrink: 0;">Prod</span>
+                <div style="font-weight: 600; font-size: 11px; color: #0f172a; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ p.name }}
+                  <span *ngIf="p.current_stock <= 0" style="display: inline-block; margin-left: 4px; background: #fee2e2; color: #dc2626; font-size: 8px; padding: 1px 3px; border-radius: 3px; font-weight: 600;">OUT</span>
+                  <span *ngIf="p.current_stock > 0 && p.current_stock <= 5" style="display: inline-block; margin-left: 4px; background: #fef3c7; color: #d97706; font-size: 8px; padding: 1px 3px; border-radius: 3px; font-weight: 600;">LOW: {{p.current_stock}}</span>
+                </div>
+                <div style="font-weight: 700; font-size: 10.5px; color: #0f172a; margin-left: 6px; flex-shrink: 0;">₹{{ getEffectivePrice(p) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEFAULT EMPTY STATE WHEN NO TAB IS OPEN AND NO SEARCH -->
+        <div *ngIf="activeTab === 'search' && !serviceSearchTerm && !productSearchTerm">
+          <div class="empty-message text-center mt-3" style="font-size: 11px; color: #94a3b8; padding: 24px 0;">
+            Search for a service or product.
+          </div>
+        </div>
+
+        <!-- CARDS TAB -->
+        <div *ngIf="activeTab === 'cards'">
+          <div *ngIf="filteredCards.length === 0" class="empty-message text-center mt-3" style="font-size: 11px; color: #94a3b8; padding: 20px 0;">
+            No active value cards found.
+          </div>
+          <div class="addable-list" style="gap: 2px;">
+            <div *ngFor="let card of filteredCards | slice:0:100; let i = index; trackBy: trackById" class="addable-item" (click)="openConfig(card, 'card')"
+              style="display: flex; align-items: center; padding: 4px 8px; border-radius: 5px; border: 1px solid #f1f5f9; background: #f8fafc; cursor: pointer; transition: all 0.15s ease;" [style.border-color]="client?.active_value_cards?.length ? '#c7d2fe' : '#f1f5f9'">
+              <span style="font-size: 8.5px; font-weight: 700; background: #ede9fe; color: #6d28d9; padding: 1px 4px; border-radius: 3px; margin-right: 6px; flex-shrink: 0;">Card</span>
+              <div style="font-weight: 600; font-size: 11px; color: #0f172a; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ card.name || card.title }}</div>
+              <div style="font-weight: 700; font-size: 10.5px; color: #0f172a; margin-left: 6px; flex-shrink: 0;">₹{{ card.price || card.value }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PACKAGES TAB -->
+        <div *ngIf="activeTab === 'packages'">
+          <div class="addable-list" style="gap: 2px;">
+            <div class="addable-item" (click)="openConfig(customPackageObj, 'package')"
+              style="display: flex; align-items: center; padding: 4px 8px; border-radius: 5px; border: 1px dashed #ec4899; background: #fdf2f8; cursor: pointer; transition: all 0.15s ease;">
+              <span style="font-size: 8.5px; font-weight: 700; background: #fce7f3; color: #be185d; padding: 1px 4px; border-radius: 3px; margin-right: 6px; flex-shrink: 0;">+ New</span>
+              <div style="font-weight: 700; font-size: 11px; color: #be185d; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">+ Custom Package</div>
+              <div style="font-weight: 600; font-size: 10px; color: #db2777; margin-left: 6px; flex-shrink: 0;">Build Custom</div>
+            </div>
+            <div *ngFor="let pkg of filteredPackages | slice:0:100; let i = index; trackBy: trackById" class="addable-item" (click)="openConfig(pkg, 'package')"
+              style="display: flex; align-items: center; padding: 4px 8px; border-radius: 5px; border: 1px solid #f1f5f9; background: #f8fafc; cursor: pointer; transition: all 0.15s ease;">
+              <span style="font-size: 8.5px; font-weight: 700; background: #fce7f3; color: #be185d; padding: 1px 4px; border-radius: 3px; margin-right: 6px; flex-shrink: 0;">Pkg</span>
+              <div style="font-weight: 600; font-size: 11px; color: #0f172a; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ pkg.name }}</div>
+              <div style="font-weight: 700; font-size: 10.5px; color: #0f172a; margin-left: 6px; flex-shrink: 0;">₹{{ pkg.price }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MEMBERSHIPS TAB -->
+        <div *ngIf="activeTab === 'memberships'">
+          <div *ngIf="filteredMemberships.length === 0" class="empty-message text-center mt-3" style="font-size: 11px; color: #94a3b8; padding: 20px 0;">
+            No active memberships found.
+          </div>
+          <div class="addable-list" style="gap: 2px;">
+            <div *ngFor="let membership of filteredMemberships | slice:0:100; let i = index; trackBy: trackById" class="addable-item"
+              (click)="openConfig(membership, 'membership')"
+              style="display: flex; align-items: center; padding: 4px 8px; border-radius: 5px; border: 1px solid #f1f5f9; background: #f8fafc; cursor: pointer; transition: all 0.15s ease;">
+              <span style="font-size: 8.5px; font-weight: 700; background: #dcfce7; color: #15803d; padding: 1px 4px; border-radius: 3px; margin-right: 6px; flex-shrink: 0;">Mbr</span>
+              <div style="font-weight: 600; font-size: 11px; color: #0f172a; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ membership.name }}</div>
+              <div style="font-weight: 700; font-size: 10.5px; color: #0f172a; margin-left: 6px; flex-shrink: 0;">₹{{ membership.price }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="activeTab === 'advance'" style="display: none;">
+          <!-- Advance moved to config container -->
+        </div>
+      </div>
+
+      <!-- 2. Configuration View -->
+      <div *ngIf="selectedItemForConfig" class="config-container">
+
+        <!-- ADVANCE CONFIG -->
+        <ng-container *ngIf="configType === 'advance'">
+          <div class="cfg-header-banner adv-theme">
+            <button type="button" class="cfg-back-btn" (click)="closeConfig()"><i class="fa fa-arrow-left"></i> Back</button>
+            <div class="cfg-banner-info">
+              <span class="cfg-badge badge-adv"><i class="fa fa-money"></i> Client Advance</span>
+              <h4 class="cfg-title">Add Advance Balance</h4>
+            </div>
+            <div class="cfg-live-price-pill" style="color: #0d9488;">₹{{ (advanceAmount || 0) | number:'1.2-2' }}</div>
+          </div>
+
+          <!-- Current Balance Stat Card -->
+          <div class="cfg-stat-card stat-green" style="margin-bottom: 4px;">
+            <span class="cfg-stat-label">Current Client Advance Balance</span>
+            <span class="cfg-stat-val" style="font-size: 15px;">₹{{ (clientAdvanceBalance || 0) | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Add to Advance Input -->
+          <div class="cfg-form-group">
+            <label class="cfg-label">Amount to Add (₹):</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="cfg-input" [(ngModel)]="advanceAmount" (ngModelChange)="onAdvanceAmountChange()" placeholder="Enter amount in Rupees" style="font-size: 13px; font-weight: 700;">
+          </div>
+          
+          <div class="cfg-form-group">
+            <label class="cfg-label">GST %:</label>
+            <select class="cfg-input" [(ngModel)]="advanceGstPercent" (ngModelChange)="onAdvanceGstPercentChange()" style="font-size: 13px; font-weight: 700;">
+              <option [ngValue]="0">0%</option>
+              <option [ngValue]="5">5%</option>
+              <option [ngValue]="18">18%</option>
+            </select>
+          </div>
+
+          <div class="cfg-form-group">
+            <label class="cfg-label">GST Amount (₹):</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="cfg-input" [(ngModel)]="advanceGstAmount" placeholder="Enter GST amount in Rupees" style="font-size: 13px; font-weight: 700;">
+          </div>
+
+          <!-- Description -->
+          <div class="cfg-form-group">
+            <label class="cfg-label">Description / Remarks:</label>
+            <textarea placeholder="e.g. Deposit for bridal booking" rows="2" [(ngModel)]="advanceDescription" class="cfg-input" style="height: 50px; padding: 6px 10px; resize: none; font-size: 11px;"></textarea>
+          </div>
+
+          <!-- Staff Assignment -->
+          <div class="cfg-staff-box">
+            <label class="cfg-label" style="margin-bottom: 4px;">
+              <span><i class="fa fa-user-check" style="color: #0d9488;"></i> Sold / Collected By (Staff):</span>
+              <span style="font-size: 9px; color: #94a3b8;">Select Staff</span>
+            </label>
+            <div class="cfg-staff-list">
+              <div *ngIf="staffMembers.length === 0" style="color: #94a3b8; font-size: 10.5px; font-style: italic; padding: 4px;">No active staff found</div>
+              <div *ngFor="let s of staffMembers | slice:0:50; trackBy: trackById" class="cfg-staff-pill" [class.selected]="isStaffSelected(s.id)" (mousedown)="$event.button === 0 && (toggleStaffSelection(s.id))">
+                <span class="cfg-staff-avatar">{{ (s.first_name || 'S')[0] }}</span>
+                <span>{{s.first_name}} {{s.last_name}}</span>
+                <i *ngIf="isStaffSelected(s.id)" class="fa fa-check" style="font-size: 8px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="cfg-actions-row">
+            <button class="btn-cfg-primary" (click)="confirmAddToCart()">
+              <i class="fa fa-plus-circle"></i> ADD TO INVOICE
+            </button>
+            <button class="btn-cfg-cancel" (click)="closeConfig()">CANCEL</button>
+          </div>
+        </ng-container>
+
+        <!-- SERVICE & PRODUCT CONFIG -->
+        <ng-container *ngIf="configType === 'service' || configType === 'product'">
+          <div class="cfg-header-banner" [class.svc-theme]="configType === 'service'" [class.prod-theme]="configType === 'product'">
+            <button type="button" class="cfg-back-btn" (click)="closeConfig()"><i class="fa fa-arrow-left"></i> Back</button>
+            <div class="cfg-banner-info">
+              <span class="cfg-badge" [class.badge-svc]="configType === 'service'" [class.badge-prod]="configType === 'product'">
+                <i class="fa" [class.fa-scissors]="configType === 'service'" [class.fa-shopping-bag]="configType === 'product'"></i>
+                {{ configType === 'service' ? 'Service' : 'Product' }}
+              </span>
+              <h4 class="cfg-title">{{ selectedItemForConfig?.name }}</h4>
+            </div>
+            <div class="cfg-live-price-pill">₹{{ finalConfigPrice | number:'1.2-2' }}</div>
+          </div>
+
+          <!-- Price & Discounts Grid -->
+          <div class="cfg-stats-grid">
+            <div class="cfg-stat-card stat-blue">
+              <span class="cfg-stat-label">Base Price</span>
+              <div class="cfg-stat-val" style="display:flex; align-items:center;">
+                <span style="font-size:12px; margin-right:4px;">₹</span>
+                <input *ngIf="configType === 'service' || configType === 'product'; else staticBase"
+                  type="number" [(ngModel)]="customBasePrice" (ngModelChange)="recalcConfigPrice()"
+                  style="width: 80px; font-weight:700; font-size:14px; background:transparent; border:1px solid rgba(0,0,0,0.1); border-radius:4px; padding:2px 4px; outline:none; color:inherit;">
+                <ng-template #staticBase>
+                  {{ customBasePrice | number:'1.2-2' }}
+                </ng-template>
+              </div>
+            </div>
+            <div class="cfg-stat-card stat-green">
+              <span class="cfg-stat-label">Final Price</span>
+              <span class="cfg-stat-val">₹{{ finalConfigPrice | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Promo banner if any (never applies to products) -->
+          <div *ngIf="selectedPromotion && configType !== 'product'" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 4px 8px; font-size: 10.5px; color: #065f46; display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+            <i class="fa fa-gift" style="color: #10b981;"></i>
+            <span><strong>{{ selectedPromotion.name }}</strong> applied ({{ selectedPromotion.discount_percent }}% off)</span>
+          </div>
+
+          <!-- Manager Discount (hidden for products — MRP is fixed) -->
+          <div *ngIf="configType !== 'product'" class="cfg-form-group" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px;">
+            <label class="cfg-label">
+              <span><i class="fa fa-tag" style="color: #6366f1;"></i> Manager Discount:</span>
+              <button class="btn-link" (click)="resetConfig()" style="font-size: 9.5px; color: #6366f1; font-weight: 600;">Reset</button>
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
+                <span style="font-size: 10.5px; font-weight: 700; color: #64748b;">%</span>
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="cfg-input" [(ngModel)]="managerDiscountPercent" (ngModelChange)="recalcConfigPrice()" placeholder="0" style="text-align: right;">
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; flex: 1;">
+                <span style="font-size: 10.5px; font-weight: 700; color: #64748b;">₹</span>
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="cfg-input" [(ngModel)]="managerDiscountAmount" (ngModelChange)="recalcConfigPrice()" placeholder="0" style="text-align: right;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Staff Assignment -->
+          <div class="cfg-staff-box">
+            <label class="cfg-label" style="margin-bottom: 4px;">
+              <span><i class="fa fa-user-check" style="color: #6366f1;"></i> {{ configType === 'service' ? 'Service Done By' : 'Product Sold By' }}:</span>
+              <span style="font-size: 9px; color: #94a3b8;">Select Staff</span>
+            </label>
+            <div class="cfg-staff-list">
+              <div *ngIf="staffMembers.length === 0" style="color: #94a3b8; font-size: 10.5px; font-style: italic; padding: 4px;">No active staff found</div>
+              <div *ngFor="let s of staffMembers | slice:0:50; trackBy: trackById" class="cfg-staff-pill" [class.selected]="isStaffSelected(s.id)" (mousedown)="$event.button === 0 && (toggleStaffSelection(s.id))">
+                <span class="cfg-staff-avatar">{{ (s.first_name || 'S')[0] }}</span>
+                <span>{{s.first_name}} {{s.last_name}}</span>
+                <i *ngIf="isStaffSelected(s.id)" class="fa fa-check" style="font-size: 8px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staff Split Allocation -->
+          <table class="cfg-alloc-table" *ngIf="configStaffIds.length > 0">
+            <thead>
+              <tr>
+                <th>Staff Name</th>
+                <th style="width: 80px;">Split %</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sid of configStaffIds; trackBy: trackById">
+                <td style="font-weight: 600;">{{ getStaffName(sid) }}</td>
+                <td>
+                  <input type="number" [(ngModel)]="configStaffAllocations[sid]" style="width: 48px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; font-weight: 700; text-align: right;"> %
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #10b981;">
+                  ₹{{ ((configStaffAllocations[sid] || 0) * finalConfigPrice / 100) | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Actions -->
+          <div class="cfg-actions-row">
+            <button class="btn-cfg-primary" (click)="confirmAddToCart()">
+              <i class="fa fa-plus-circle"></i> ADD TO INVOICE
+            </button>
+            <button class="btn-cfg-cancel" (click)="closeConfig()">CANCEL</button>
+          </div>
+        </ng-container>
+
+        <!-- CARD CONFIG -->
+        <ng-container *ngIf="configType === 'card'">
+          <div class="cfg-header-banner card-theme">
+            <button type="button" class="cfg-back-btn" (click)="closeConfig()"><i class="fa fa-arrow-left"></i> Back</button>
+            <div class="cfg-banner-info">
+              <span class="cfg-badge badge-card"><i class="fa fa-credit-card"></i> Value Card</span>
+              <h4 class="cfg-title">{{ selectedItemForConfig?.name || selectedItemForConfig?.title }}</h4>
+            </div>
+            <div class="cfg-live-price-pill">₹{{ finalConfigPrice | number:'1.2-2' }}</div>
+          </div>
+
+          <!-- Card Selector -->
+          <div class="cfg-form-group">
+            <label class="cfg-label">
+              <span>Select Value Card:</span>
+              <button class="btn-link" (click)="resetConfig()" style="font-size: 9.5px; color: #6366f1; font-weight: 600;">Reset</button>
+            </label>
+            <select class="cfg-select" [(ngModel)]="selectedItemForConfig" (ngModelChange)="onConfigSelectionChange()">
+              <option *ngFor="let card of cards; trackBy: trackById" [ngValue]="card">{{ card.name || card.title }}</option>
+            </select>
+          </div>
+
+          <!-- 3 KPI Cards -->
+          <div class="cfg-stats-grid">
+            <div class="cfg-stat-card stat-blue">
+              <span class="cfg-stat-label">Card Cost</span>
+              <span class="cfg-stat-val">₹{{ finalConfigPrice | number:'1.0-2' }}</span>
+            </div>
+            <div class="cfg-stat-card stat-green">
+              <span class="cfg-stat-label">Card Balance</span>
+              <span class="cfg-stat-val">₹{{ selectedItemForConfig?.value | number:'1.0-2' }}</span>
+            </div>
+            <div class="cfg-stat-card stat-purple">
+              <span class="cfg-stat-label">Expiry</span>
+              <span class="cfg-stat-val" style="font-size: 11px;">06-Apr-2027</span>
+            </div>
+          </div>
+
+          <!-- Staff Assignment -->
+          <div class="cfg-staff-box">
+            <label class="cfg-label" style="margin-bottom: 4px;">
+              <span><i class="fa fa-users" style="color: #6366f1;"></i> Sold By (Select Staff):</span>
+              <span style="font-size: 9px; color: #94a3b8;">Multi-select enabled</span>
+            </label>
+            <div class="cfg-staff-list">
+              <div *ngIf="staffMembers.length === 0" style="color: #94a3b8; font-size: 10.5px; font-style: italic; padding: 4px;">No active staff found</div>
+              <div *ngFor="let s of staffMembers | slice:0:50; trackBy: trackById" class="cfg-staff-pill" [class.selected]="isStaffSelected(s.id)" (mousedown)="$event.button === 0 && (toggleStaffSelection(s.id))">
+                <span class="cfg-staff-avatar">{{ (s.first_name || 'S')[0] }}</span>
+                <span>{{s.first_name}} {{s.last_name}}</span>
+                <i *ngIf="isStaffSelected(s.id)" class="fa fa-check" style="font-size: 8px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staff Split Allocation -->
+          <table class="cfg-alloc-table" *ngIf="configStaffIds.length > 0">
+            <thead>
+              <tr>
+                <th>Staff Name</th>
+                <th style="width: 80px;">Split %</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sid of configStaffIds; trackBy: trackById">
+                <td style="font-weight: 600;">{{ getStaffName(sid) }}</td>
+                <td>
+                  <input type="number" [(ngModel)]="configStaffAllocations[sid]" style="width: 48px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; font-weight: 700; text-align: right;"> %
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #10b981;">
+                  ₹{{ ((configStaffAllocations[sid] || 0) * finalConfigPrice / 100) | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Actions -->
+          <div class="cfg-actions-row">
+            <button class="btn-cfg-primary" (click)="confirmAddToCart()">
+              <i class="fa fa-plus-circle"></i> ADD TO INVOICE
+            </button>
+            <button class="btn-cfg-cancel" (click)="closeConfig()">CANCEL</button>
+          </div>
+        </ng-container>
+
+        <!-- PACKAGE CONFIG -->
+        <ng-container *ngIf="configType === 'package'">
+          <div class="cfg-header-banner pkg-theme">
+            <button type="button" class="cfg-back-btn" (click)="closeConfig()"><i class="fa fa-arrow-left"></i> Back</button>
+            <div class="cfg-banner-info">
+              <span class="cfg-badge badge-pkg"><i class="fa fa-gift"></i> Package</span>
+              <h4 class="cfg-title">{{ selectedItemForConfig?.name || 'Custom Package' }}</h4>
+            </div>
+            <div class="cfg-live-price-pill">₹{{ finalConfigPrice | number:'1.2-2' }}</div>
+          </div>
+
+          <!-- Package Selector -->
+          <div class="cfg-form-group">
+            <label class="cfg-label">Select Package Type:</label>
+            <select class="cfg-select" [(ngModel)]="selectedItemForConfig" (ngModelChange)="onPackageSelectionChange()">
+              <option [ngValue]="customPackageObj">Custom Package (Build Custom)</option>
+              <option *ngFor="let p of filteredPackages; trackBy: trackById" [ngValue]="p">{{p.name}} (₹{{p.price}})</option>
+            </select>
+          </div>
+
+          <!-- Custom Package Service Search -->
+          <div *ngIf="!selectedItemForConfig?.id" class="cfg-form-group" style="position: relative;">
+            <label class="cfg-label">Add Services to Package:</label>
+            <div style="display: flex; gap: 4px; position: relative;">
+              <input type="text" placeholder="Search service to add..." [(ngModel)]="packageSearchTerm" class="cfg-input">
+              <div *ngIf="packageFilteredServices.length > 0" style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 140px; overflow-y: auto; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div *ngFor="let s of packageFilteredServices; trackBy: trackById" (mousedown)="$event.button === 0 && (addServiceToPackage(s))" style="padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 11px;">
+                  <span style="font-weight: 600;">{{s.name}}</span>
+                  <span style="font-weight: 700; color: #ec4899;">₹{{s.price}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Included Services List -->
+          <div style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 8px; padding: 6px 8px; margin-bottom: 4px;">
+            <div style="font-size: 9.5px; font-weight: 700; color: #be185d; text-transform: uppercase; margin-bottom: 4px;">
+              {{ selectedItemForConfig?.id ? 'Included Services in Package' : 'Custom Added Services' }} ({{ packageSelectedServices.length }})
+            </div>
+            <div *ngIf="packageSelectedServices.length === 0" style="color: #94a3b8; font-size: 10.5px; font-style: italic; text-align: center; padding: 4px;">
+              No services added yet. Search above to add.
+            </div>
+            <div *ngFor="let s of packageSelectedServices; let i = index" style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dashed #fbcfe8; font-size: 10.5px;">
+              <span style="font-weight: 600; color: #0f172a;">{{s.name}} <span style="font-size: 9px; color: #be185d;">(x{{s.pkgQty || 1}})</span></span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 700; color: #be185d;">₹{{s.price}}</span>
+                <i *ngIf="!selectedItemForConfig?.id" class="fa fa-trash" style="color: #ef4444; cursor: pointer;" (click)="removeServiceFromPackage(i)"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selling Price -->
+          <div class="cfg-form-group">
+            <label class="cfg-label">Package Selling Price (₹):</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="cfg-input" [(ngModel)]="finalConfigPrice" placeholder="Enter package price">
+          </div>
+
+          <!-- Staff Assignment -->
+          <div class="cfg-staff-box">
+            <label class="cfg-label" style="margin-bottom: 4px;">
+              <span><i class="fa fa-users" style="color: #ec4899;"></i> Sold By (Select Staff):</span>
+              <span style="font-size: 9px; color: #94a3b8;">Multi-select enabled</span>
+            </label>
+            <div class="cfg-staff-list">
+              <div *ngIf="staffMembers.length === 0" style="color: #94a3b8; font-size: 10.5px; font-style: italic; padding: 4px;">No active staff found</div>
+              <div *ngFor="let s of staffMembers | slice:0:50; trackBy: trackById" class="cfg-staff-pill" [class.selected]="isStaffSelected(s.id)" (mousedown)="$event.button === 0 && (toggleStaffSelection(s.id))">
+                <span class="cfg-staff-avatar">{{ (s.first_name || 'S')[0] }}</span>
+                <span>{{s.first_name}} {{s.last_name}}</span>
+                <i *ngIf="isStaffSelected(s.id)" class="fa fa-check" style="font-size: 8px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staff Split Allocation -->
+          <table class="cfg-alloc-table" *ngIf="configStaffIds.length > 0">
+            <thead>
+              <tr>
+                <th>Staff Name</th>
+                <th style="width: 80px;">Split %</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sid of configStaffIds; trackBy: trackById">
+                <td style="font-weight: 600;">{{ getStaffName(sid) }}</td>
+                <td>
+                  <input type="number" [(ngModel)]="configStaffAllocations[sid]" style="width: 48px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; font-weight: 700; text-align: right;"> %
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #10b981;">
+                  ₹{{ ((configStaffAllocations[sid] || 0) * finalConfigPrice / 100) | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Actions -->
+          <div class="cfg-actions-row">
+            <button class="btn-cfg-primary" (click)="confirmAddToCart()">
+              <i class="fa fa-plus-circle"></i> ADD TO INVOICE
+            </button>
+            <button class="btn-cfg-cancel" (click)="closeConfig()">CANCEL</button>
+          </div>
+        </ng-container>
+
+        <!-- MEMBERSHIP CONFIG -->
+        <ng-container *ngIf="configType === 'membership'">
+          <div class="cfg-header-banner mbr-theme">
+            <button type="button" class="cfg-back-btn" (click)="closeConfig()"><i class="fa fa-arrow-left"></i> Back</button>
+            <div class="cfg-banner-info">
+              <span class="cfg-badge badge-mbr"><i class="fa fa-star"></i> Membership</span>
+              <h4 class="cfg-title">{{ selectedItemForConfig?.name }}</h4>
+            </div>
+            <div class="cfg-live-price-pill">₹{{ finalConfigPrice | number:'1.2-2' }}</div>
+          </div>
+
+          <!-- Membership Selector -->
+          <div class="cfg-form-group">
+            <label class="cfg-label">Select Membership Tier:</label>
+            <select class="cfg-select" [(ngModel)]="selectedItemForConfig" (ngModelChange)="onConfigSelectionChange()">
+              <option *ngFor="let m of filteredMemberships; trackBy: trackById" [ngValue]="m">{{ m.name }}</option>
+            </select>
+          </div>
+
+          <!-- Stats KPI -->
+          <div class="cfg-stats-grid">
+            <div class="cfg-stat-card stat-amber">
+              <span class="cfg-stat-label">Tier Price</span>
+              <span class="cfg-stat-val">₹{{ finalConfigPrice | number:'1.0-2' }}</span>
+            </div>
+            <div class="cfg-stat-card stat-purple">
+              <span class="cfg-stat-label">Validity</span>
+              <span class="cfg-stat-val">365 Days</span>
+            </div>
+            <div class="cfg-stat-card stat-blue">
+              <span class="cfg-stat-label">Expiry Date</span>
+              <span class="cfg-stat-val" style="font-size: 11px;">11-Jul-2027</span>
+            </div>
+          </div>
+
+          <!-- Staff Assignment -->
+          <div class="cfg-staff-box">
+            <label class="cfg-label" style="margin-bottom: 4px;">
+              <span><i class="fa fa-users" style="color: #d97706;"></i> Sold By (Select Staff):</span>
+              <span style="font-size: 9px; color: #94a3b8;">Multi-select enabled</span>
+            </label>
+            <div class="cfg-staff-list">
+              <div *ngIf="staffMembers.length === 0" style="color: #94a3b8; font-size: 10.5px; font-style: italic; padding: 4px;">No active staff found</div>
+              <div *ngFor="let s of staffMembers | slice:0:50; trackBy: trackById" class="cfg-staff-pill" [class.selected]="isStaffSelected(s.id)" (mousedown)="$event.button === 0 && (toggleStaffSelection(s.id))">
+                <span class="cfg-staff-avatar">{{ (s.first_name || 'S')[0] }}</span>
+                <span>{{s.first_name}} {{s.last_name}}</span>
+                <i *ngIf="isStaffSelected(s.id)" class="fa fa-check" style="font-size: 8px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Staff Split Allocation -->
+          <table class="cfg-alloc-table" *ngIf="configStaffIds.length > 0">
+            <thead>
+              <tr>
+                <th>Staff Name</th>
+                <th style="width: 80px;">Split %</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let sid of configStaffIds; trackBy: trackById">
+                <td style="font-weight: 600;">{{ getStaffName(sid) }}</td>
+                <td>
+                  <input type="number" [(ngModel)]="configStaffAllocations[sid]" style="width: 48px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; font-weight: 700; text-align: right;"> %
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #10b981;">
+                  ₹{{ ((configStaffAllocations[sid] || 0) * finalConfigPrice / 100) | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Actions -->
+          <div class="cfg-actions-row">
+            <button class="btn-cfg-primary" (click)="confirmAddToCart()">
+              <i class="fa fa-plus-circle"></i> ADD TO INVOICE
+            </button>
+            <button class="btn-cfg-cancel" (click)="closeConfig()">CANCEL</button>
+          </div>
+        </ng-container>
+
+      </div>
+    </div>
+
+    <!-- Right Column: Invoice Summary -->
+    <div class="panel-card col-invoice p-0">
+      <div class="invoice-brand-header">
+        <h4>AURA</h4>
+        <div style="font-size: 10px; color: var(--text-secondary);">SALON</div>
+        <div style="font-size: 11px; margin-top: 5px;">{{ selectedCenterName }}</div>
+      </div>
+
+      <div class="invoice-meta">
+        Billed for: <strong>{{ client?.first_name || 'Customer' }}</strong>, Ph: <strong>{{ client?.phone || 'N/A'
+          }}</strong> at <strong>{{ cart.length > 0 ? (cart[0].time || 'Now') : 'Now' }}</strong>
+      </div>
+
+      <div class="cart-items-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 35%;">ITEMS</th>
+              <th>PRICE</th>
+              <th>DISC</th>
+              <th>QTY</th>
+              <th>TAX %</th>
+              <th>TAX AMT</th>
+              <th>TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let it of cart; let i = index" style="border-bottom: 1px dashed var(--border);">
+              <td style="padding: 6px 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <i *ngIf="it.content_type === 'services.servicemaster'" class="fa fa-scissors"
+                      style="color: #6366F1; font-size: 11px;"></i>
+                    <i *ngIf="it.content_type === 'inventory.product'" class="fa fa-shopping-bag"
+                      style="color: #F59E0B; font-size: 11px;"></i>
+                    <i *ngIf="it.content_type === 'marketing.package'" class="fa fa-gift" style="color: #EC4899; font-size: 11px;"></i>
+                    <i *ngIf="it.content_type === 'marketing.membership'" class="fa fa-star"
+                      style="color: #10B981; font-size: 11px;"></i>
+                    <i *ngIf="it.content_type === 'marketing.valuecard'" class="fa fa-credit-card"
+                      style="color: #8B5CF6; font-size: 11px;"></i>
+                    <i *ngIf="it.content_type === 'advance'" class="fa fa-money" style="color: #14B8A6; font-size: 11px;"></i>
+                    <span style="font-weight: 600; font-size: 11.5px; color: #0f172a;">{{ it.description }}</span>
+                  </div>
+                  <button type="button" class="btn-icon-danger" (click)="removeFromCart(i)"
+                    *ngIf="currentInvoiceStatus === 'draft'" title="Remove Item"
+                    style="padding: 2px 4px; background: transparent; border: none; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div style="font-size: 9px; color: var(--text-muted); margin-top: 2px;" *ngIf="it.staff_members?.length">
+                  <i class="fa fa-user-circle" style="margin-right: 2px;"></i> By: <span
+                    *ngFor="let s of it.staff_members; let last=last; trackBy: trackById">{{ getStaffName(s) }}{{last ? '' : ', '}}</span>
+                </div>
+                <!-- What this service uses: the colour, the shampoo the client chose -->
+                <div *ngIf="recipeOf(it) as rec" style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 4px;">
+                  <ng-container *ngFor="let g of rec.groups; trackBy: trackById">
+                    <span *ngIf="chosenOption(it, g) as o"
+                      style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 999px; padding: 1px 8px; font-size: 10px; font-weight: 600;">
+                      {{ g.name }}: {{ o.name }} <span style="font-weight: 500; opacity: .8;">{{ usedQty(it, g, o) | number:'1.0-2' }} {{ o.unit }}</span>
+                    </span>
+                    <span *ngIf="!chosenOption(it, g) && g.required"
+                      style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 999px; padding: 1px 8px; font-size: 10px; font-weight: 700;">
+                      Choose {{ g.name }}
+                    </span>
+                  </ng-container>
+                  <span *ngFor="let e of it.recipe_choices?.extras; trackBy: trackByIndex"
+                    style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 999px; padding: 1px 8px; font-size: 10px; font-weight: 600;">
+                    + {{ extraName(e.product_code) }} {{ e.quantity }}
+                  </span>
+                  <button type="button" *ngIf="currentInvoiceStatus === 'draft'" (click)="openRecipe(i)"
+                    style="border: 0; background: transparent; color: #2563eb; font-size: 10px; font-weight: 700; cursor: pointer; padding: 1px 2px;">
+                    {{ missingChoices(it).length ? 'Choose' : 'Change' }}
+                  </button>
+                </div>
+              </td>
+              <td style="vertical-align: middle; padding: 6px 4px; font-size: 11px;">{{ it.unit_price | number:'1.2-2' }}</td>
+              <td style="vertical-align: middle; padding: 6px 4px; font-size: 11px;">{{ it.discount | number:'1.2-2' }}</td>
+              <td style="vertical-align: middle; padding: 6px 4px;">
+                <div style="display: flex; align-items: center; gap: 3px;" *ngIf="currentInvoiceStatus === 'draft'">
+                  <button type="button" (click)="updateQuantity(i, -1)" [disabled]="it.quantity <= 1"
+                    style="width: 20px; height: 20px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">-</button>
+                  <input type="number" min="0" oninput="validity.valid||(value='');" min="0" oninput="validity.valid||(value='');" min="1" [(ngModel)]="it.quantity" (ngModelChange)="onQuantityDirectChange(i)"
+                    style="width: 32px; height: 20px; text-align: center; font-weight: 700; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); padding: 0; outline: none;" />
+                  <button type="button" (click)="updateQuantity(i, 1)"
+                    style="width: 20px; height: 20px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">+</button>
+                </div>
+                <span *ngIf="currentInvoiceStatus !== 'draft'" style="font-size: 11px;">{{ it.quantity }}</span>
+              </td>
+              <td style="vertical-align: middle; text-align:center;">
+                <span *ngIf="it.tax_percentage" style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;">{{ it.tax_percentage }}%</span>
+                <span *ngIf="!it.tax_percentage" style="color:#94a3b8;font-size:10px;">—</span>
+              </td>
+              <td style="vertical-align: middle; text-align:right; color:#92400e; font-size:11px;">
+                {{ getItemTaxAmount(it) | number:'1.2-2' }}
+              </td>
+              <td style="vertical-align: middle;"><strong>{{ ( (it.unit_price * it.quantity) - it.discount + getItemTaxAmount(it) ) |
+                  number:'1.2-2' }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="invoice-summary-block mt-auto" style="padding: 10px 12px;">
+
+        <!-- Promo / Membership Selection & Animation Area -->
+        <div class="promo-section-container" [class.has-promo]="selectedPromotion" [class.is-membership]="isMembershipSelected" [class.promo-pulse-active]="promoAppliedAnim">
+          <div class="promo-select-row">
+            <div class="promo-label-group">
+              <span class="promo-icon-indicator" *ngIf="isMembershipSelected">👑</span>
+              <span class="promo-icon-indicator" *ngIf="selectedPromotion && !isMembershipSelected">✨</span>
+              <span class="promo-icon-indicator" *ngIf="!selectedPromotion">🏷️</span>
+              <label class="promo-main-label">Promo / Membership:</label>
+            </div>
+            
+            <div class="promo-input-wrapper">
+              <select [(ngModel)]="selectedPromotion" (ngModelChange)="onPromoChange()"
+                class="promo-select-dropdown" [class.selected-membership]="isMembershipSelected" [class.selected-promo]="selectedPromotion && !isMembershipSelected">
+                <option [ngValue]="null">No Promotion</option>
+                <option *ngFor="let p of filteredPromotions; trackBy: trackById" [ngValue]="p">{{p.name}}</option>
+              </select>
+              <button *ngIf="selectedPromotion" type="button" class="btn-clear-promo" (click)="clearPromotion()" title="Remove Promotion">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Applied Promotion / Membership Status Banner -->
+          <div *ngIf="selectedPromotion" class="promo-applied-banner" [class.banner-pop]="promoBadgePop" [class.membership-banner]="isMembershipSelected" [class.offer-banner]="!isMembershipSelected">
+            <div class="promo-banner-left">
+              <span class="promo-status-tag">
+                <span class="pulse-dot"></span>
+                {{ isMembershipSelected ? 'MEMBERSHIP ACTIVE' : 'PROMO APPLIED' }}
+              </span>
+              <span class="promo-name-text">{{ selectedPromoDisplayName }}</span>
+            </div>
+
+            <div class="promo-banner-right">
+              <span class="promo-benefit-badge">{{ selectedPromoBenefitText }}</span>
+              <span *ngIf="invoiceDiscount > 0" class="promo-savings-pill">
+                🎉 Save ₹{{ invoiceDiscount | number:'1.2-2' }}
+              </span>
+              <span *ngIf="invoiceDiscount === 0 && isMembershipSelected" class="promo-info-note" title="Discount will apply to eligible salon services in cart">
+                Applies to services
+              </span>
+            </div>
+          </div>
+          
+          <div *ngIf="usableValueCards.length > 0 && !selectedPromotion" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+            <button *ngFor="let vc of usableValueCards; trackBy: trackById" class="btn-cfg-primary" (click)="toggleValueCard(vc)"
+              style="width: 100%; font-size: 11px; padding: 4px; background-color: #8b5cf6;"
+              [style.background-color]="selectedValueCardId === vc.id ? '#6d28d9' : '#8b5cf6'">
+              <i class="fa" [ngClass]="selectedValueCardId === vc.id ? 'fa-check-circle' : 'fa-credit-card'"></i>
+              {{ selectedValueCardId === vc.id ? 'Paying with' : 'Pay with' }} {{ vc.value_card_detail?.title || 'Value Card' }}
+              (Bal ₹{{ vc.balance | number:'1.2-2' }}){{ selectedValueCardId === vc.id ? ' — tap to remove' : '' }}
+            </button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 11px; color: var(--text-secondary);">
+           <div style="display: flex; justify-content: space-between;">
+              <span>Sub-total:</span>
+              <span style="font-weight: 600;">₹{{ subtotalAmount | number:'1.2-2' }}</span>
+           </div>
+           <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>CGST:</span>
+              <span style="display: flex; align-items: center; gap: 2px;">
+                ₹<span style="display: inline-block; min-width: 40px; text-align: right; font-size: 11px;">{{ invoiceCGST | number:'1.2-2' }}</span>
+              </span>
+           </div>
+           <div style="display: flex; justify-content: space-between; align-items: center;" [class.discount-highlight-anim]="discountRowAnim">
+              <span [style.color]="totalItemDiscount > 0 ? '#10b981' : 'inherit'" [style.font-weight]="totalItemDiscount > 0 ? '600' : 'normal'">Discount:</span>
+              <span style="font-weight: 600;" [style.color]="totalItemDiscount > 0 ? '#10b981' : '#ef4444'">
+                - ₹{{ totalItemDiscount | number:'1.2-2' }}
+              </span>
+           </div>
+           <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>SGST:</span>
+              <span style="display: flex; align-items: center; gap: 2px;">
+                ₹<span style="display: inline-block; min-width: 40px; text-align: right; font-size: 11px;">{{ invoiceSGST | number:'1.2-2' }}</span>
+              </span>
+           </div>
+        </div>
+        
+        <div [class.pulse-anim]="promoAppliedAnim" [class.total-glow]="promoAppliedAnim" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px; border-top: 1px dashed #e2e8f0; font-size: 16px; font-weight: 800; color: var(--ink); transition: all 0.3s ease; border-radius: 6px;">
+          <span>Total Invoice Amount</span>
+          <span>₹{{ finalTotalAmount | number:'1.2-2' }}</span>
+        </div>
+        <div *ngIf="cardSettled > 0" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 11px; color: var(--text-secondary); padding: 0 10px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #6d28d9; font-weight: 600;">Covered by value card:</span>
+            <span style="font-weight: 600; color: #6d28d9;">₹{{ cardSettled | number:'1.2-2' }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="font-weight: 600;">Payable now:</span>
+            <span style="font-weight: 700; color: var(--ink);">₹{{ payableNow | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="invoice-actions">
+        <button class="btn-discard" (click)="discardInvoice()">Discard</button>
+        <button class="btn-save" (click)="saveInvoice(true)" *ngIf="currentInvoiceStatus === 'draft'">Hold / Save Draft</button>
+        <button class="btn-finalise" *ngIf="cart.length > 0 && currentInvoiceStatus === 'draft'"
+          (click)="openCheckoutModal()"><i class="fa fa-check-circle" style="margin-right:8px;"></i>Finalise
+          [F8]</button>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <!-- Toast Notification -->
+  <app-approval-wait *ngIf="approvalWait" [requests]="approvalWait"
+    (approved)="onApprovalDone($event)" (closed)="onApprovalClosed($event)"
+    (askAgain)="onApprovalAskAgain()"></app-approval-wait>
+
+  <app-pin-check *ngIf="pinAsk && client?.id" [clientId]="client.id"
+    [clientName]="((client.first_name || '') + ' ' + (client.last_name || '')).trim()"
+    [centerId]="selectedCenterId || 0"
+    (verified)="onPinVerified($event)" (closed)="onPinClosed()"></app-pin-check>
+
+  <div class="toast-notification" [class.show]="toastVisible" [ngClass]="toastType">
+    <i class="fa"
+      [ngClass]="{'fa-check-circle': toastType === 'success', 'fa-exclamation-circle': toastType === 'error', 'fa-info-circle': toastType === 'info'}"
+      style="margin-right: 8px;"></i>
+    {{ toastMessage }}
+  </div>
+
+    <!-- CHECKOUT MODAL -->
+    <app-payment-modal
+      [show]="showCheckoutModal"
+      [finalTotalAmount]="payableNow"
+      [cardSettled]="cardSettled"
+      [paymentMethods]="branchPaymentMethods"
+      [checkoutPayments]="checkoutPayments"
+      [clientAdvanceBalance]="clientAdvanceBalance"
+      [clientCashbackBalance]="clientCashbackBalance"
+      [clientValueCards]="[]"
+      [checkoutRemaining]="checkoutRemaining"
+      [canCompleteSale]="canCompleteSale"
+      [isSaving]="isSaving"
+      [client]="client"
+      [centerId]="selectedCenterId"
+      (close)="closeCheckoutModal()"
+      (confirm)="saveInvoice(false)"
+      (onMethodChange)="methodChanged()"
+      (onAmountChange)="rebalancePayments()"
+      (onAddPaymentRow)="addPaymentRow()"
+      (onRemovePaymentRow)="removePaymentRow($event)">
+    </app-payment-modal>
+
+    <!-- ============================================================ -->
+    <!-- FULL INVOICE RECEIPT MODAL (auto-shows after sale complete)  -->
+    <!-- ============================================================ -->
+    <div class="inv-receipt-overlay" *ngIf="showSuccessModal && completedInvoiceData" id="invoice-receipt-modal" style="flex-direction: column;">
+      
+      <div class="classic-receipt-paper" id="print-invoice"
+        [ngClass]="'rcpt-' + (completedInvoiceData.receipt_settings?.size || 'auto')">
+        <div class="prt-header">
+          <img src="assets/images/full.png" alt="Aura Salon & Spa" style="max-width: 150px; margin: 0 auto 10px auto; display: block; filter: grayscale(100%);">
+          <div style="text-align: center; margin-bottom: 10px; font-size: 11px;">
+            <div *ngIf="completedInvoiceData.branch_legal_name || completedInvoiceData.branch_name" style="font-weight: bold;">{{ completedInvoiceData.branch_legal_name || completedInvoiceData.branch_name }}</div>
+            <div *ngIf="completedInvoiceData.branch_address || receiptCenter?.address" style="white-space: pre-wrap; font-family: 'Courier New', Courier, monospace;">{{ completedInvoiceData.branch_address || receiptCenter?.address }}</div>
+            <div *ngIf="completedInvoiceData.branch_phone">Ph: {{ completedInvoiceData.branch_phone }}</div>
+            <div *ngIf="completedInvoiceData.branch_gstin || receiptCenter?.gst_number" style="font-weight: bold; margin-top: 4px;">GSTIN: {{ completedInvoiceData.branch_gstin || receiptCenter?.gst_number }}</div>
+          </div>
+          <div style="text-align: center; font-weight: 800; font-size: 13px; letter-spacing: 1px; margin-bottom: 6px;">
+            {{ completedInvoiceData.document_type === 'bill_of_supply' ? 'BILL OF SUPPLY' : 'TAX INVOICE' }}
+          </div>
+          <div class="prt-divider"></div>
+          <div class="prt-meta-row">
+            <span><b>Invoice No:</b> {{ completedInvoiceData.invoice_number || completedInvoiceData.display_number }}</span>
+          </div>
+          <div class="prt-meta-row">
+            <span><b>Date:</b> {{ (completedInvoiceData.finalized_at || completedInvoiceData.created_at) | date:'dd MMM yyyy, h:mm a' }}</span>
+          </div>
+          <div class="prt-meta-row" *ngIf="completedInvoiceData.place_of_supply">
+            <span><b>Place of supply:</b> {{ completedInvoiceData.place_of_supply }}</span>
+          </div>
+          <div *ngIf="completedInvoiceData.status === 'cancelled'" style="text-align: center; color: #ef4444; font-weight: bold; font-size: 16px; margin-top: 8px; border: 2px dashed #ef4444; padding: 4px; border-radius: 4px;">
+            CANCELLED
+          </div>
+        </div>
+        <div class="prt-section">
+          <div class="prt-section-title">BILLED TO</div>
+          <div class="prt-client-name">{{ completedInvoiceData.customer_name || ((completedInvoiceData.client?.first_name || '') + ' ' + (completedInvoiceData.client?.last_name || '')) }}</div>
+          <div class="prt-client-meta">Ph: {{ completedInvoiceData.customer_phone || completedInvoiceData.client?.phone }}</div>
+          <div class="prt-client-meta" *ngIf="completedInvoiceData.customer_gstin">GSTIN: {{ completedInvoiceData.customer_gstin }}</div>
+          <div class="prt-client-meta" *ngIf="completedInvoiceData.customer_gstin && completedInvoiceData.customer_address" style="white-space: pre-wrap;">{{ completedInvoiceData.customer_address }}</div>
+        </div>
+        <div class="prt-divider"></div>
+        <table class="prt-table">
+          <thead>
+            <tr>
+              <th style="text-align:left; width: 40%;">ITEM</th>
+              <th style="text-align:center;">QTY</th>
+              <th style="text-align:right;">RATE</th>
+              <th style="text-align:right;">TAXABLE</th>
+              <th style="text-align:right;">GST</th>
+              <th style="text-align:right;">AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of completedInvoiceData.items; trackBy: trackById">
+              <td>
+                <div style="font-weight: 600;">{{ item.description }}</div>
+                <div *ngIf="item.hsn_sac" style="font-size: 8px; color: #555;">{{ item.content_type === 'inventory.product' ? 'HSN' : 'SAC' }} {{ item.hsn_sac }}</div>
+                <div *ngIf="+item.card_benefit > 0" style="font-size: 9px; color: #6d28d9; margin-top: 1px;">Value-card benefit: -₹{{ item.card_benefit | number:'1.2-2' }}</div>
+                <div *ngIf="(+item.discount - +item.card_benefit) > 0" style="font-size: 9px; color: #10b981; margin-top: 1px;">Discount: -₹{{ (+item.discount - +item.card_benefit) | number:'1.2-2' }}</div>
+                <div *ngIf="+item.bill_discount_share > 0" style="font-size: 9px; color: #10b981;">Offer: -₹{{ item.bill_discount_share | number:'1.2-2' }}</div>
+              </td>
+              <td data-label="QTY" style="text-align:center;">{{ item.quantity }}</td>
+              <td data-label="RATE" style="text-align:right;">{{ item.unit_price | number:'1.2-2' }}</td>
+              <td data-label="TAXABLE" style="text-align:right;">{{ (item.taxable_value ?? item.total_price) | number:'1.2-2' }}</td>
+              <td data-label="GST" style="text-align:right;">{{ item.tax_amount | number:'1.2-2' }} <span *ngIf="(+item.card_face > 0 ? +item.card_tax_percentage : +item.tax_percentage) > 0" style="font-size: 8px;">({{ +item.card_face > 0 ? item.card_tax_percentage : item.tax_percentage }}%)</span></td>
+              <td data-label="AMOUNT" style="text-align:right; font-weight:700;">{{ (+(item.taxable_value ?? item.total_price) + +item.tax_amount) | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="prt-divider"></div>
+        <div class="prt-section" *ngIf="completedInvoiceData.value_card_cover as vc">
+          <div class="prt-section-title">COVERED BY VALUE CARD {{ vc.number }}</div>
+          <div class="prt-total-row" style="font-size:11px;"><span>Face value used</span><span>₹{{ vc.face_used | number:'1.2-2' }}</span></div>
+          <div class="prt-total-row" style="font-size:11px;"><span>Value-card benefit</span><span>- ₹{{ vc.benefit | number:'1.2-2' }}</span></div>
+          <div class="prt-total-row" style="font-size:11px;"><span>Taxable value</span><span>₹{{ vc.taxable | number:'1.2-2' }}</span></div>
+          <div class="prt-total-row" style="font-size:11px;"><span>GST</span><span>₹{{ vc.tax | number:'1.2-2' }}</span></div>
+          <div class="prt-total-row" style="font-size:11px;font-weight:700;"><span>Adjusted from card</span><span>₹{{ vc.settled | number:'1.2-2' }}</span></div>
+          <div class="prt-total-row" style="font-size:10px;color:#555;"><span>Card balance left</span><span>₹{{ vc.balance_after | number:'1.2-2' }}</span></div>
+          <div class="prt-divider"></div>
+        </div>
+        <div class="prt-totals">
+          <div class="prt-total-row"><span>Sub-total</span><span>₹{{ completedInvoiceData.subtotal | number:'1.2-2'
+              }}</span></div>
+          <div class="prt-total-row" *ngIf="+completedInvoiceData.discount > 0"><span>Discount</span><span>- ₹{{
+              completedInvoiceData.discount | number:'1.2-2' }}</span></div>
+          <ng-container *ngFor="let t of completedInvoiceData.tax_breakdown; trackBy: trackByIndex">
+            <ng-container *ngIf="+t.tax > 0">
+              <div class="prt-total-row" style="font-size:11px;"><span>CGST {{ +t.rate / 2 }}% on ₹{{ t.taxable | number:'1.2-2' }}</span><span>₹{{ t.cgst | number:'1.2-2' }}</span></div>
+              <div class="prt-total-row" style="font-size:11px;"><span>SGST {{ +t.rate / 2 }}% on ₹{{ t.taxable | number:'1.2-2' }}</span><span>₹{{ t.sgst | number:'1.2-2' }}</span></div>
+            </ng-container>
+          </ng-container>
+          <div class="prt-total-row" *ngIf="+completedInvoiceData.rounding !== 0" style="font-size:11px;"><span>Round off</span><span>{{ +completedInvoiceData.rounding > 0 ? '+' : '-' }} ₹{{ (+completedInvoiceData.rounding < 0 ? -completedInvoiceData.rounding : completedInvoiceData.rounding) | number:'1.2-2' }}</span></div>
+          <div class="prt-total-row prt-grand-total"><span>TOTAL</span><span>₹{{ completedInvoiceData.total_amount |
+              number:'1.2-2' }}</span></div>
+          <div class="prt-total-row" *ngIf="completedInvoiceData.value_card_cover" style="font-size:11px;color:#555;"><span>Paid from value card</span><span>₹{{
+              completedInvoiceData.value_card_cover.settled | number:'1.2-2' }}</span></div>
+          <div class="prt-total-row" style="font-size:11px;color:#555;"><span>Paid now</span><span>₹{{
+              completedInvoiceData.paid_now | number:'1.2-2' }}</span></div>
+        </div>
+        <div class="prt-divider"></div>
+        <div class="prt-section" *ngIf="completedInvoiceData.payments?.length">
+          <div class="prt-section-title">PAYMENT</div>
+          <ng-container *ngFor="let pay of completedInvoiceData.payments; trackBy: trackById">
+            <div class="prt-total-row" style="font-size:12px;">
+              <span>{{ pay.payment_method }}<span *ngIf="pay.reference" style="font-size:9px;"> · {{ pay.reference }}</span></span><span>₹{{ pay.amount | number:'1.2-2' }}</span>
+            </div>
+            <div *ngIf="pay.tendered" class="prt-total-row" style="font-size:10px;color:#555;">
+              <span>Cash received ₹{{ pay.tendered | number:'1.2-2' }}</span><span>Change ₹{{ pay.change_given | number:'1.2-2' }}</span>
+            </div>
+          </ng-container>
+        </div>
+        <div class="prt-section" *ngIf="completedInvoiceData.irn" style="font-size:8px;word-break:break-all;">
+          <div><b>IRN:</b> {{ completedInvoiceData.irn }}</div>
+          <div *ngIf="completedInvoiceData.irn_ack_no"><b>Ack No:</b> {{ completedInvoiceData.irn_ack_no }} · {{ completedInvoiceData.irn_ack_date | date:'dd MMM yyyy' }}</div>
+        </div>
+        <div class="prt-footer">
+          <div class="prt-divider"></div>
+          
+          <div style="text-align: left; font-size: 6px; color: #666; line-height: 1.2; margin-top: 8px; margin-bottom: 12px;">
+            <div style="font-weight: 700; margin-bottom: 3px;">Terms & Conditions:</div>
+            <ul style="margin: 0; padding-left: 10px; display: flex; flex-direction: column; gap: 2px;">
+              <li>Services, products, memberships, packages, and value cards, once purchased, are non-refundable, non-exchangeable, non-transferable, and non-extendable.</li>
+              <li>The salon management reserves the right of admission.</li>
+              <li>Only one offer or benefit can be availed at a time. Multiple offers or promotions cannot be clubbed together.</li>
+              <li>Service prices are exclusive of GST; product prices (MRP) include GST.</li>
+              <li>GST is applicable as per the guidelines issued by the Government of India.</li>
+            </ul>
+          </div>
+
+          <div style="font-size:10px;font-weight:700;margin-bottom:2px; text-align: center;">{{ completedInvoiceData.receipt_settings?.footer || 'Thank you for your visit!' }}</div>
+          <div style="font-size:8px;color:#555; text-align: center;">Please visit again</div>
+          <div *ngIf="completedInvoiceData.created_by_name" style="font-size:8px;color:#555; text-align: center;">Billed by {{ completedInvoiceData.created_by_name }}</div>
+        </div>
+      </div>
+      
+      <div class="classic-receipt-actions">
+        <button (click)="printInvoice()" title="Print receipt (Ctrl+P)">
+          <i class="fa fa-print"></i> Print
+        </button>
+        <button class="primary" (click)="closeSuccessModal()">
+          <i class="fa fa-check"></i> Done
+        </button>
+      </div>
+
+    </div>
+
+    <!-- WHAT THE CLIENT CHOSE FOR A SERVICE (its recipe) -->
+    <div *ngIf="recipeEditIndex !== null && cart[recipeEditIndex] as line"
+      style="position: fixed; inset: 0; z-index: 3500; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .45); backdrop-filter: blur(4px);"
+      (mousedown)="onRecipeBackdropPress($event)">
+      <div *ngIf="recipeOf(line) as rec"
+        style="width: min(560px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--surface, #fff); color: var(--text-primary, #0f172a); border-radius: 18px; box-shadow: 0 30px 80px rgba(15, 23, 42, .28); overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 22px 12px; border-bottom: 1px solid var(--border, #e2e8f0);">
+          <div>
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary, #64748b);">What did the client choose?</div>
+            <div style="font-size: 18px; font-weight: 800; margin-top: 2px;">{{ line.description }}<span *ngIf="line.quantity > 1" style="font-weight: 600; color: var(--text-secondary, #64748b);"> &times; {{ line.quantity }}</span></div>
+          </div>
+          <button type="button" (click)="closeRecipe()" aria-label="Close"
+            style="border: 0; background: transparent; font-size: 26px; line-height: 1; cursor: pointer; color: var(--text-secondary, #64748b);">&times;</button>
+        </div>
+
+        <div style="padding: 14px 22px; overflow-y: auto;">
+          <div *ngIf="!rec.groups.length" style="font-size: 13px; color: var(--text-secondary, #64748b); padding: 4px 0 10px;">
+            This service has nothing to choose. Its fixed items come off stock by themselves.
+          </div>
+
+          <div *ngFor="let g of rec.groups; trackBy: trackById" style="margin-bottom: 18px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 800;">{{ g.name }}</span>
+              <span *ngIf="g.required" style="font-size: 10px; font-weight: 700; color: #b91c1c; background: #fef2f2; padding: 2px 8px; border-radius: 999px;">choose one</span>
+              <span *ngIf="!g.required" style="font-size: 10px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 999px;">optional</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;">
+              <button type="button" *ngFor="let o of g.options; trackBy: trackByIndex"
+                [disabled]="optionBlocked(line, g, o)" (click)="pickRecipeOption(line, g, o)"
+                [style.border]="chosenOption(line, g)?.product_code === o.product_code ? '2px solid #0f172a' : '1px solid var(--border-strong, #cbd5e1)'"
+                [style.background]="chosenOption(line, g)?.product_code === o.product_code ? '#0f172a' : 'var(--surface, #fff)'"
+                [style.color]="chosenOption(line, g)?.product_code === o.product_code ? '#fff' : 'inherit'"
+                [style.opacity]="optionBlocked(line, g, o) ? '.45' : '1'"
+                [style.cursor]="optionBlocked(line, g, o) ? 'not-allowed' : 'pointer'"
+                style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; font: inherit;">
+                <span style="font-size: 13px; font-weight: 700;">{{ o.name }}</span>
+                <span style="font-size: 11px; opacity: .8;">{{ o.quantity | number:'1.0-2' }} {{ o.unit }} each &middot; {{ o.stock | number:'1.0-2' }} left</span>
+                <span *ngIf="optionBlocked(line, g, o)" style="font-size: 10px; font-weight: 700;">Not enough stock</span>
+              </button>
+            </div>
+            <div *ngIf="chosenOption(line, g) as chosen"
+              style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--text-secondary, #64748b);">
+              <span>Recipe: {{ chosen.quantity * line.quantity | number:'1.0-2' }} {{ chosen.unit }}. Really used</span>
+              <input type="number" min="0" step="any" [ngModel]="line.recipe_choices.choices[g.id]?.quantity"
+                (ngModelChange)="setUsedQty(line, g, $event)" [placeholder]="usedQty(line, g, chosen)"
+                style="width: 84px; padding: 6px 8px; border: 1px solid var(--border-strong, #cbd5e1); border-radius: 8px; font: inherit; font-size: 12px; text-align: right;" />
+              <span>{{ chosen.unit }}</span>
+            </div>
+          </div>
+
+          <div style="border-top: 1px dashed var(--border, #e2e8f0); padding-top: 12px;">
+            <div style="font-size: 13px; font-weight: 800; margin-bottom: 6px;">Anything else used?</div>
+            <div *ngFor="let e of line.recipe_choices?.extras; let xi = index; trackBy: trackByIndex"
+              style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; margin-bottom: 4px; background: #eff6ff; border-radius: 8px; font-size: 12px;">
+              <span><strong>{{ extraName(e.product_code) }}</strong> &middot; {{ e.quantity }}</span>
+              <button type="button" (click)="removeRecipeExtra(line, xi)" aria-label="Remove"
+                style="border: 0; background: transparent; color: #b91c1c; font-size: 16px; cursor: pointer;">&times;</button>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+              <select [(ngModel)]="recipeExtraCode"
+                style="flex: 1 1 180px; padding: 8px 10px; border: 1px solid var(--border-strong, #cbd5e1); border-radius: 8px; font: inherit; font-size: 12px;">
+                <option value="">Add a product...</option>
+                <option *ngFor="let p of recipeExtras; trackBy: trackByIndex" [value]="p.product_code">{{ p.name }} ({{ p.stock }} {{ p.unit }})</option>
+              </select>
+              <input type="number" min="0" step="any" [(ngModel)]="recipeExtraQty" placeholder="Qty"
+                style="width: 80px; padding: 8px 10px; border: 1px solid var(--border-strong, #cbd5e1); border-radius: 8px; font: inherit; font-size: 12px; text-align: right;" />
+              <button type="button" (click)="addRecipeExtra(line)"
+                style="border: 0; background: #f1f5f9; color: #0f172a; font-weight: 700; font-size: 12px; padding: 8px 14px; border-radius: 8px; cursor: pointer;">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 22px; border-top: 1px solid var(--border, #e2e8f0);">
+          <span *ngIf="missingChoices(line).length" style="font-size: 12px; font-weight: 700; color: #b91c1c;">Still to choose: {{ missingChoices(line).join(', ') }}</span>
+          <span *ngIf="!missingChoices(line).length" style="font-size: 12px; font-weight: 700; color: #047857;">All set</span>
+          <button type="button" (click)="closeRecipe()"
+            style="border: 0; background: #0f172a; color: #fff; font-weight: 700; font-size: 13px; padding: 10px 22px; border-radius: 10px; cursor: pointer;">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HELD CARTS MODAL -->
+    <app-held-carts-modal
+      [show]="showHeldCartsModal"
+      [heldCarts]="heldCarts"
+      (close)="showHeldCartsModal = false"
+      (onDelete)="deleteHeldCart($event)"
+      (onResume)="resumeCart($event)">
+    </app-held-carts-modal>

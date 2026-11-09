@@ -1,0 +1,1875 @@
+<div class="marketing-layout">
+
+  <div class="sticky-tabs-container">
+    <div class="page-subheader-row" *ngIf="activeTab === 'WhatsApp'">
+      <div class="subheader-left">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <app-location-selector
+            [centers]="centers"
+            [hasGlobalAccess]="hasGlobalAccess"
+        [multi]="true"
+            [(selectedCenterId)]="selectedFilterCenterId"
+            (selectionChange)="onFilterCenterChange()">
+          </app-location-selector>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Level Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn" *ngIf="canReadCampaigns"
+        [class.active]="activeTab === 'Campaigns'" (click)="setTab('Campaigns')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+        Campaigns
+      </button>
+      <button class="tab-btn" *ngIf="isOwner || permissions.marketing?.whatsapp?.read"
+        [class.active]="activeTab === 'WhatsApp'" (click)="setTab('WhatsApp')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+        WhatsApp
+      </button>
+      <button class="tab-btn" *ngIf="isOwner || permissions.marketing?.usage?.read" [class.active]="activeTab === 'Usage'"
+        (click)="setTab('Usage')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        Usage Analytics
+      </button>
+    </div>
+
+    <!-- Campaign Sub Tabs -->
+    <div class="sub-tabs" *ngIf="activeTab === 'Campaigns'">
+      <button class="sub-tab-btn" *ngIf="canRead('promotions')" [class.active]="campaignTab === 'Promotions'"
+        (click)="setCampaignTab('Promotions')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+        Promotions
+      </button>
+      <button class="sub-tab-btn" *ngIf="canRead('cards')" [class.active]="campaignTab === 'Cards'"
+        (click)="setCampaignTab('Cards')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        Cards
+      </button>
+      <button class="sub-tab-btn" *ngIf="canRead('memberships')" [class.active]="campaignTab === 'Memberships'"
+        (click)="setCampaignTab('Memberships')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+        Memberships
+      </button>
+      <button class="sub-tab-btn" *ngIf="canRead('packages')" [class.active]="campaignTab === 'Packages'"
+        (click)="setCampaignTab('Packages')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect width="22" height="5" x="1" y="3"></rect><line x1="10" x2="14" y1="12" y2="12"></line></svg>
+        Packages
+      </button>
+    </div>
+  </div>
+
+  <div class="tab-content" *ngIf="activeTab === 'Campaigns'">
+
+    <!-- Promotions -->
+    <div class="campaign-content" *ngIf="campaignTab === 'Promotions'">
+      <div class="split-layout">
+        <!-- Compact Form Panel -->
+        <div class="form-card" *ngIf="isOwner || permissions.marketing?.promotions?.create">
+          <div class="mkt-card-header-banner promo-theme">
+            
+            <div>
+              <div class="mkt-header-title">Create Promotion</div>
+              <div class="mkt-header-sub">Discounts, flat deals & cashback</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.2;">
+              <label class="mkt-field-label">Type</label>
+              <select class="form-control" [(ngModel)]="newPromotion.promo_type">
+                <option value="Discount">Discount on Bill/items</option>
+                <option value="FlatPrice">Flat Price on items</option>
+                <option value="Trigger">Trigger Deals</option>
+                <option value="Cashback">Cashback Cards</option>
+                <option value="Coupon">Promotional Coupons (brand codes)</option>
+              </select>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">Scope</label>
+              <div class="segmented-control">
+                <label><input type="radio" name="promo_lvl" value="Organisation" [(ngModel)]="newPromotion.level">  Org</label>
+                <label><input type="radio" name="promo_lvl" value="Center" [(ngModel)]="newPromotion.level">  Center</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mkt-field-group" *ngIf="newPromotion.level === 'Center'">
+            <label class="mkt-field-label">Target Center</label>
+            <select class="form-control" [(ngModel)]="selectedCenterId">
+              <option [value]="null">Select Center</option>
+              <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.5;">
+              <label class="mkt-field-label">Promotion Name</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="text" class="form-control" placeholder="e.g. Summer 20%" [(ngModel)]="newPromotion.name">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;" *ngIf="newPromotion.promo_type !== 'Coupon'">
+              <label class="mkt-field-label">Max Uses / Client</label>
+              <div class="mkt-input-wrap">
+
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Unlimited" [(ngModel)]="newPromotion.max_usage_per_client">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;" *ngIf="newPromotion.promo_type === 'Coupon'">
+              <label class="mkt-field-label">Brand</label>
+              <div class="mkt-input-wrap">
+                <input type="text" maxlength="60" class="form-control" placeholder="e.g. Blinkit" [(ngModel)]="newPromotion.config.brand">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">{{ newPromotion.promo_type === 'Coupon' ? 'Coupons Valid From' : 'Start Date' }}</label>
+              <div class="mkt-input-wrap">
+                <input type="date" class="form-control" min="{{todayDate}}" [(ngModel)]="newPromotion.start_date">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">{{ newPromotion.promo_type === 'Coupon' ? 'Coupons Valid Till' : 'End Date' }}</label>
+              <div class="mkt-input-wrap">
+                <input type="date" class="form-control" min="{{todayDate}}" [(ngModel)]="newPromotion.end_date">
+              </div>
+            </div>
+          </div>
+
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">Description</label>
+            <div class="mkt-input-wrap">
+              <input type="text" class="form-control" placeholder="Terms & conditions..." [(ngModel)]="newPromotion.description">
+            </div>
+          </div>
+
+          <!-- Dynamic Configuration Section -->
+          <div class="mkt-config-box">
+            <!-- Type 1: Discount -->
+            <div *ngIf="newPromotion.promo_type === 'Discount'">
+              <div class="mkt-config-title"> Discount Configuration</div>
+              <div class="form-row" style="margin-top: 2px;">
+                <select class="form-control" [(ngModel)]="newPromotion.config.discount_type">
+                  <option value="Percentage">Percentage (%)</option>
+                  <option value="Flat">Flat (Rs.)</option>
+                </select>
+                <div class="mkt-input-wrap">
+                  <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Discount Value" [(ngModel)]="newPromotion.config.discount_value">
+                </div>
+              </div>
+
+              <div class="segmented-control" style="margin-top: 4px;">
+                <label><input type="radio" name="disc_target" value="Overall Bill" [(ngModel)]="newPromotion.config.target">  Overall Bill</label>
+                <label><input type="radio" name="disc_target" value="Specific Service" [(ngModel)]="newPromotion.config.target">  Specific Service</label>
+              </div>
+
+              <div *ngIf="newPromotion.config.target === 'Specific Service'" style="margin-top: 4px;">
+                <select class="form-control" [(ngModel)]="newPromotion.config.specific_service">
+                  <option value="">Select Service</option>
+                  <option *ngFor="let s of servicesList; trackBy: trackById" [value]="s.name">{{ s.name }}</option>
+                </select>
+              </div>
+
+              <div class="mkt-field-group" style="margin-top: 4px;">
+                <label class="mkt-field-label">Min Bill Amount For Validity</label>
+                <div class="mkt-input-wrap">
+                  
+                  <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Min bill amount" [(ngModel)]="newPromotion.config.min_bill_amount">
+                </div>
+              </div>
+            </div>
+
+            <!-- Type 2: Flat Price -->
+            <div *ngIf="newPromotion.promo_type === 'FlatPrice'">
+              <div class="mkt-config-title"> Flat Price Configuration</div>
+              <div class="mkt-field-group" style="margin-top: 2px;">
+                <label class="mkt-field-label">Service</label>
+                <select class="form-control" [(ngModel)]="newPromotion.config.specific_service">
+                  <option value="">Select Service</option>
+                  <option *ngFor="let s of servicesList; trackBy: trackById" [value]="s.name">{{ s.name }}</option>
+                </select>
+              </div>
+              <div class="mkt-field-group" style="margin-top: 4px;">
+                <label class="mkt-field-label">Flat Price (Rs.)</label>
+                <div class="mkt-input-wrap">
+                  
+                  <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Flat Price" [(ngModel)]="newPromotion.config.flat_price">
+                </div>
+              </div>
+            </div>
+
+            <!-- Type 3: Trigger Deals -->
+            <div *ngIf="newPromotion.promo_type === 'Trigger'">
+              <div class="mkt-config-title"> Trigger Deal Configuration</div>
+              <div class="form-row" style="margin-top: 2px;">
+                <select class="form-control" [(ngModel)]="newPromotion.config.trigger_services[0]">
+                  <option value="" disabled selected hidden>Service 1</option>
+                  <option *ngFor="let s of servicesList; trackBy: trackById" [value]="s.name">{{ s.name }}</option>
+                </select>
+                <select class="form-control" [(ngModel)]="newPromotion.config.trigger_services[1]">
+                  <option value="" disabled selected hidden>Service 2</option>
+                  <option *ngFor="let s of servicesList; trackBy: trackById" [value]="s.name">{{ s.name }}</option>
+                </select>
+              </div>
+              <div class="mkt-field-group" style="margin-top: 4px;">
+                <label class="mkt-field-label">Discount %</label>
+                <div class="mkt-input-wrap">
+                  
+                  <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Discount %" [(ngModel)]="newPromotion.config.trigger_discount">
+                </div>
+              </div>
+            </div>
+
+            <!-- Type 4: Cashback Cards -->
+            <div *ngIf="newPromotion.promo_type === 'Cashback'">
+              <div class="mkt-config-title"> Cashback Configuration</div>
+              <div class="form-row" style="margin-top: 2px;">
+                <div class="mkt-field-group">
+                  <label class="mkt-field-label">Min Bill (Rs.)</label>
+                  <div class="mkt-input-wrap">
+                    
+                    <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Min Bill" [(ngModel)]="newPromotion.config.cashback_min_bill">
+                  </div>
+                </div>
+                <div class="mkt-field-group">
+                  <label class="mkt-field-label">Cashback %</label>
+                  <div class="mkt-input-wrap">
+                    
+                    <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="%" [(ngModel)]="newPromotion.config.cashback_discount">
+                  </div>
+                </div>
+              </div>
+              <div class="form-row" style="margin-top: 4px;">
+                <div class="mkt-field-group">
+                  <label class="mkt-field-label">Valid Days</label>
+                  <div class="mkt-input-wrap">
+                    <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Days" [(ngModel)]="newPromotion.config.cashback_validity_days">
+                  </div>
+                </div>
+                <div class="mkt-field-group">
+                  <label class="mkt-field-label">Specific Date</label>
+                  <div class="mkt-input-wrap">
+                    <input type="date" class="form-control" [(ngModel)]="newPromotion.config.cashback_specific_date">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Type 5: Promotional Coupons (a partner brand's codes, paid with as a Gift Card) -->
+            <div *ngIf="newPromotion.promo_type === 'Coupon'">
+              <div class="mkt-config-title"> Coupon Configuration</div>
+              <div class="form-row" style="margin-top: 2px;">
+                <div class="mkt-field-group" style="flex: 1;">
+                  <label class="mkt-field-label">Each coupon is worth</label>
+                  <select class="form-control" [(ngModel)]="newPromotion.config.coupon_value_type">
+                    <option value="Flat">Flat (Rs.)</option>
+                    <option value="Percentage">Percentage of the bill (%)</option>
+                  </select>
+                </div>
+                <div class="mkt-field-group" style="flex: 1;">
+                  <label class="mkt-field-label">{{ newPromotion.config.coupon_value_type === 'Percentage' ? 'Percent (%)' : 'Amount (Rs.)' }}</label>
+                  <div class="mkt-input-wrap">
+                    <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="e.g. 500" [(ngModel)]="newPromotion.config.coupon_value">
+                  </div>
+                </div>
+              </div>
+              <div class="form-row" style="margin-top: 4px;">
+                <div class="mkt-field-group">
+                  <label class="mkt-field-label">Min Bill (Rs.)</label>
+                  <div class="mkt-input-wrap">
+                    <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="None" [(ngModel)]="newPromotion.config.coupon_min_bill">
+                  </div>
+                </div>
+                <div class="mkt-field-group" *ngIf="newPromotion.config.coupon_value_type === 'Percentage'">
+                  <label class="mkt-field-label">Most it can pay (Rs.)</label>
+                  <div class="mkt-input-wrap">
+                    <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="No cap" [(ngModel)]="newPromotion.config.coupon_max_discount">
+                  </div>
+                </div>
+              </div>
+
+              <div class="mkt-field-group" style="margin-top: 6px;">
+                <label class="mkt-field-label">Where do the codes come from?</label>
+                <div class="segmented-control">
+                  <label><input type="radio" name="coupon_src" value="list" [(ngModel)]="newPromotion.code_source"> Brand gave a list</label>
+                  <label><input type="radio" name="coupon_src" value="generate" [(ngModel)]="newPromotion.code_source"> Make codes here</label>
+                </div>
+              </div>
+
+              <div *ngIf="newPromotion.code_source === 'list'" class="mkt-field-group" style="margin-top: 4px;">
+                <label class="mkt-field-label">The brand's codes <span style="text-transform: none; font-weight: 600;">({{ codeLineCount(newPromotion.codes_text) }} found)</span></label>
+                <textarea class="form-control" rows="5" style="font-family: ui-monospace, Consolas, monospace; font-size: 10px;" placeholder="One code on each line&#10;BLK-7KQ2-M9XP&#10;BLK-4TW8-N3CD, 300" [(ngModel)]="newPromotion.codes_text" spellcheck="false"></textarea>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+                  <label class="action-icon-btn" style="width: auto; padding: 0 8px; cursor: pointer; font-size: 9px; font-weight: 700;">
+                    Upload .csv / .txt
+                    <input type="file" accept=".csv,.txt,text/csv,text/plain" (change)="onCodesFile($event, 'new')" style="display: none;">
+                  </label>
+                  <span style="font-size: 9px; color: #64748b;">Excel sheet? Copy its code column and paste it above. A code can carry its own amount: <b>CODE, 300</b>.</span>
+                </div>
+              </div>
+
+              <div *ngIf="newPromotion.code_source === 'generate'" class="form-row" style="margin-top: 4px;">
+                <div class="mkt-field-group">
+                  <label class="mkt-field-label">How many codes</label>
+                  <div class="mkt-input-wrap">
+                    <input type="number" min="1" max="50000" oninput="validity.valid||(value='');" class="form-control" placeholder="e.g. 10000" [(ngModel)]="newPromotion.quantity">
+                  </div>
+                </div>
+                <div class="mkt-field-group">
+                  <label class="mkt-field-label">Starts with (optional)</label>
+                  <div class="mkt-input-wrap">
+                    <input type="text" maxlength="8" class="form-control" placeholder="e.g. BLK" [(ngModel)]="newPromotion.code_prefix" style="text-transform: uppercase;">
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="newPromotion.code_source === 'generate'" style="font-size: 9px; color: #64748b; margin-top: 3px;">
+                Random, never repeated, easy to read out (no 0/O or 1/I): <b>{{ (newPromotion.code_prefix || 'BLK').toUpperCase() }}-7KQ2-M9XP</b>. Up to 50,000 at a time; you can make more later.
+              </div>
+              <div style="font-size: 9px; color: #64748b; margin-top: 4px;">
+                At the till a code is typed under <b>Gift Card</b>. It works once, between the dates above{{ newPromotion.level === 'Center' ? ', at this branch only' : ', at every branch' }}. The brand pays the business later.
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-mkt-submit" (click)="addPromotion()" [disabled]="isSaving">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>{{ isSaving ? 'Adding...' : 'Add Promotion' }}</span>
+          </button>
+        </div>
+
+        <!-- List Panel -->
+        <div class="list-column">
+          <div class="filter-bar">
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showExpired"> Show Expired</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showInactive"> Show Inactive</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showOrgOnly"> Show Org Level only</label>
+          </div>
+
+          <!-- Organisation Promotions Card -->
+          <div class="list-card">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Organisation Level Promotions</span>
+                <span class="badge-count" *ngIf="orgPromotions.length > 0">{{ orgPromotions.length }} Active</span>
+              </h4>
+            </div>
+
+            <div class="empty-state-small" *ngIf="orgPromotions.length === 0">
+              
+              <span>No organisation promotions yet.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="orgPromotions.length > 0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>TYPE</th>
+                    <th>NAME</th>
+                    <th>START</th>
+                    <th>END</th>
+                    <th>LIMIT</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of orgPromotions; trackBy: trackById">
+                    <td>
+                      <span class="mkt-chip" [ngClass]="{
+                        'chip-discount': p.promo_type === 'Discount',
+                        'chip-flat': p.promo_type === 'FlatPrice',
+                        'chip-trigger': p.promo_type === 'Trigger',
+                        'chip-cashback': p.promo_type === 'Cashback',
+                        'chip-coupon': p.promo_type === 'Coupon'
+                      }">
+                        {{ promoTypeLabel(p) }}
+                      </span>
+                    </td>
+                    <td style="font-weight: 700; color: #0f172a;">
+                      {{ p.name }}
+                      <div *ngIf="p.promo_type === 'Coupon'" style="font-weight: 600; font-size: 8.5px; color: #64748b;">{{ p.config?.brand }} · {{ couponWorth(p) }} each</div>
+                    </td>
+                    <td>{{ p.start_date | date:'dd-MMM-yyyy' }}</td>
+                    <td>{{ p.end_date | date:'dd-MMM-yyyy' }}</td>
+                    <td style="font-weight: 600;">{{ promoLimitText(p) }}</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="p.is_active ? 'status-active' : 'status-inactive'">
+                        {{ p.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="p.promo_type === 'Coupon'" title="Coupon codes" (click)="openCodes(p)" style="width: auto; padding: 0 6px; font-weight: 800; font-size: 9px;">
+                        Codes
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('promotions', 'update')" title="Edit" (click)="openEditModal(p, 'promotion')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('promotions', 'update')" [class.danger]="p.is_active" [title]="p.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(p, 'promotion')">
+                        <ng-container *ngIf="p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Center Specific Promotions Card -->
+          <div class="list-card">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Center Specific Promotions</span>
+                <span class="badge-count" *ngIf="centerPromotions.length > 0">{{ centerPromotions.length }} Active</span>
+              </h4>
+            </div>
+
+            <div class="empty-state-small" *ngIf="centerPromotions.length === 0">
+              
+              <span>No center promotions yet.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="centerPromotions.length > 0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>TYPE</th>
+                    <th>NAME</th>
+                    <th>START</th>
+                    <th>END</th>
+                    <th>LIMIT</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of centerPromotions; trackBy: trackById">
+                    <td>
+                      <span class="mkt-chip" [ngClass]="{
+                        'chip-discount': p.promo_type === 'Discount',
+                        'chip-flat': p.promo_type === 'FlatPrice',
+                        'chip-trigger': p.promo_type === 'Trigger',
+                        'chip-cashback': p.promo_type === 'Cashback',
+                        'chip-coupon': p.promo_type === 'Coupon'
+                      }">
+                        {{ promoTypeLabel(p) }}
+                      </span>
+                    </td>
+                    <td style="font-weight: 700; color: #0f172a;">
+                      {{ p.name }}
+                      <div *ngIf="p.promo_type === 'Coupon'" style="font-weight: 600; font-size: 8.5px; color: #64748b;">{{ p.config?.brand }} · {{ couponWorth(p) }} each</div>
+                    </td>
+                    <td>{{ p.start_date | date:'dd-MMM-yyyy' }}</td>
+                    <td>{{ p.end_date | date:'dd-MMM-yyyy' }}</td>
+                    <td style="font-weight: 600;">{{ promoLimitText(p) }}</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="p.is_active ? 'status-active' : 'status-inactive'">
+                        {{ p.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="p.promo_type === 'Coupon'" title="Coupon codes" (click)="openCodes(p)" style="width: auto; padding: 0 6px; font-weight: 800; font-size: 9px;">
+                        Codes
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('promotions', 'update')" title="Edit" (click)="openEditModal(p, 'promotion')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('promotions', 'update')" [class.danger]="p.is_active" [title]="p.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(p, 'promotion')">
+                        <ng-container *ngIf="p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards Tab -->
+    <div class="campaign-content" *ngIf="campaignTab === 'Cards'">
+      <div class="split-layout">
+        <!-- Compact Form Panel -->
+        <div class="form-card compact-form" *ngIf="isOwner || permissions.marketing?.cards?.create">
+          <div class="mkt-card-header-banner card-theme">
+            
+            <div>
+              <div class="mkt-header-title">Create Value Card</div>
+              <div class="mkt-header-sub">Prepaid gift & loyalty cards</div>
+            </div>
+          </div>
+
+          <div class="segmented-control">
+            <label><input type="radio" name="card_lvl" value="Organisation" [(ngModel)]="newCard.level">  Org Level</label>
+            <label><input type="radio" name="card_lvl" value="Center" [(ngModel)]="newCard.level">  Center</label>
+          </div>
+
+          <div class="mkt-field-group" *ngIf="newCard.level === 'Center'">
+            <label class="mkt-field-label">Target Center</label>
+            <select class="form-control" [(ngModel)]="selectedCenterId">
+              <option [value]="null">Select Center</option>
+              <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.6;">
+              <label class="mkt-field-label">Card Title</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="text" class="form-control" placeholder="e.g. Silver Card" [(ngModel)]="newCard.title">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">Validity (Days)</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="365" [(ngModel)]="newCard.expiry_days">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Post Tax Price (Rs.)</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Customer pays" [(ngModel)]="newCard.post_tax_price" (ngModelChange)="calculateCardPreTax()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Pre Tax (Rs.)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Base" [(ngModel)]="newCard.pre_tax_price" (ngModelChange)="calculateCardPostTax()">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">GST Rate</label>
+              <select class="form-control" [(ngModel)]="newCard.gst_percent" (ngModelChange)="calculateCardPostTax()">
+                <option *ngFor="let rate of gstRates; trackBy: trackById" [ngValue]="rate">{{ rate }}%</option>
+              </select>
+            </div>
+            <div class="mkt-field-group" style="flex: 1.3;">
+              <label class="mkt-field-label">Card Value (Rs.)</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Value" [(ngModel)]="newCard.value" (ngModelChange)="calculateCardBenefit()">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Benefit %</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Benefit %" [(ngModel)]="newCard.benefit_percent" (ngModelChange)="calculateCardValue()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Staff Incentive (Rs.)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Incentive" [(ngModel)]="newCard.incentive">
+              </div>
+            </div>
+          </div>
+
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">Description</label>
+            <div class="mkt-input-wrap">
+              <input type="text" class="form-control" placeholder="Card terms..." [(ngModel)]="newCard.description">
+            </div>
+          </div>
+
+          <button class="btn-mkt-submit" (click)="addCard()" [disabled]="isSaving">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>{{ isSaving ? 'Adding...' : 'Add Card' }}</span>
+          </button>
+        </div>
+
+        <!-- List Panel -->
+        <div class="list-column">
+          <div class="filter-bar">
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showExpired"> Show Expired</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showInactive"> Show Inactive</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showOrgOnly"> Show Org Level only</label>
+          </div>
+
+          <!-- Organisation Cards Table -->
+          <div class="list-card">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Organisation Level Cards</span>
+                <span class="badge-count" *ngIf="orgCards.length > 0">{{ orgCards.length }} Active</span>
+              </h4>
+            </div>
+
+            <div class="empty-state-small" *ngIf="orgCards.length === 0">
+              
+              <span>No organisation cards yet.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="orgCards.length > 0">
+              <table class="modern-bills-table">
+                <thead>
+                  <tr>
+                    <th>S.NO</th>
+                    <th>CARD NAME</th>
+                    <th>PRE TAX</th>
+                    <th>POST TAX</th>
+                    <th>EXP. DAYS</th>
+                    <th>VALUE</th>
+                    <th>BENEFIT %</th>
+                    <th>INCENTIVE</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of orgCards; let i = index; trackBy: trackById">
+                    <td class="text-secondary">{{ i + 1 }}</td>
+                    <td style="font-weight: 700; color: #0f172a;">{{ c.title }}</td>
+                    <td>{{ c.pre_tax_price !== null ? (c.pre_tax_price | number:'1.2-2') : '-' }}</td>
+                    <td style="font-weight: 700; color: #0284c7;">{{ c.post_tax_price !== null ? (c.post_tax_price | number:'1.0-2') : '-' }}</td>
+                    <td>{{ c.expiry_days !== null ? c.expiry_days : '-' }}</td>
+                    <td style="font-weight: 700; color: #10b981;">{{ c.value !== null ? (c.value | number:'1.0-2') : '-' }}</td>
+                    <td>{{ c.benefit_percent !== null ? (c.benefit_percent | number:'1.2-2') + '%' : '-' }}</td>
+                    <td>{{ c.incentive !== null ? c.incentive : '-' }}</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="c.is_active ? 'status-active' : 'status-inactive'">
+                        {{ c.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="can('cards', 'update')" title="Edit" (click)="openEditModal(c, 'card')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('cards', 'update')" [class.danger]="c.is_active" [title]="c.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(c, 'card')">
+                        <ng-container *ngIf="c.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!c.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Center Level Cards Table -->
+          <div class="list-card">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Center Level Cards</span>
+                <span class="badge-count" *ngIf="centerCards.length > 0">{{ centerCards.length }} Active</span>
+              </h4>
+              <select class="location-pill-select" style="max-width: 180px; margin: 0;" [(ngModel)]="selectedFilterCenterId" (change)="onFilterCenterChange()">
+                <option [value]="null" *ngIf="hasGlobalAccess">All Centers</option>
+                <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+              </select>
+            </div>
+
+            <div class="empty-state-small" *ngIf="centerCards.length === 0">
+              
+              <span>No center cards yet.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="centerCards.length > 0">
+              <table class="modern-bills-table">
+                <thead>
+                  <tr>
+                    <th>S.NO</th>
+                    <th>CARD NAME</th>
+                    <th>PRE TAX</th>
+                    <th>POST TAX</th>
+                    <th>EXP. DAYS</th>
+                    <th>VALUE</th>
+                    <th>BENEFIT %</th>
+                    <th>INCENTIVE</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of centerCards; let i = index; trackBy: trackById">
+                    <td class="text-secondary">{{ i + 1 }}</td>
+                    <td style="font-weight: 700; color: #0f172a;">{{ c.title }}</td>
+                    <td>{{ c.pre_tax_price !== null ? (c.pre_tax_price | number:'1.2-2') : '-' }}</td>
+                    <td style="font-weight: 700; color: #0284c7;">{{ c.post_tax_price !== null ? (c.post_tax_price | number:'1.0-2') : '-' }}</td>
+                    <td>{{ c.expiry_days !== null ? c.expiry_days : '-' }}</td>
+                    <td style="font-weight: 700; color: #10b981;">{{ c.value !== null ? (c.value | number:'1.0-2') : '-' }}</td>
+                    <td>{{ c.benefit_percent !== null ? (c.benefit_percent | number:'1.2-2') + '%' : '-' }}</td>
+                    <td>{{ c.incentive !== null ? c.incentive : '-' }}</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="c.is_active ? 'status-active' : 'status-inactive'">
+                        {{ c.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="can('cards', 'update')" title="Edit" (click)="openEditModal(c, 'card')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('cards', 'update')" [class.danger]="c.is_active" [title]="c.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(c, 'card')">
+                        <ng-container *ngIf="c.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!c.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memberships Tab -->
+    <div class="campaign-content" *ngIf="campaignTab === 'Memberships'">
+      <div class="split-layout">
+        <!-- Compact Form Panel -->
+        <div class="form-card compact-form" *ngIf="isOwner || permissions.marketing?.memberships?.create">
+          <div class="mkt-card-header-banner mem-theme">
+            
+            <div>
+              <div class="mkt-header-title">Create Membership</div>
+              <div class="mkt-header-sub">VIP tiers & discount plans</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="segmented-control" style="flex: 1.2;">
+              <label><input type="radio" name="mem_lvl" value="Organisation" [(ngModel)]="newMembership.level">  Org</label>
+              <label><input type="radio" name="mem_lvl" value="Center" [(ngModel)]="newMembership.level">  Center</label>
+            </div>
+            <label class="filter-chip-label" style="margin: 0; justify-content: center; flex: 0.8;">
+              <input type="checkbox" [(ngModel)]="newMembership.is_vip"> VIP?
+            </label>
+          </div>
+
+          <div class="mkt-field-group" *ngIf="newMembership.level === 'Center'">
+            <label class="mkt-field-label">Target Center</label>
+            <select class="form-control" [(ngModel)]="selectedCenterId">
+              <option [value]="null">Select Center</option>
+              <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.6;">
+              <label class="mkt-field-label">Membership Name</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="text" class="form-control" placeholder="e.g. Gold VIP" [(ngModel)]="newMembership.name">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">Expiry (Days)</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="365" [(ngModel)]="newMembership.expiry_days">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Post Tax Price (Rs.)</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Customer pays" [(ngModel)]="newMembership.post_tax_price" (ngModelChange)="calculateMembershipPreTax()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Pre Tax (Rs.)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Base" [(ngModel)]="newMembership.pre_tax_price" (ngModelChange)="calculateMembershipPostTax()">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">GST Rate</label>
+              <select class="form-control" [(ngModel)]="newMembership.gst_percent" (ngModelChange)="calculateMembershipPostTax()">
+                <option *ngFor="let rate of gstRates; trackBy: trackById" [ngValue]="rate">{{ rate }}%</option>
+              </select>
+            </div>
+            <div class="mkt-field-group" style="flex: 1.3;">
+              <label class="mkt-field-label">Discount Benefit %</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Discount %" [(ngModel)]="newMembership.discount_percent" (ngModelChange)="calculateMembershipValue()">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Value (Rs.)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Value" [(ngModel)]="newMembership.value" (ngModelChange)="calculateMembershipBenefit()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Staff Incentive (Rs.)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Incentive" [(ngModel)]="newMembership.incentive">
+              </div>
+            </div>
+          </div>
+
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">Description (prints on bills)</label>
+            <div class="mkt-input-wrap">
+              <input type="text" class="form-control" placeholder="Membership terms..." [(ngModel)]="newMembership.description">
+            </div>
+          </div>
+
+          <button class="btn-mkt-submit" (click)="addMembership()" [disabled]="isSaving">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>{{ isSaving ? 'Adding...' : 'Add Membership' }}</span>
+          </button>
+        </div>
+
+        <!-- List Panel -->
+        <div class="list-column">
+          <div class="filter-bar">
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showExpired"> Show Expired</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showInactive"> Show Inactive</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showOrgOnly"> Show Org Level only</label>
+          </div>
+
+          <!-- Organisation Memberships Table -->
+          <div class="list-card">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Organisational Memberships</span>
+                <span class="badge-count" *ngIf="orgMemberships.length > 0">{{ orgMemberships.length }} Active</span>
+              </h4>
+            </div>
+
+            <div class="empty-state-small" *ngIf="orgMemberships.length === 0">
+              
+              <span>No organisation memberships yet.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="orgMemberships.length > 0">
+              <table class="modern-bills-table">
+                <thead>
+                  <tr>
+                    <th>S.NO</th>
+                    <th>MEMBERSHIP NAME</th>
+                    <th>PRE TAX</th>
+                    <th>POST TAX</th>
+                    <th>EXP. DAYS</th>
+                    <th>DISCOUNT %</th>
+                    <th>INCENTIVE</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let m of orgMemberships; let i = index; trackBy: trackById">
+                    <td class="text-secondary">{{ i + 1 }}</td>
+                    <td style="font-weight: 700; color: #0f172a;">
+                      <span>{{ m.name }}</span>
+                      <span *ngIf="m.is_vip" style="margin-left: 4px; font-size: 8px; background: #fef3c7; color: #b45309; font-weight: 800; padding: 1px 4px; border-radius: 3px;">VIP</span>
+                    </td>
+                    <td>{{ m.pre_tax_price !== null ? (m.pre_tax_price | number:'1.2-2') : '-' }}</td>
+                    <td style="font-weight: 700; color: #d97706;">{{ m.post_tax_price !== null ? (m.post_tax_price | number:'1.0-2') : '-' }}</td>
+                    <td>{{ m.expiry_days !== null ? m.expiry_days : '-' }}</td>
+                    <td style="font-weight: 700; color: #10b981;">{{ m.discount_percent !== null ? (m.discount_percent | number:'1.2-2') + '%' : '-' }}</td>
+                    <td>{{ m.incentive !== null ? m.incentive : '-' }}</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="m.is_active ? 'status-active' : 'status-inactive'">
+                        {{ m.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="can('memberships', 'update')" title="Edit" (click)="openEditModal(m, 'membership')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('memberships', 'update')" [class.danger]="m.is_active" [title]="m.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(m, 'membership')">
+                        <ng-container *ngIf="m.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!m.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Center Memberships Table -->
+          <div class="list-card" *ngIf="centerMemberships.length > 0 || selectedFilterCenterId">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Center Specific Memberships</span>
+                <span class="badge-count" *ngIf="centerMemberships.length > 0">{{ centerMemberships.length }} Active</span>
+              </h4>
+              <select class="location-pill-select" style="max-width: 180px; margin: 0;" [(ngModel)]="selectedFilterCenterId" (change)="onFilterCenterChange()">
+                <option [value]="null" *ngIf="hasGlobalAccess">All Centers</option>
+                <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+              </select>
+            </div>
+
+            <div class="empty-state-small" *ngIf="centerMemberships.length === 0">
+              
+              <span>No center specific memberships found.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="centerMemberships.length > 0">
+              <table class="modern-bills-table">
+                <thead>
+                  <tr>
+                    <th>S.NO</th>
+                    <th>MEMBERSHIP NAME</th>
+                    <th>PRE TAX</th>
+                    <th>POST TAX</th>
+                    <th>EXP. DAYS</th>
+                    <th>DISCOUNT %</th>
+                    <th>INCENTIVE</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let m of centerMemberships; let i = index; trackBy: trackById">
+                    <td class="text-secondary">{{ i + 1 }}</td>
+                    <td style="font-weight: 700; color: #0f172a;">
+                      <span>{{ m.name }}</span>
+                      <span *ngIf="m.is_vip" style="margin-left: 4px; font-size: 8px; background: #fef3c7; color: #b45309; font-weight: 800; padding: 1px 4px; border-radius: 3px;">VIP</span>
+                    </td>
+                    <td>{{ m.pre_tax_price !== null ? (m.pre_tax_price | number:'1.2-2') : '-' }}</td>
+                    <td><span style="font-weight: 700; color: #d97706;">{{ m.post_tax_price !== null ? (m.post_tax_price | number:'1.0-2') : '-' }}</span></td>
+                    <td>{{ m.expiry_days !== null ? m.expiry_days : '-' }}</td>
+                    <td><span style="font-weight: 700; color: #10b981;">{{ m.discount_percent !== null ? (m.discount_percent | number:'1.2-2') + '%' : '-' }}</span></td>
+                    <td>{{ m.incentive !== null ? m.incentive : '-' }}</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="m.is_active ? 'status-active' : 'status-inactive'">
+                        {{ m.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="can('memberships', 'update')" title="Edit" (click)="openEditModal(m, 'membership')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('memberships', 'update')" [class.danger]="m.is_active" [title]="m.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(m, 'membership')">
+                        <ng-container *ngIf="m.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!m.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Packages Tab -->
+    <div class="campaign-content" *ngIf="campaignTab === 'Packages'">
+      <div class="split-layout">
+        <!-- Compact Form Panel -->
+        <div class="form-card compact-form" *ngIf="isOwner || permissions.marketing?.packages?.create">
+          <div class="mkt-card-header-banner pkg-theme">
+            
+            <div>
+              <div class="mkt-header-title">Create Package</div>
+              <div class="mkt-header-sub">Bundled service packages</div>
+            </div>
+          </div>
+
+          <div class="segmented-control">
+            <label><input type="radio" name="pkg_lvl" value="Organisation" [(ngModel)]="newPackage.level">  Org Level</label>
+            <label><input type="radio" name="pkg_lvl" value="Center" [(ngModel)]="newPackage.level">  Center</label>
+          </div>
+
+          <div class="mkt-field-group" *ngIf="newPackage.level === 'Center'">
+            <label class="mkt-field-label">Target Center</label>
+            <select class="form-control" [(ngModel)]="selectedCenterId">
+              <option [value]="null">Select Center</option>
+              <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.6;">
+              <label class="mkt-field-label">Package Name</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="text" class="form-control" placeholder="e.g. Bridal Glow" [(ngModel)]="newPackage.name">
+              </div>
+            </div>
+          </div>
+
+          <div class="mkt-field-group" *ngFor="let row of newPackage.rows; let i = index; trackBy: trackByIndex">
+            <label class="mkt-field-label">{{ i === 0 ? 'Select Service' : 'Another service' }}</label>
+            <div style="display: flex; gap: 8px;">
+              <select class="form-control" style="flex: 2;" [(ngModel)]="row.service_name">
+                <option value="">Select Service</option>
+                <option *ngFor="let s of servicesList; trackBy: trackById" [value]="s.name">{{ s.name }}</option>
+              </select>
+              <input type="number" min="1" oninput="validity.valid||(value='');" class="form-control" style="flex: 1;"
+                placeholder="Sessions" [(ngModel)]="row.pkgQty">
+              <button type="button" class="action-icon-btn" title="Remove" *ngIf="newPackage.rows.length > 1"
+                (click)="removePackageRow(newPackage, i)">&times;</button>
+            </div>
+          </div>
+          <button type="button" class="action-icon-btn" style="width: auto; padding: 0 12px; margin-bottom: 10px; font-size: 10.5px; font-weight: 700;"
+            (click)="addPackageRow(newPackage)">+ Add another service</button>
+
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Price (Rs.)</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Price" [(ngModel)]="newPackage.price">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Validity (Days)</label>
+              <div class="mkt-input-wrap">
+                
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="180" [(ngModel)]="newPackage.validity_days">
+              </div>
+            </div>
+          </div>
+
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">GST (%)</label>
+            <div class="mkt-input-wrap">
+              <input type="number" min="0" max="100" oninput="validity.valid||(value='');" class="form-control"
+                placeholder="Leave empty for the default in Settings" [(ngModel)]="newPackage.gst_percent">
+            </div>
+          </div>
+
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">Description</label>
+            <div class="mkt-input-wrap">
+              <input type="text" class="form-control" placeholder="Package details..." [(ngModel)]="newPackage.description">
+            </div>
+          </div>
+
+          <button class="btn-mkt-submit" (click)="addPackage()" [disabled]="isSaving">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>{{ isSaving ? 'Adding...' : 'Add Package' }}</span>
+          </button>
+        </div>
+
+        <!-- List Panel -->
+        <div class="list-column">
+          <div class="filter-bar">
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showExpired"> Show Expired</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showInactive"> Show Inactive</label>
+            <label class="filter-chip-label"><input type="checkbox" [(ngModel)]="showOrgOnly"> Show Org Level only</label>
+          </div>
+
+          <!-- Organisation Packages Table -->
+          <div class="list-card">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Organisation Level Packages</span>
+                <span class="badge-count" *ngIf="orgPackages.length > 0">{{ orgPackages.length }} Active</span>
+              </h4>
+            </div>
+
+            <div class="empty-state-small" *ngIf="orgPackages.length === 0">
+              
+              <span>No packages yet.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="orgPackages.length > 0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>NAME</th>
+                    <th>SERVICE</th>
+                    <th>PRICE</th>
+                    <th>VALIDITY</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of orgPackages; trackBy: trackById">
+                    <td style="font-weight: 700; color: #0f172a;">{{ p.name }}</td>
+                    <td>{{ packageServices(p) }}</td>
+                    <td style="font-weight: 700; color: #ec4899;">Rs. {{ (p.price || 0) | number:'1.0-2' }}</td>
+                    <td>{{ p.validity_days }} days</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="p.is_active ? 'status-active' : 'status-inactive'">
+                        {{ p.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="can('packages', 'update')" title="Edit" (click)="openEditModal(p, 'package')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('packages', 'update')" [class.danger]="p.is_active" [title]="p.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(p, 'package')">
+                        <ng-container *ngIf="p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Center Packages Table -->
+          <div class="list-card">
+            <div class="list-card-header">
+              <h4 class="card-title">
+                <span> Center Level Packages</span>
+                <span class="badge-count" *ngIf="centerPackages.length > 0">{{ centerPackages.length }} Active</span>
+              </h4>
+              <select class="location-pill-select" style="max-width: 180px; margin: 0;" [(ngModel)]="selectedFilterCenterId" (change)="onFilterCenterChange()">
+                <option [value]="null" *ngIf="hasGlobalAccess">All Centers</option>
+                <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+              </select>
+            </div>
+
+            <div class="empty-state-small" *ngIf="centerPackages.length === 0">
+              
+              <span>No center packages yet.</span>
+            </div>
+
+            <div class="table-responsive" *ngIf="centerPackages.length > 0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>NAME</th>
+                    <th>SERVICE</th>
+                    <th>PRICE</th>
+                    <th>VALIDITY</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of centerPackages; trackBy: trackById">
+                    <td style="font-weight: 700; color: #0f172a;">{{ p.name }}</td>
+                    <td>{{ packageServices(p) }}</td>
+                    <td style="font-weight: 700; color: #ec4899;">Rs. {{ (p.price || 0) | number:'1.0-2' }}</td>
+                    <td>{{ p.validity_days }} days</td>
+                    <td>
+                      <span class="status-badge" [ngClass]="p.is_active ? 'status-active' : 'status-inactive'">
+                        {{ p.is_active ? '● Active' : '○ Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="action-icon-btn" *ngIf="can('packages', 'update')" title="Edit" (click)="openEditModal(p, 'package')">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-icon-btn" *ngIf="can('packages', 'update')" [class.danger]="p.is_active" [title]="p.is_active ? 'Deactivate' : 'Activate'" (click)="toggleStatus(p, 'package')">
+                        <ng-container *ngIf="p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        </ng-container>
+                        <ng-container *ngIf="!p.is_active">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </ng-container>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- WhatsApp Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'WhatsApp'">
+    <div class="filter-bar" style="margin-bottom: 10px; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 11.5px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 4px;">
+           WhatsApp Message Logs
+        </span>
+      </div>
+      <button class="btn-mkt-submit" style="width: auto; padding: 0 14px; margin: 0;" (click)="openNewCampaignModal()" *ngIf="isOwner || permissions.marketing?.whatsapp?.create">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <span>Send Broadcast</span>
+      </button>
+    </div>
+
+    <div class="list-card" *ngIf="whatsappMessages.length > 0">
+      <div class="table-responsive" style="max-height: 480px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>SALON</th>
+              <th>DATE & TIME</th>
+              <th>CLIENT / PHONE</th>
+              <th>MESSAGE CONTENT</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let msg of whatsappMessages; trackBy: trackById">
+              <td style="font-weight: 600; color: #334155;">{{ msg.center_name }}</td>
+              <td>
+                <div style="font-weight: 600;">{{ msg.date | date:'dd MMM yyyy' }}</div>
+                <div style="font-size: 9px; color: #64748b;">{{ msg.time }}</div>
+              </td>
+              <td>
+                <div style="font-weight: 700; color: #0f172a;">{{ msg.client_name }}</div>
+                <div style="font-size: 9.5px; color: #64748b;">{{ msg.client_phone || 'N/A' }}</div>
+              </td>
+              <td style="max-width: 380px; white-space: normal; font-size: 10.5px; color: #1e293b;">
+                {{ msg.message }}
+              </td>
+              <td>
+                <span class="status-badge" [ngClass]="msg.status === 'Sent' ? 'status-active' : 'status-inactive'">
+                  {{ msg.status === 'Sent' ? '● Sent' : msg.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="list-card" *ngIf="whatsappMessages.length === 0">
+      <div class="empty-state-small" style="padding: 40px 16px;">
+        
+        <span style="font-weight: 700; color: #475569; font-size: 12px;">No WhatsApp Message Records</span>
+        <span style="font-size: 10px; color: #94a3b8;">Automated bill receipts and promotional broadcasts will appear here.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Usage Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'Usage'">
+    <!-- Modern Bento Filter Bar -->
+    <div class="filter-bar" style="margin-bottom: 12px; padding: 8px 12px; justify-content: space-between;">
+      <div class="form-row" style="flex: 1; align-items: center; max-width: 520px; gap: 8px;">
+        <div class="mkt-field-group" style="flex: 1;">
+          <label class="mkt-field-label">Start Date</label>
+          <div class="mkt-input-wrap">
+            
+            <input type="date" class="form-control" [(ngModel)]="usageStartDate">
+          </div>
+        </div>
+        <div class="mkt-field-group" style="flex: 1;">
+          <label class="mkt-field-label">End Date</label>
+          <div class="mkt-input-wrap">
+            
+            <input type="date" class="form-control" [(ngModel)]="usageEndDate">
+          </div>
+        </div>
+        <button class="btn-mkt-submit" style="width: auto; padding: 0 16px; margin-top: 14px; height: 28px;" (click)="fetchUsageData()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span>Run Report</span>
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;" *ngIf="usageData.length > 0">
+        <button class="action-icon-btn" style="width: auto; padding: 0 12px; font-size: 10.5px; height: 28px; font-weight: 700;" (click)="exportExcel()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- 2-Column Analytics Grid -->
+    <div class="split-layout" style="grid-template-columns: 1.6fr 1fr; gap: 12px;">
+      <!-- Main Usage Table -->
+      <div class="list-card">
+        <div class="list-card-header">
+          <h4 class="card-title">
+            <span> Campaign Usage Summary</span>
+            <span class="badge-count" *ngIf="usageData.length > 0">{{ usageData.length }} Items</span>
+          </h4>
+        </div>
+
+        <div class="empty-state-small" *ngIf="usageData.length === 0" style="padding: 40px 16px;">
+          
+          <span style="font-weight: 700; color: #475569; font-size: 12px;">
+            <ng-container *ngIf="!hasRunUsageReport">Campaign Performance & Redemption Report</ng-container>
+            <ng-container *ngIf="hasRunUsageReport">No Campaign Usage Found</ng-container>
+          </span>
+          <span style="font-size: 10.5px; color: #94a3b8;">
+            <ng-container *ngIf="!hasRunUsageReport">Select date range above and click "Run Report" to generate sales & redemption metrics.</ng-container>
+            <ng-container *ngIf="hasRunUsageReport">No redemptions or sales recorded during the selected period.</ng-container>
+          </span>
+        </div>
+
+        <div class="table-responsive" *ngIf="usageData.length > 0" style="max-height: 420px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ITEM NAME</th>
+                <th>START</th>
+                <th>END</th>
+                <th>LEVEL</th>
+                <th>STATUS</th>
+                <th style="text-align: center;">SOLD</th>
+                <th style="text-align: center;">USED</th>
+                <th style="text-align: right;">REVENUE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let u of usageData; trackBy: trackById" (mousedown)="$event.button === 0 && (viewUsageDetails(u))"
+                  [style.background]="selectedUsage === u ? '#eef2ff' : 'transparent'"
+                  style="cursor: pointer; transition: background 0.15s ease;">
+                <td>
+                  <div style="font-weight: 700; color: #0f172a;">{{ u.name }}</div>
+                  <span class="mkt-chip chip-discount" style="font-size: 7.5px;">{{ u.type || 'Promotion' }}</span>
+                </td>
+                <td>{{ u.start_date ? (u.start_date | date:'dd-MMM-yyyy') : '-' }}</td>
+                <td>{{ u.end_date ? (u.end_date | date:'dd-MMM-yyyy') : '-' }}</td>
+                <td>
+                  <span style="font-size: 9.5px; color: #475569; font-weight: 600;">
+                    {{ u.level === 'Organisation' ? ' Org' : ' Salon' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="status-badge" [ngClass]="u.status === 'Active' ? 'status-active' : 'status-inactive'">{{ u.status }}</span>
+                </td>
+                <td style="font-weight: 700; text-align: center;">
+                  <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{{ u.sold ?? u.count ?? 0 }}</span>
+                </td>
+                <td style="font-weight: 700; text-align: center;">
+                  <span style="background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px;">{{ u.used ?? 0 }}</span>
+                  <div *ngIf="u.holders" style="font-size: 8px; color: #64748b; margin-top: 1px;">{{ u.holders }} active</div>
+                </td>
+                <td style="font-weight: 800; color: #10b981; text-align: right;">
+                  Rs. {{ (u.revenue || 0) | number:'1.0-2' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Center Breakdown Panel -->
+      <div class="list-card">
+        <div class="list-card-header">
+          <h4 class="card-title">
+            <span> Center Breakdown</span>
+            <span class="badge-count" *ngIf="selectedUsage">{{ selectedUsage.name }}</span>
+          </h4>
+        </div>
+
+        <div class="empty-state-small" *ngIf="!selectedUsage" style="padding: 40px 16px;">
+          
+          <span style="font-weight: 700; color: #475569; font-size: 11.5px;">No Item Selected</span>
+          <span style="font-size: 10px; color: #94a3b8; text-align: center;">Click any campaign row from the summary table to view center-wise revenue & redemptions.</span>
+        </div>
+
+        <div class="empty-state-small" *ngIf="selectedUsage && (!selectedUsage.center_breakdown || selectedUsage.center_breakdown.length === 0)" style="padding: 30px 16px;">
+          
+          <span style="font-size: 10.5px; color: #94a3b8;">No center breakdown recorded for this item.</span>
+        </div>
+
+        <div class="table-responsive" *ngIf="selectedUsage && selectedUsage.center_breakdown && selectedUsage.center_breakdown.length > 0" style="max-height: 420px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Center</th>
+                <th style="text-align: center;">Sold</th>
+                <th style="text-align: center;">Used</th>
+                <th style="text-align: right;">Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cb of selectedUsage.center_breakdown; trackBy: trackById">
+                <td style="font-weight: 700; color: #334155;">{{ cb.center_name }}</td>
+                <td style="text-align: center; font-weight: 700;">
+                  <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{{ cb.sold ?? cb.count ?? 0 }}</span>
+                </td>
+                <td style="text-align: center; font-weight: 700;">
+                  <span style="background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px;">{{ cb.used ?? 0 }}</span>
+                </td>
+                <td style="text-align: right; font-weight: 800; color: #10b981;">Rs. {{ (cb.revenue || 0) | number:'1.0-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send WhatsApp Campaign Modal -->
+  <div class="modal-backdrop" *ngIf="showNewCampaignModal">
+    <div class="modal-content config-modal" style="max-width: 440px; width: 90%;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+          Send WhatsApp Broadcast
+        </h3>
+        <button class="close-btn" (click)="closeNewCampaignModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="mkt-field-group">
+          <label class="mkt-field-label">Target Audience / Center</label>
+          <select class="form-control" [(ngModel)]="campaignCenterId" (ngModelChange)="refreshCampaignPreview()">
+            <option value="all">All Clients (All Centers)</option>
+            <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+          </select>
+        </div>
+
+        <div class="mkt-field-group">
+          <label class="mkt-field-label">Broadcast Message</label>
+          <textarea class="form-control" rows="4" placeholder="Type your WhatsApp announcement, festival offer or promo update..." [(ngModel)]="campaignMessage" (ngModelChange)="refreshCampaignPreview(500)" maxlength="4000"></textarea>
+          <span style="font-size: 9.5px; color: #64748b;">Write <b>{{ '{' }}name{{ '}' }}</b> to put each customer's first name in the message. {{ campaignMessage.length }}/4000</span>
+        </div>
+
+        <div *ngIf="campaignPreview" style="font-size: 10.5px; line-height: 1.5; padding: 8px 10px; border-radius: 8px; background: #f1f5f9; color: #0f172a;">
+          <div><b>{{ campaignPreview.eligible }}</b> customer(s) will get this message.</div>
+          <div *ngIf="campaignPreview.skipped_no_consent || campaignPreview.skipped_dnd" style="color: #64748b;">
+            Skipped: {{ campaignPreview.skipped_no_consent }} without WhatsApp consent, {{ campaignPreview.skipped_dnd }} on DND.
+          </div>
+          <div *ngIf="campaignPreview.background" style="color: #64748b;">This is a big list, so it is prepared in the background and appears in the log shortly.</div>
+          <div *ngIf="!campaignPreview.gateway_configured" style="color: #b45309;">WhatsApp is not set up yet (Admin &gt; Integrations): the messages are recorded but nothing is transmitted.</div>
+          <div *ngIf="campaignPreview.duplicate" style="color: #b91c1c;">This exact message was already sent to these customers in the last few minutes.</div>
+          <div *ngIf="campaignPreview.eligible === 0" style="color: #b91c1c;">Nobody in this selection can be messaged.</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="action-icon-btn" style="width: auto; padding: 0 12px; font-weight: 700; font-size: 10.5px;" (click)="closeNewCampaignModal()">Cancel</button>
+        <button class="btn-mkt-submit" style="width: auto; padding: 0 14px; margin: 0; background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);" [disabled]="!campaignCanSend" (click)="sendCampaign()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          <span>Send Broadcast</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coupon codes: which are unused, which are used (and where), which are withdrawn -->
+  <div class="modal-backdrop" *ngIf="showCodesModal && codesPromo">
+    <div class="modal-content config-modal codes-modal" style="max-width: 920px; width: 94%; max-height: calc(88vh / var(--ui-zoom)); display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: baseline; gap: 8px;">
+          <span>Coupon codes · {{ codesPromo.name }}</span>
+          <span style="font-weight: 600; font-size: 10px; color: #64748b;">{{ codesPromo.config?.brand }} · {{ couponWorth(codesPromo) }} each · {{ codesPromo.start_date | date:'dd-MMM-yyyy' }} to {{ codesPromo.end_date | date:'dd-MMM-yyyy' }}</span>
+        </h3>
+        <button class="close-btn" (click)="closeCodes()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0;">
+        <div class="codes-stats" *ngIf="codesData">
+          <div class="codes-stat"><span>Total</span><b>{{ codesData.summary.total }}</b></div>
+          <div class="codes-stat good"><span>Unused</span><b>{{ codesData.summary.unused }}</b></div>
+          <div class="codes-stat used"><span>Used</span><b>{{ codesData.summary.used }}</b></div>
+          <div class="codes-stat"><span>Withdrawn</span><b>{{ codesData.summary.void }}</b></div>
+        </div>
+
+        <div class="codes-toolbar">
+          <div class="codes-tabs">
+            <button type="button" [class.on]="codesStatus === ''" (click)="setCodesStatus('')">All</button>
+            <button type="button" [class.on]="codesStatus === 'unused'" (click)="setCodesStatus('unused')">Unused</button>
+            <button type="button" [class.on]="codesStatus === 'used'" (click)="setCodesStatus('used')">Used</button>
+            <button type="button" [class.on]="codesStatus === 'void'" (click)="setCodesStatus('void')">Withdrawn</button>
+          </div>
+          <input type="search" class="form-control codes-search" placeholder="Search a code, customer name or phone" [(ngModel)]="codesQuery" (ngModelChange)="onCodesQueryChange()">
+          <div style="display: flex; gap: 6px; margin-left: auto;">
+            <button type="button" class="action-icon-btn codes-btn" *ngIf="can('promotions', 'update')" [class.on]="codesMode === 'add'" (click)="codesMode = codesMode === 'add' ? '' : 'add'">Add the brand's codes</button>
+            <button type="button" class="action-icon-btn codes-btn" *ngIf="can('promotions', 'update')" [class.on]="codesMode === 'make'" (click)="codesMode = codesMode === 'make' ? '' : 'make'">Make more codes</button>
+            <button type="button" class="action-icon-btn codes-btn" (click)="exportCodes()">Download CSV</button>
+          </div>
+        </div>
+
+        <div class="codes-panel" *ngIf="codesMode === 'add'">
+          <textarea class="form-control" rows="4" style="font-family: ui-monospace, Consolas, monospace; font-size: 10px;" placeholder="One code on each line&#10;BLK-7KQ2-M9XP&#10;BLK-4TW8-N3CD, 300" [(ngModel)]="codesAddText" spellcheck="false"></textarea>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+            <label class="action-icon-btn codes-btn" style="cursor: pointer;">
+              Upload .csv / .txt
+              <input type="file" accept=".csv,.txt,text/csv,text/plain" (change)="onCodesFile($event, 'add')" style="display: none;">
+            </label>
+            <span style="font-size: 9px; color: #64748b;">{{ codeLineCount(codesAddText) }} found. Codes already held are left out and counted.</span>
+            <button type="button" class="btn-mkt-submit" style="width: auto; margin: 0 0 0 auto; padding: 0 14px;" [disabled]="codesBusy || codeLineCount(codesAddText) === 0" (click)="submitAddCodes()">{{ codesBusy ? 'Adding...' : 'Add these codes' }}</button>
+          </div>
+        </div>
+
+        <div class="codes-panel" *ngIf="codesMode === 'make'">
+          <div style="display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap;">
+            <div class="mkt-field-group" style="width: 150px;">
+              <label class="mkt-field-label">How many</label>
+              <div class="mkt-input-wrap"><input type="number" min="1" max="50000" oninput="validity.valid||(value='');" class="form-control" placeholder="e.g. 1000" [(ngModel)]="codesMakeQty"></div>
+            </div>
+            <div class="mkt-field-group" style="width: 150px;">
+              <label class="mkt-field-label">Starts with (optional)</label>
+              <div class="mkt-input-wrap"><input type="text" maxlength="8" class="form-control" placeholder="e.g. BLK" [(ngModel)]="codesMakePrefix" style="text-transform: uppercase;"></div>
+            </div>
+            <button type="button" class="btn-mkt-submit" style="width: auto; margin: 0; padding: 0 14px;" [disabled]="codesBusy" (click)="submitMakeCodes()">{{ codesBusy ? 'Making...' : 'Make the codes' }}</button>
+            <span style="font-size: 9px; color: #64748b;">Random and never repeated. Up to 50,000 at a time.</span>
+          </div>
+        </div>
+
+        <div class="table-responsive codes-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>CODE</th>
+                <th>STATUS</th>
+                <th>OWN VALUE</th>
+                <th>USED ON</th>
+                <th>BILL</th>
+                <th>CUSTOMER</th>
+                <th>BRANCH</th>
+                <th style="text-align: right;">PAID</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of codesData?.results; trackBy: trackById">
+                <td>
+                  <span class="code-text">{{ c.code }}</span>
+                  <button type="button" class="code-copy" title="Copy" (click)="copyCode(c)">{{ copiedCodeId === c.id ? 'Copied' : 'Copy' }}</button>
+                </td>
+                <td><span class="code-chip" [ngClass]="'code-' + c.status.toLowerCase()">{{ c.status === 'Void' ? 'Withdrawn' : c.status }}</span></td>
+                <td>{{ c.value ? 'Rs ' + c.value : '—' }}</td>
+                <td>{{ c.used_at ? (c.used_at | date:'dd-MMM-yyyy HH:mm') : '—' }}</td>
+                <td>{{ c.bill || '—' }}</td>
+                <td>{{ c.client || (c.status === 'Used' ? 'Walk-in' : '—') }}<span *ngIf="c.client_phone" style="color: #64748b;"> · {{ c.client_phone }}</span></td>
+                <td>{{ c.branch || '—' }}</td>
+                <td style="text-align: right; font-weight: 700;">{{ c.amount_applied ? 'Rs ' + c.amount_applied : '—' }}</td>
+                <td style="text-align: right;">
+                  <button type="button" class="code-copy" *ngIf="can('promotions', 'update') && c.status !== 'Used'" [disabled]="codesBusy" (click)="toggleCodeVoid(c)">{{ c.status === 'Void' ? 'Restore' : 'Withdraw' }}</button>
+                </td>
+              </tr>
+              <tr *ngIf="codesData && codesData.results.length === 0">
+                <td colspan="9" style="text-align: center; color: #64748b; padding: 18px;">{{ codesData.summary.total === 0 ? 'No codes yet. Add the brand\'s list or make codes above.' : 'No codes match this view.' }}</td>
+              </tr>
+              <tr *ngIf="!codesData && codesLoading">
+                <td colspan="9" style="text-align: center; color: #64748b; padding: 18px;">Loading the codes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between; align-items: center;">
+        <span style="font-size: 9.5px; color: #64748b;" *ngIf="codesData">{{ codesData.count }} code(s) in this view</span>
+        <div style="display: flex; align-items: center; gap: 6px;" *ngIf="codesData">
+          <button type="button" class="action-icon-btn codes-btn" [disabled]="codesPage <= 1 || codesLoading" (click)="gotoCodesPage(codesPage - 1)">Previous</button>
+          <span style="font-size: 10px; font-weight: 700;">Page {{ codesPage }} of {{ codesPageCount }}</span>
+          <button type="button" class="action-icon-btn codes-btn" [disabled]="codesPage >= codesPageCount || codesLoading" (click)="gotoCodesPage(codesPage + 1)">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Marketing Item Modal -->
+  <div class="modal-backdrop" *ngIf="showEditModal">
+    <div class="modal-content config-modal" style="max-width: 440px; width: 90%; max-height: calc(85vh / var(--ui-zoom)); overflow-y: auto;">
+      <div class="modal-header">
+        <h3 style="text-transform: capitalize; display: flex; align-items: center; gap: 5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          Edit {{ editItemType }}
+        </h3>
+        <button class="close-btn" (click)="closeEditModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+        <!-- Promotion Edit Fields -->
+        <ng-container *ngIf="editItemType === 'promotion'">
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">Promotion Name</label>
+            <div class="mkt-input-wrap">
+              <input type="text" class="form-control" placeholder="Promotion Name" [(ngModel)]="editItemData.name">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Start Date</label>
+              <div class="mkt-input-wrap">
+                <input type="date" class="form-control" min="{{todayDate}}" [(ngModel)]="editItemData.start_date">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">End Date</label>
+              <div class="mkt-input-wrap">
+                <input type="date" class="form-control" min="{{todayDate}}" [(ngModel)]="editItemData.end_date">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.5;">
+              <label class="mkt-field-label">Description</label>
+              <div class="mkt-input-wrap">
+                <input type="text" class="form-control" placeholder="Description" [(ngModel)]="editItemData.description">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;" *ngIf="editItemData.promo_type !== 'Coupon'">
+              <label class="mkt-field-label">Max Uses / Client</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Unlimited" [(ngModel)]="editItemData.max_usage_per_client">
+              </div>
+            </div>
+          </div>
+
+          <!-- A coupon's terms (the codes themselves are under "Codes") -->
+          <ng-container *ngIf="editItemData.promo_type === 'Coupon' && editItemData.config">
+            <div class="form-row">
+              <div class="mkt-field-group">
+                <label class="mkt-field-label">Brand</label>
+                <div class="mkt-input-wrap">
+                  <input type="text" maxlength="60" class="form-control" [(ngModel)]="editItemData.config.brand">
+                </div>
+              </div>
+              <div class="mkt-field-group">
+                <label class="mkt-field-label">Min Bill (Rs.)</label>
+                <div class="mkt-input-wrap">
+                  <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="None" [(ngModel)]="editItemData.config.coupon_min_bill">
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="mkt-field-group">
+                <label class="mkt-field-label">Each coupon is worth</label>
+                <select class="form-control" [(ngModel)]="editItemData.config.coupon_value_type">
+                  <option value="Flat">Flat (Rs.)</option>
+                  <option value="Percentage">Percentage of the bill (%)</option>
+                </select>
+              </div>
+              <div class="mkt-field-group">
+                <label class="mkt-field-label">{{ editItemData.config.coupon_value_type === 'Percentage' ? 'Percent (%)' : 'Amount (Rs.)' }}</label>
+                <div class="mkt-input-wrap">
+                  <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="editItemData.config.coupon_value">
+                </div>
+              </div>
+              <div class="mkt-field-group" *ngIf="editItemData.config.coupon_value_type === 'Percentage'">
+                <label class="mkt-field-label">Most it can pay</label>
+                <div class="mkt-input-wrap">
+                  <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="No cap" [(ngModel)]="editItemData.config.coupon_max_discount">
+                </div>
+              </div>
+            </div>
+            <div style="font-size: 9px; color: #64748b;">A change applies to coupons used from now on; coupons already used keep what they paid.</div>
+          </ng-container>
+        </ng-container>
+
+        <!-- Card Edit Fields -->
+        <ng-container *ngIf="editItemType === 'card'">
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.5;">
+              <label class="mkt-field-label">Card Title</label>
+              <div class="mkt-input-wrap">
+                <input type="text" class="form-control" placeholder="Card Title" [(ngModel)]="editItemData.title">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">Expiry Days</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Days" [(ngModel)]="editItemData.expiry_days">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Post Tax Price</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Post tax Price" [(ngModel)]="editItemData.post_tax_price" (ngModelChange)="calculateEditCardPreTax()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Pre Tax Price</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Pre tax Price" [(ngModel)]="editItemData.pre_tax_price" (ngModelChange)="calculateEditCardPostTax()">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Card Value</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Value" [(ngModel)]="editItemData.value" (ngModelChange)="calculateEditCardBenefit()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Benefit %</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Benefit %" [(ngModel)]="editItemData.benefit_percent" (ngModelChange)="calculateEditCardValue()">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">Incentive</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Incentive" [(ngModel)]="editItemData.incentive">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1.5;">
+              <label class="mkt-field-label">Description</label>
+              <div class="mkt-input-wrap">
+                <input type="text" class="form-control" placeholder="Description" [(ngModel)]="editItemData.description">
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Membership Edit Fields -->
+        <ng-container *ngIf="editItemType === 'membership'">
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.5;">
+              <label class="mkt-field-label">Membership Name</label>
+              <div class="mkt-input-wrap">
+                <input type="text" class="form-control" placeholder="Membership Name" [(ngModel)]="editItemData.name">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">Days to Expiry</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Days" [(ngModel)]="editItemData.expiry_days">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Post Tax Price</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Post Tax Price" [(ngModel)]="editItemData.post_tax_price" (ngModelChange)="calculateEditMembershipPreTax()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Pre Tax Price</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Pre Tax Price" [(ngModel)]="editItemData.pre_tax_price" (ngModelChange)="calculateEditMembershipPostTax()">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Discount Benefit %</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Discount %" [(ngModel)]="editItemData.discount_percent" (ngModelChange)="calculateEditMembershipValue()">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Value (Rs.)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Value" [(ngModel)]="editItemData.value" (ngModelChange)="calculateEditMembershipBenefit()">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1;">
+              <label class="mkt-field-label">Staff Incentive</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Incentive" [(ngModel)]="editItemData.incentive">
+              </div>
+            </div>
+            <div class="mkt-field-group" style="flex: 1.5;">
+              <label class="mkt-field-label">Description</label>
+              <div class="mkt-input-wrap">
+                <input type="text" class="form-control" placeholder="Description" [(ngModel)]="editItemData.description">
+              </div>
+            </div>
+          </div>
+          <label class="filter-chip-label" style="align-self: flex-start;">
+            <input type="checkbox" [(ngModel)]="editItemData.is_vip"> VIP Membership?
+          </label>
+        </ng-container>
+
+        <!-- Package Edit Fields -->
+        <ng-container *ngIf="editItemType === 'package'">
+          <div class="form-row">
+            <div class="mkt-field-group" style="flex: 1.5;">
+              <label class="mkt-field-label">Package Name</label>
+              <div class="mkt-input-wrap">
+                <input type="text" class="form-control" placeholder="Package Name" [(ngModel)]="editItemData.name">
+              </div>
+            </div>
+          </div>
+          <div class="mkt-field-group" *ngFor="let row of editItemData.rows; let i = index; trackBy: trackByIndex">
+            <label class="mkt-field-label">{{ i === 0 ? 'Service' : 'Another service' }}</label>
+            <div style="display: flex; gap: 8px;">
+              <select class="form-control" style="flex: 2;" [(ngModel)]="row.service_name">
+                <option value="">Select Service</option>
+                <option *ngFor="let s of servicesList; trackBy: trackById" [value]="s.name">{{ s.name }}</option>
+              </select>
+              <input type="number" min="1" oninput="validity.valid||(value='');" class="form-control" style="flex: 1;"
+                placeholder="Sessions" [(ngModel)]="row.pkgQty">
+              <button type="button" class="action-icon-btn" title="Remove" *ngIf="editItemData.rows.length > 1"
+                (click)="removePackageRow(editItemData, i)">&times;</button>
+            </div>
+          </div>
+          <button type="button" class="action-icon-btn" style="width: auto; padding: 0 12px; margin-bottom: 10px; font-size: 10.5px; font-weight: 700;"
+            (click)="addPackageRow(editItemData)">+ Add another service</button>
+          <div class="form-row">
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Price (Rs.)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Price" [(ngModel)]="editItemData.price">
+              </div>
+            </div>
+            <div class="mkt-field-group">
+              <label class="mkt-field-label">Validity (Days)</label>
+              <div class="mkt-input-wrap">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" placeholder="Validity Days" [(ngModel)]="editItemData.validity_days">
+              </div>
+            </div>
+          </div>
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">GST (%)</label>
+            <div class="mkt-input-wrap">
+              <input type="number" min="0" max="100" oninput="validity.valid||(value='');" class="form-control"
+                placeholder="Leave empty for the default in Settings" [(ngModel)]="editItemData.gst_percent">
+            </div>
+          </div>
+          <div class="mkt-field-group">
+            <label class="mkt-field-label">Description</label>
+            <div class="mkt-input-wrap">
+              <input type="text" class="form-control" placeholder="Description" [(ngModel)]="editItemData.description">
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="modal-footer">
+        <button class="action-icon-btn" style="width: auto; padding: 0 12px; font-weight: 700; font-size: 10.5px;" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-mkt-submit" style="width: auto; padding: 0 14px; margin: 0;" (click)="saveEdit()" [disabled]="isSaving">
+          {{ isSaving ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+

@@ -1,0 +1,20 @@
+{
+  "//": "Template + type check only. `tsconfig.json` is a solution file with",
+  "//2": "\"files\": [] and project references, so `tsc -p tsconfig.json` and",
+  "//3": "`ngc -p tsconfig.json` check NOTHING and always report success. This",
+  "//4": "config actually compiles the app, with strictTemplates, and emits no",
+  "//5": "output. Use it for verification: ngc -p tsconfig.check.json",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "./src",
+    "outDir": "./.tscheck"
+  },
+  "files": [],
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts"],
+  "angularCompilerOptions": {
+    "strictTemplates": true,
+    "strictInjectionParameters": true
+  }
+}

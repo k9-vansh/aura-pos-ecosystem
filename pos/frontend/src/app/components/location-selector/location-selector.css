@@ -1,0 +1,171 @@
+.custom-center-dropdown {
+  border-radius: 20px;
+  padding: 4px 10px;
+  height: 28px;
+  background: #fff;
+  width: 120px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 101;
+}
+
+.custom-center-dropdown:hover {
+  border-color: #cbd5e1;
+}
+
+.custom-center-dropdown.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dropdown-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-icon {
+  font-size: 10px;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.custom-center-dropdown.active .dropdown-icon {
+  transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 102;
+  padding: 8px;
+}
+
+.dropdown-menu-item {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dropdown-menu-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.dropdown-menu-item.selected {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  cursor: default;
+}
+
+:host-context([data-theme="dark"]) .custom-center-dropdown {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+:host-context([data-theme="dark"]) .custom-center-dropdown:hover {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  background: #1a1a1a !important;
+}
+
+:host-context([data-theme="dark"]) .custom-dropdown-menu {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+:host-context([data-theme="dark"]) .dropdown-menu-item {
+  color: #e2e8f0 !important;
+}
+
+:host-context([data-theme="dark"]) .dropdown-menu-item:hover {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+:host-context([data-theme="dark"]) .dropdown-menu-item.selected {
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+:host-context([data-theme="dark"]) .dropdown-text {
+  color: #ffffff !important;
+}
+
+:host-context([data-theme="dark"]) .dropdown-icon {
+  color: #94a3b8 !important;
+}
+
+
+/* ── several locations: tick list with All / Apply on top ── */
+.custom-dropdown-menu.multi-menu {
+  width: 260px;
+  max-height: 360px;
+  padding: 0 8px 8px;
+}
+.multi-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  background: #fff;
+  border-bottom: 1px solid #eef2f6;
+  margin-bottom: 4px;
+}
+.multi-all, .multi-apply {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+.multi-apply { background: #0f172a; border-color: #0f172a; color: #fff; }
+.multi-count { font-size: 11px; font-weight: 600; color: #64748b; }
+.multi-item { display: flex; align-items: center; gap: 10px; }
+.multi-item input { margin: 0; flex-shrink: 0; }
+.multi-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+:host-context([data-theme="dark"]) .multi-head { background: #111111 !important; border-bottom-color: rgba(255, 255, 255, 0.12) !important; }
+:host-context([data-theme="dark"]) .multi-all { background: #1a1a1a !important; border-color: rgba(255, 255, 255, 0.25) !important; color: #ffffff !important; }
+:host-context([data-theme="dark"]) .multi-apply { background: #e11d48 !important; border-color: #e11d48 !important; }
+:host-context([data-theme="dark"]) .multi-count { color: #cbd5e1 !important; }

@@ -1,0 +1,94 @@
+<div class="sync-page">
+  <div class="sync-banner" *ngIf="summary.sap_enabled === false">
+    SAP is switched off on this server. Postings wait here and go out when it is switched back on.
+  </div>
+
+  <div class="sync-tiles">
+    <button class="sync-tile" *ngFor="let t of tabs; trackBy: trackById"
+      [class.active]="state === t.key" [class.alert]="t.key === 'attention' && summary.attention > 0"
+      (click)="setState(t.key)">
+      <span class="tile-label">{{ t.label }}</span>
+      <span class="tile-count" *ngIf="t.key === 'attention'">{{ summary.attention ?? '-' }}</span>
+      <span class="tile-count" *ngIf="t.key === 'retrying'">{{ summary.retrying ?? '-' }}</span>
+      <span class="tile-count" *ngIf="t.key === 'waiting'">{{ summary.waiting ?? '-' }}</span>
+      <span class="tile-count" *ngIf="t.key === 'done'">{{ summary.done_24h ?? '-' }}<small> today</small></span>
+    </button>
+  </div>
+
+  <div class="sync-bar">
+    <div class="search-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" [(ngModel)]="search" (keyup.enter)="onSearch()" placeholder="Search bill number or SAP message...">
+    </div>
+    <span class="sync-meta" *ngIf="summary.last_posted_at">Last posted {{ summary.last_posted_at | date:'dd-MM-yyyy, HH:mm' }}</span>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading">Loading...</div>
+  <div class="sync-error" *ngIf="loadError">{{ loadError }}</div>
+
+  <table class="modern-bills-table" *ngIf="rows.length > 0">
+    <thead>
+      <tr>
+        <th>Document</th>
+        <th>Branch</th>
+        <th>Status</th>
+        <th>SAP says</th>
+        <th>Queued</th>
+        <th class="actions-col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <ng-container *ngFor="let row of rows; trackBy: trackById">
+        <tr>
+          <td class="font-semibold">{{ row.label }}</td>
+          <td class="text-secondary">{{ row.center_name || (row.center_id ? 'Branch ' + row.center_id : 'All branches') }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="'state-' + row.state">{{ stateLabel(row.state) }}</span>
+            <div class="sync-sub" *ngIf="row.state === 'retrying'">try {{ row.attempts }} of {{ row.max_attempts }}</div>
+            <div class="sync-sub" *ngIf="row.next_try_at && row.state !== 'done'">next {{ row.next_try_at | date:'HH:mm' }}</div>
+          </td>
+          <td class="error-cell">
+            <span *ngIf="row.error">{{ row.error }}</span>
+            <span *ngIf="!row.error && row.resolved_note" class="text-secondary">Done by hand - {{ row.resolved_note }}</span>
+            <span *ngIf="!row.error && !row.resolved_note && row.sap_ref" class="sap-ref">In SAP as {{ row.sap_ref }}</span>
+            <span *ngIf="!row.error && !row.resolved_note && !row.sap_ref" class="text-secondary">-</span>
+          </td>
+          <td class="text-secondary">{{ row.created_at | date:'dd-MM-yyyy, HH:mm' }}</td>
+          <td class="actions-col">
+            <button class="pill-btn" *ngIf="canRetry && (row.state === 'attention' || row.state === 'retrying')"
+              [disabled]="busyId === row.id" (click)="retry(row)">Retry</button>
+            <button class="pill-btn ghost" *ngIf="canResolve && (row.state === 'attention' || row.state === 'retrying')"
+              (click)="openResolve(row)">Mark done</button>
+          </td>
+        </tr>
+        <tr class="resolve-row" *ngIf="resolvingId === row.id">
+          <td colspan="6">
+            <div class="resolve-box">
+              <input type="text" [(ngModel)]="resolveNote" maxlength="300"
+                placeholder="What was done in SAP? e.g. Posted by hand as invoice 12345">
+              <button class="pill-btn" [disabled]="!resolveNote.trim() || busyId === row.id" (click)="resolve(row)">Save</button>
+              <button class="pill-btn ghost" (click)="openResolve(row)">Cancel</button>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+
+  <div class="sync-empty" *ngIf="!isLoading && !loadError && rows.length === 0">
+    <ng-container [ngSwitch]="state">
+      <span *ngSwitchCase="'attention'">Nothing needs attention. Every posting is in SAP or on its way.</span>
+      <span *ngSwitchCase="'retrying'">Nothing is retrying.</span>
+      <span *ngSwitchCase="'waiting'">Nothing is waiting.</span>
+      <span *ngSwitchDefault>No postings found.</span>
+    </ng-container>
+  </div>
+
+  <div class="sync-pager" *ngIf="pages > 1">
+    <button class="pill-btn ghost" [disabled]="page <= 1" (click)="goTo(page - 1)">Previous</button>
+    <span>Page {{ page }} of {{ pages }} ({{ count }})</span>
+    <button class="pill-btn ghost" [disabled]="page >= pages" (click)="goTo(page + 1)">Next</button>
+  </div>
+</div>

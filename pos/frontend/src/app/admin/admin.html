@@ -1,0 +1,282 @@
+<div class="app-layout">
+
+  <!-- ============================================================
+       SIDEBAR — hover to expand
+       ============================================================ -->
+  <aside class="main-sidebar">
+
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+
+      <a routerLink="/admin/home" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('overview')" title="Overview">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect width="7" height="7" x="3" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="14" rx="1" />
+          <rect width="7" height="7" x="3" y="14" rx="1" />
+        </svg>
+        <span class="nav-label">Overview</span>
+      </a>
+
+      <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('dashboard')" title="Dashboard">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+          <path d="M7 11l4-4 4 4 4-4" />
+        </svg>
+        <span class="nav-label">Dashboard</span>
+      </a>
+
+      <a routerLink="/admin/billing" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('billing')" title="Billing">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>
+        <span class="nav-label">Billing</span>
+      </a>
+
+      <a routerLink="/admin/appointments" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('appointment') || hasModuleReadAccess('appointments')"
+        title="Appointment">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        <span class="nav-label">Appointment</span>
+      </a>
+
+      <a routerLink="/admin/staff" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('staff')" title="Staff">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        <span class="nav-label">Staff</span>
+      </a>
+
+
+
+      <a routerLink="/admin/marketing" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('marketing')" title="Marketing">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 11 18-5v12L3 13v-2z" />
+          <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+        </svg>
+        <span class="nav-label">Marketing</span>
+      </a>
+
+      <a routerLink="/admin/finance" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('finance')" title="Finance">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+          <path d="M7 16h3v-4h3v4h3v-8h3" />
+        </svg>
+        <span class="nav-label">Finance</span>
+      </a>
+
+      <a routerLink="/admin/inventory" routerLinkActive="active" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('inventory')" title="Inventory" style="position: relative;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+          <path d="m3.3 7 8.7 5 8.7-5" />
+          <path d="M12 22V12" />
+        </svg>
+        <span class="nav-label">Inventory</span>
+        <span *ngIf="lowStockCount > 0" class="nav-badge">{{ lowStockCount }}</span>
+      </a>
+
+      <a [routerLink]="adminHomeRoute" routerLinkActive="active" [class.active]="isAdminPage" class="nav-item"
+        *ngIf="isOwner || hasModuleReadAccess('admin')" title="Admin">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        <span class="nav-label">Admin</span>
+      </a>
+
+      <a routerLink="/admin/logs" routerLinkActive="active" class="nav-item" *ngIf="isOwner || hasModuleReadAccess('logs')" title="System Logs">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+        <span class="nav-label">System Logs</span>
+      </a>
+
+    </nav>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      <hr class="sidebar-divider">
+      <a class="nav-item" (click)="toggleTheme()" title="Change Theme">
+        <svg *ngIf="currentTheme === 'light'" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg *ngIf="currentTheme === 'dark'" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <svg *ngIf="currentTheme === 'colorful'" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+        </svg>
+        <span class="nav-label">{{ currentTheme === 'light' ? 'Light Mode' : currentTheme === 'dark' ? 'Dark Mode' :
+          'Colorful Mode' }}</span>
+      </a>
+      <a class="nav-item" (click)="logout()" title="Log out">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        <span class="nav-label">Log out</span>
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- ============================================================
+       MAIN CONTENT
+       ============================================================ -->
+  <div class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+
+      <!-- Page Title -->
+      <div class="topbar-left" style="flex: 0 0 auto; margin-right: 20px;">
+        <h1 class="page-title">
+          <ng-container *ngIf="isHomePage">Good {{ greeting }}, {{ displayFirstName }}</ng-container>
+          <ng-container *ngIf="isDashboardPage">Dashboard</ng-container>
+          <ng-container *ngIf="isBillingPage">Billing</ng-container>
+          <ng-container *ngIf="isAppointmentsPage">Appointments</ng-container>
+          <ng-container *ngIf="isStaffPage">Staff</ng-container>
+          <ng-container *ngIf="isMarketingPage">Marketing</ng-container>
+          <ng-container *ngIf="isFinancePage">Finance</ng-container>
+          <ng-container *ngIf="isInventoryPage">Inventory</ng-container>
+          <ng-container *ngIf="isAdminPage">Admin</ng-container>
+          <ng-container
+            *ngIf="!isHomePage && !isDashboardPage && !isBillingPage && !isAppointmentsPage && !isStaffPage && !isMarketingPage && !isFinancePage && !isInventoryPage && !isAdminPage && !isLogsPage">Clients</ng-container>
+          <ng-container *ngIf="isLogsPage">Audit Log</ng-container>
+        </h1>
+        <p class="page-subtitle">
+          <ng-container *ngIf="isHomePage">Your workspace overview</ng-container>
+          <ng-container *ngIf="isDashboardPage">Revenue, appointments and performance at a glance</ng-container>
+          <ng-container *ngIf="isBillingPage">Create invoices, redeem cards and manage payments</ng-container>
+          <ng-container *ngIf="isAppointmentsPage">Staff scheduling and client bookings</ng-container>
+          <ng-container *ngIf="isStaffPage">Team records, job cards and service activity</ng-container>
+          <ng-container *ngIf="isMarketingPage">Memberships, packages and promotions</ng-container>
+          <ng-container *ngIf="isFinancePage">Daily register, closings and financial reports</ng-container>
+          <ng-container *ngIf="isInventoryPage">Stock management and purchase orders</ng-container>
+          <ng-container *ngIf="isAdminPage">User management, billing records, service pricing and salon
+            settings</ng-container>
+          <ng-container *ngIf="isLogsPage">Enterprise activity feed and system events</ng-container>
+        </p>
+      </div>
+
+      <!-- Right Actions (Search + Icons) -->
+      <div class="topbar-right"
+        style="flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
+
+        <app-bell></app-bell>
+
+        <button class="topbar-icon-btn" title="Chat" *ngIf="canChat" (click)="chat.toggleChat()" style="position: relative;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span *ngIf="unreadChatCount > 0" class="chat-notification-badge">{{ unreadChatCount }}</span>
+        </button>
+
+
+        <div class="topbar-user">
+          <div class="user-info">
+            <span class="user-name">{{ displayName }}</span>
+            <span class="user-role">{{ displayRole }}</span>
+          </div>
+          <div class="user-avatar">{{ displayInitials }}</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Admin Sub-navigation (only on admin pages) -->
+    <div *ngIf="isAdminPage" style="position: relative; z-index: 50; padding: 6px 12px 8px 12px;">
+      <div class="admin-subnav" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: visible; padding-bottom: 8px;">
+        <app-location-selector
+            [centers]="centers"
+            [hasGlobalAccess]="hasGlobalAccess"
+        [multi]="true"
+            [selectedCenterId]="adminFilterService.currentCenterId"
+            (selectedCenterIdChange)="adminFilterService.setCenterId($event); adminFilterService.triggerApply()">
+          </app-location-selector>
+        <div class="tabs-container" style="display: flex; gap: 6px; flex-wrap: wrap; flex: 1;">
+
+      <a routerLink="/admin/bills" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.bills?.read">Bills</a>
+      <a routerLink="/admin/changes" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.changes?.read">Changes</a>
+      <a routerLink="/admin/manager-discounts" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.manager_discounts?.read">Manager Discounts</a>
+      <a routerLink="/admin/master-pins" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.master_pins?.read">Master PINs</a>
+      <a routerLink="/admin/clients" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.clients?.read">Clients</a>
+      <a routerLink="/admin/users" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.users?.read">Users</a>
+      <a routerLink="/admin/centers" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.centers?.read">Centers</a>
+      <a routerLink="/admin/services" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.services?.read">Services</a>
+      <a routerLink="/admin/roles" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.roles?.read">Roles &amp; Permissions</a>
+      <a routerLink="/admin/settings" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.settings?.read">Settings</a>
+      <a routerLink="/admin/sap-sync" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.sap_sync?.read">SAP Sync</a>
+      <a routerLink="/admin/approvals" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.approvals?.read">Approvals</a>
+      <a routerLink="/admin/integrations" routerLinkActive="active" class="subnav-tab"
+        *ngIf="isOwner || permissions.admin?.integrations?.read">Integrations</a>
+        </div>
+        
+      </div>
+    </div>
+
+    <!-- Router Outlet -->
+    <div class="content-area">
+      <router-outlet #pageOut="outlet" (activate)="onPageActivated(pageOut)" (deactivate)="viewRefresh.attachRef(null)"></router-outlet>
+    </div>
+  </div>
+
+    <!-- ============================================================
+       CHAT WIDGET
+       ============================================================ -->
+    <app-chat #chat></app-chat>
+
+  </div>

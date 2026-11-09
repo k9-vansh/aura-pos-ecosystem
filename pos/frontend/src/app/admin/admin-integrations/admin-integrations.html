@@ -1,0 +1,146 @@
+<div class="sync-page">
+  <div class="sync-tiles">
+    <button class="sync-tile" [class.active]="tab === 'services'" (click)="setTab('services')">
+      <span class="tile-label">Mailbox &amp; WhatsApp</span>
+      <span class="tile-sub">Connect the services</span>
+    </button>
+    <button class="sync-tile" [class.active]="tab === 'notifications'" (click)="setTab('notifications')">
+      <span class="tile-label">Notifications</span>
+      <span class="tile-sub">Who hears about what</span>
+    </button>
+    <button class="sync-tile" [class.active]="tab === 'messages'" (click)="setTab('messages')">
+      <span class="tile-label">Messages</span>
+      <span class="tile-sub">Everything sent, and what failed</span>
+    </button>
+  </div>
+
+  <div class="sync-error" *ngIf="loadError">{{ loadError }}</div>
+  <div class="loading-overlay" *ngIf="isLoading">Loading...</div>
+
+  <!-- ─── Services ─── -->
+  <ng-container *ngIf="tab === 'services'">
+    <div class="rule-card" *ngFor="let s of services; trackBy: trackByKey">
+      <div class="rule-head">
+        <div>
+          <div class="rule-title">
+            {{ s.label }}
+            <span class="status-badge" [ngClass]="s.ready ? 'state-done' : 'state-waiting'">{{ s.ready ? 'Ready' : s.enabled ? 'Incomplete' : 'Off' }}</span>
+          </div>
+          <div class="rule-help">{{ s.help }}</div>
+        </div>
+        <label class="switch" [class.disabled]="!canEdit">
+          <input type="checkbox" [(ngModel)]="s.enabled" [disabled]="!canEdit">
+          <span class="switch-text">{{ s.enabled ? 'On' : 'Off' }}</span>
+        </label>
+      </div>
+
+      <div class="field-grid">
+        <label class="field" *ngFor="let f of s.fields; trackBy: trackByKey">
+          <span class="field-label">{{ f.label }}</span>
+          <input [type]="f.secret ? 'password' : 'text'" [(ngModel)]="forms[s.key][f.name]"
+            [disabled]="!canEdit" autocomplete="off" [placeholder]="f.is_set && f.secret ? 'Saved - type to replace' : ''">
+          <span class="field-help" *ngIf="f.help">{{ f.help }}</span>
+        </label>
+      </div>
+
+      <div class="rule-foot">
+        <div class="test-row" *ngIf="canTest">
+          <input type="text" [(ngModel)]="testTo[s.key]" [placeholder]="s.channel === 'email' ? 'Send a test to this address' : 'Send a test to this number'">
+          <button class="pill-btn ghost" [disabled]="!(testTo[s.key] || '').trim() || busy === 'test-' + s.key"
+            (click)="testService(s)">{{ busy === 'test-' + s.key ? 'Sending...' : 'Test' }}</button>
+        </div>
+        <span class="rule-note" *ngIf="!canTest"></span>
+        <button class="pill-btn" *ngIf="canEdit" [disabled]="busy === s.key" (click)="saveService(s)">
+          {{ busy === s.key ? 'Saving...' : 'Save' }}
+        </button>
+      </div>
+      <div class="test-result" *ngIf="s.last_test_at" [class.bad]="s.last_test_ok === false">
+        Last test {{ s.last_test_at | date:'dd-MM, HH:mm' }}: {{ s.last_test_message }}
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ─── Notifications ─── -->
+  <ng-container *ngIf="tab === 'notifications'">
+    <div class="rule-card" *ngFor="let ev of events; trackBy: trackByKey">
+      <div class="rule-head">
+        <div>
+          <div class="rule-title">{{ ev.label }}</div>
+          <div class="rule-help">{{ ev.help }}</div>
+        </div>
+        <label class="switch" [class.disabled]="!canEdit">
+          <input type="checkbox" [(ngModel)]="ev.enabled" [disabled]="!canEdit" (change)="saveRule(ev)">
+          <span class="switch-text">{{ ev.enabled ? 'On' : 'Off' }}</span>
+        </label>
+      </div>
+      <div class="chan-row">
+        <label><input type="checkbox" [(ngModel)]="ev.bell" [disabled]="!canEdit" (change)="saveRule(ev)"> POS bell</label>
+        <label><input type="checkbox" [(ngModel)]="ev.email" [disabled]="!canEdit" (change)="saveRule(ev)"> E-mail</label>
+        <label><input type="checkbox" [(ngModel)]="ev.whatsapp" [disabled]="!canEdit" (change)="saveRule(ev)"> WhatsApp</label>
+      </div>
+      <div class="who" *ngIf="roles.length">
+        <div class="approvers-label">Also tell these roles</div>
+        <label class="chip" *ngFor="let r of roles; trackBy: trackById">
+          <input type="checkbox" [checked]="has(ev, 'role_ids', r.id)" [disabled]="!canEdit"
+            (change)="toggleId(ev, 'role_ids', r.id)"> {{ r.name }}
+        </label>
+      </div>
+      <div class="who">
+        <div class="approvers-label">Also tell these people</div>
+        <label class="chip" *ngFor="let u of users; trackBy: trackById">
+          <input type="checkbox" [checked]="has(ev, 'user_ids', u.id)" [disabled]="!canEdit"
+            (change)="toggleId(ev, 'user_ids', u.id)"> {{ u.full_name || u.email }}
+        </label>
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-title">Messages to clients</div>
+      <div class="rule-help">
+        These follow each client's consent and Do-Not-Disturb flag, and go out only when the channel above is ready.
+        Switch them on or off, and set the timing, in Settings &rsaquo; Client reminders.
+      </div>
+      <ul class="plain-list">
+        <li *ngFor="let c of clientEvents; trackBy: trackByKey">{{ c.label }}</li>
+      </ul>
+    </div>
+  </ng-container>
+
+  <!-- ─── Messages ─── -->
+  <ng-container *ngIf="tab === 'messages'">
+    <div class="sync-tiles">
+      <div class="sync-tile static"><span class="tile-label">Sent</span><span class="tile-count">{{ counts.sent ?? 0 }}</span></div>
+      <div class="sync-tile static" [class.alert]="counts.failed > 0"><span class="tile-label">Failed</span><span class="tile-count">{{ counts.failed ?? 0 }}</span></div>
+      <div class="sync-tile static"><span class="tile-label">Not sent (not set up)</span><span class="tile-count">{{ counts.skipped ?? 0 }}</span></div>
+      <div class="sync-tile static"><span class="tile-label">Waiting</span><span class="tile-count">{{ counts.queued ?? 0 }}</span></div>
+    </div>
+    <div class="sync-bar">
+      <div class="filters">
+        <select [(ngModel)]="msgStatus" (change)="loadMessages()">
+          <option value="">Any status</option><option value="sent">Sent</option><option value="failed">Failed</option>
+          <option value="skipped">Not sent</option><option value="queued">Waiting</option>
+        </select>
+        <select [(ngModel)]="msgChannel" (change)="loadMessages()">
+          <option value="">Any channel</option><option value="email">E-mail</option><option value="whatsapp">WhatsApp</option>
+        </select>
+      </div>
+    </div>
+    <table class="modern-bills-table" *ngIf="messages.length > 0">
+      <thead><tr><th>When</th><th>Channel</th><th>To</th><th>About</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let m of messages; trackBy: trackById">
+          <td class="text-secondary">{{ m.created_at | date:'dd-MM-yyyy, HH:mm' }}</td>
+          <td>{{ m.channel === 'email' ? 'E-mail' : 'WhatsApp' }}</td>
+          <td>{{ m.who || m.recipient }}<div class="sync-sub" *ngIf="m.who">{{ m.recipient }}</div></td>
+          <td>{{ m.subject || m.event }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="m.status === 'sent' ? 'state-done' : m.status === 'failed' ? 'state-attention' : 'state-waiting'">
+              {{ m.status === 'skipped' ? 'Not sent' : m.status }}</span>
+            <div class="sync-sub error-cell" *ngIf="m.error">{{ m.error }}</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="sync-empty" *ngIf="!isLoading && !loadError && messages.length === 0">No messages yet.</div>
+  </ng-container>
+</div>

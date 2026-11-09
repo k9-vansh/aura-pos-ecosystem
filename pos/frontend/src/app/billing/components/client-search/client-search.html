@@ -1,0 +1,65 @@
+<div class="client-search-container" style="position: relative; z-index: 50; margin-bottom: 6px;">
+  <div class="client-search-input-wrapper">
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" 
+      stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; flex-shrink: 0;">
+      <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <input #clientSearchInput class="premium-search-input" placeholder="Search client by name or phone..." 
+      [(ngModel)]="searchPhone"
+      (ngModelChange)="onSearchPhoneChange()" (keyup.enter)="searchClients()">
+    <button *ngIf="searchPhone && !isLoading" type="button" (click)="searchPhone=''; searchClients()" 
+      class="btn-clear-search" title="Clear">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" 
+        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    <div *ngIf="isLoading" class="search-spinner" style="position: absolute; right: 90px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+      <i class="fa fa-spinner fa-spin"></i>
+    </div>
+    <div class="client-quick-actions">
+      <button type="button" class="btn-action-round btn-add-client-quick" (click)="newClient.emit()" title="Add New Client">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" 
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+      <button type="button" class="btn-action-round btn-anon-client-quick" (click)="anonymousClient.emit()" 
+        title="Walk-in / Anonymous Client">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" 
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- The server searches from 3 letters / 4 digits -->
+  <div class="premium-search-results" *ngIf="!clientSelected && tooShort">
+    <div class="premium-result-item" style="padding: 6px 8px; font-size: 10.5px; color: #94a3b8; cursor: default;">{{ hint }}</div>
+  </div>
+
+  <!-- Search Results Auto-complete -->
+  <div class="premium-search-results" *ngIf="!clientSelected && searchPhone && clients.length > 0">
+    <div *ngFor="let c of clients | slice:0:50; trackBy: trackById" class="premium-result-item" 
+      (mousedown)="$event.button === 0 && selectClient(c)" style="padding: 6px 8px;">
+      <div class="client-avatar" style="width: 26px; height: 26px; font-size: 11px; margin-right: 6px;">
+        {{ (c.first_name ? c.first_name.charAt(0) : '?').toUpperCase() }}
+      </div>
+      <div class="client-info">
+        <strong class="client-name" style="font-size: 11.5px; margin-bottom: 1px;">{{c.first_name}} {{c.last_name || ''}}</strong>
+        <span class="client-phone" style="font-size: 10px; display: flex; align-items: center; gap: 3px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" 
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          {{c.phone || 'No phone'}}
+        </span>
+      </div>
+      <div class="client-action-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" 
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </div>
+    </div>
+  </div>
+</div>

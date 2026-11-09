@@ -1,0 +1,788 @@
+<div class="dash-wrap">
+
+  <!-- ===== HEADER CONTROLS (no title, no big card) ===== -->
+  <div class="top-bar">
+    <div class="top-bar-controls">
+      <app-location-selector
+        *ngIf="isOwner || centers.length > 1"
+        [centers]="centers"
+        [hasGlobalAccess]="hasGlobalAccess"
+        [multi]="true"
+        [(selectedCenterId)]="selectedCenter"
+        (selectionChange)="onFilterChange()">
+      </app-location-selector>
+
+      <div class="tabs-bar">
+      <button class="tab-btn" [class.active]="activeTab === 'summary'" (click)="setTab('summary')">Overview</button>
+      <button class="tab-btn" [class.active]="activeTab === 'revenues'" (click)="setTab('revenues')">Revenue</button>
+      <button class="tab-btn" [class.active]="activeTab === 'clients'" (click)="setTab('clients')">Clients</button>
+      <button class="tab-btn" [class.active]="activeTab === 'finance'" (click)="setTab('finance')">Finance</button>
+      <button class="tab-btn" [class.active]="activeTab === 'services_products'"
+        (click)="setTab('services_products')">Services & Products</button>
+      <button class="tab-btn" [class.active]="activeTab === 'staff'" (click)="setTab('staff')">Staff</button>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <div class="date-quick-btns">
+        <button class="date-quick-btn" [class.active]="currentRange === 'thisMonth'" (click)="setDateRange('thisMonth')">This Month</button>
+        <button class="date-quick-btn" [class.active]="currentRange === 'past6Months'" (click)="setDateRange('past6Months')">Past 6 Months</button>
+        <button class="date-quick-btn" [class.active]="currentRange === 'past12Months'" (click)="setDateRange('past12Months')">Past 12 Months</button>
+      </div>
+
+      <div class="date-range-pill">
+        <i class="fa-regular fa-calendar"></i>
+        <input type="date" [(ngModel)]="startDate" (ngModelChange)="onFilterChange()" class="date-inp">
+        <span>&mdash;</span>
+        <input type="date" [(ngModel)]="endDate" (ngModelChange)="onFilterChange()" class="date-inp">
+      </div>
+
+      <div class="chart-controls" style="margin-left: 10px; display: flex; align-items: center; gap: 8px;">
+        <button class="btn-go" style="padding: 6px 10px; display: flex; align-items: center; justify-content: center; background: #f3f4f6; color: #374151; border: 1.5px solid #e5e7eb; border-radius: 6px; cursor: pointer;" (click)="toggleChartType()" title="Toggle Chart Type">
+          <!-- Switch to Bar View -->
+          <svg *ngIf="chartType === 'line'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <!-- Switch to Line View -->
+          <svg *ngIf="chartType === 'bar'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+          </svg>
+        </button>
+      </div>
+        </div>
+  </div>
+
+  <!-- ===== LOADER ===== -->
+  <div class="loader-bar" *ngIf="isLoading">
+    <div class="loader-shimmer"></div>
+    <span>Fetching data for <strong>{{ selectedCenter ? (centers | json)?.split('"name":"')[1]?.split('"')[0] || 'centre' : 'all centres' }}</strong>…</span>
+  </div>
+
+  <!-- Skeleton while loading -->
+  <div *ngIf="isLoading">
+    <div class="skeleton-kpi-strip">
+      <div class="skeleton skeleton-tile"></div>
+      <div class="skeleton skeleton-tile"></div>
+      <div class="skeleton skeleton-tile"></div>
+      <div class="skeleton skeleton-tile"></div>
+      <div class="skeleton skeleton-tile"></div>
+      <div class="skeleton skeleton-tile"></div>
+    </div>
+    <div class="skeleton skeleton-chart"></div>
+    <div class="skeleton skeleton-chart" style="height:220px"></div>
+  </div>
+
+  <!-- ================================================================
+       TAB: SUMMARY / OVERVIEW
+  ================================================================ -->
+  <div *ngIf="activeTab === 'summary' && !isLoading && summaryData">
+
+  <!-- ===== HERO: lead number + gauge, and a grid of tiles (CreditKarma look) ===== -->
+  <section class="dv-hero">
+    <div class="dv-lead">
+      <div class="dv-lead-top">
+        <span class="dv-chip">Total revenue</span>
+        <button class="dv-go" (click)="setTab('revenues')" title="Open the Revenue tab" aria-label="Open the Revenue tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+      </div>
+      <div class="dv-lead-num dv-dots">&#8377;{{ revParts.v }}<small>{{ revParts.u }}</small></div>
+      <div class="dv-lead-note">&#8377;{{ summaryData.revenue | number:'1.0-2' }} · bills {{ summaryData.money_in?.gross_billed | number:'1.0-2' }} less cards &amp; advances used</div>
+      <div class="dv-lead-gauge">
+        <svg viewBox="0 0 200 110" aria-hidden="true">
+          <defs><linearGradient id="dvGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#2f9a3e"/><stop offset="100%" stop-color="#d3f236"/></linearGradient></defs>
+          <path class="dv-g-track" d="M 20 100 A 80 80 0 0 1 180 100"/>
+          <path class="dv-g-arc" d="M 20 100 A 80 80 0 0 1 180 100" [style.stroke-dasharray]="gaugeDash251"/>
+          <line class="dv-g-needle" x1="100" y1="100" [attr.x2]="needleX" [attr.y2]="needleY"/>
+          <circle class="dv-g-hub" cx="100" cy="100" r="5"/>
+        </svg>
+        <div class="dv-g-label"><b>{{ targetPct }}%</b><span>of &#8377;{{ summaryData.target | number:'1.0-0' }} target</span></div>
+      </div>
+      <div class="dv-lead-pair">
+        <div class="dv-mini"><span class="dv-ico"><i class="fa-solid fa-wallet"></i></span><small>Money received</small><b>&#8377;{{ summaryData.money_in?.real_money_received | number:'1.0-0' }}</b></div>
+        <div class="dv-mini"><span class="dv-ico dv-ico-warn"><i class="fa-solid fa-hourglass-half"></i></span><small>Still to collect</small><b>&#8377;{{ summaryData.money_in?.to_collect | number:'1.0-0' }}</b></div>
+      </div>
+    </div>
+
+    <div class="dv-tiles">
+      <article class="dv-tile dv-tile-accent">
+        <span class="dv-ico"><i class="fa-solid fa-chart-line"></i></span>
+        <button class="dv-go" (click)="setTab('revenues')" title="Open the Revenue tab" aria-label="Open the Revenue tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+        <div class="dv-tile-label">Projected this month</div>
+        <div class="dv-tile-val">&#8377;{{ summaryData.projected | number:'1.0-0' }}</div>
+        <div class="dv-tile-sub">Based on current run-rate</div>
+      </article>
+      <article class="dv-tile">
+        <span class="dv-ico"><i class="fa-solid fa-users"></i></span>
+        <button class="dv-go" (click)="setTab('clients')" title="Open the Clients tab" aria-label="Open the Clients tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+        <div class="dv-tile-label">Clients invoiced</div>
+        <div class="dv-tile-val">{{ summaryData.total_clients }}</div>
+        <div class="dv-tile-sub"><b class="c-blue">{{ summaryData.new_clients }}</b> new · <b class="c-green">{{ summaryData.repeat_clients }}</b> repeat</div>
+        <div class="dv-dotrow" aria-hidden="true"><i *ngFor="let on of dotRow(repeatShare)" [class.on]="on"></i></div>
+      </article>
+      <article class="dv-tile">
+        <span class="dv-ico"><i class="fa-solid fa-receipt"></i></span>
+        <button class="dv-go" (click)="setTab('clients')" title="Open the Clients tab" aria-label="Open the Clients tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+        <div class="dv-tile-label">Avg spend / client</div>
+        <div class="dv-tile-val">&#8377;{{ summaryData.avg_spend?.all | number:'1.0-0' }}</div>
+        <div class="dv-tile-sub">Per unique client</div>
+      </article>
+      <article class="dv-tile">
+        <span class="dv-ico"><i class="fa-solid fa-box"></i></span>
+        <button class="dv-go" (click)="setTab('services_products')" title="Open Services &amp; Products" aria-label="Open Services &amp; Products"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+        <div class="dv-tile-label">Stock value</div>
+        <div class="dv-tile-val c-red">&#8377;{{ stockParts.v }}<small>{{ stockParts.u }}</small></div>
+        <div class="dv-tile-sub">{{ summaryData.inventory?.count }} items in stock</div>
+      </article>
+      <article class="dv-tile" *ngIf="summaryData.money_in as mi">
+        <span class="dv-ico"><i class="fa-solid fa-file-invoice"></i></span>
+        <button class="dv-go" (click)="setTab('revenues')" title="Open the Revenue tab" aria-label="Open the Revenue tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+        <div class="dv-tile-label">Bills</div>
+        <div class="dv-tile-val">{{ mi.bills }}</div>
+        <div class="dv-tile-sub">Average bill &#8377;{{ mi.avg_bill | number:'1.0-2' }}</div>
+        <svg class="dv-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline [attr.points]="sparkPoints"/></svg>
+      </article>
+      <article class="dv-tile" *ngIf="summaryData.money_in as mi">
+        <span class="dv-ico"><i class="fa-solid fa-landmark"></i></span>
+        <button class="dv-go" (click)="setTab('finance')" title="Open the Finance tab" aria-label="Open the Finance tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+        <div class="dv-tile-label">GST collected</div>
+        <div class="dv-tile-val">&#8377;{{ (mi.tax.cgst + mi.tax.sgst + mi.tax.igst) | number:'1.0-0' }}</div>
+        <div class="dv-tile-sub">CGST &#8377;{{ mi.tax.cgst | number:'1.0-0' }} · SGST &#8377;{{ mi.tax.sgst | number:'1.0-0' }}</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== GRADIENT CARDS + results-pending card (Superpower look) ===== -->
+  <section class="dv-glass-row" *ngIf="summaryData.money_in as mi">
+    <article class="dv-glass dv-glass-green">
+      <div class="dv-blobs"><i></i><i></i><i></i></div>
+      <div class="dv-glass-head">Target achieved</div>
+      <div class="dv-glass-body">
+        <div class="dv-big dv-dots dv-light">{{ targetPct }}<small>%</small></div>
+        <div class="dv-glass-status">{{ paceLabel }}</div>
+        <div class="dv-glass-sub">&#8377;{{ summaryData.revenue | number:'1.0-0' }} of &#8377;{{ summaryData.target | number:'1.0-0' }}</div>
+      </div>
+      <div class="dv-ruler" aria-hidden="true"><i *ngFor="let on of dotRow(targetPct, 40)" [class.on]="on"></i></div>
+    </article>
+
+    <article class="dv-glass dv-glass-sunset">
+      <div class="dv-blobs"><i></i><i></i><i></i></div>
+      <div class="dv-glass-head">Money received</div>
+      <div class="dv-glass-body">
+        <div class="dv-big dv-dots dv-light">&#8377;{{ recvParts.v }}<small>{{ recvParts.u }}</small></div>
+        <div class="dv-glass-status">{{ collectedPct }}% of billed</div>
+        <div class="dv-glass-sub">Cards &amp; advances used &#8377;{{ mi.redeemed?.total | number:'1.0-0' }}</div>
+      </div>
+      <div class="dv-ruler dv-ticks" aria-hidden="true"><i *ngFor="let t of tickMarks" [class.tall]="t"></i></div>
+    </article>
+
+    <article class="dv-pending">
+      <div class="dv-pending-head"><span>{{ mi.to_collect > 0 ? 'Still to collect' : 'All collected' }}</span><span class="dv-pill-x" aria-hidden="true">&#10003;</span></div>
+      <div class="dv-pending-body">
+        <div>
+          <div class="dv-pending-num dv-dots">&#8377;{{ collectParts.v }}<small>{{ collectParts.u }}</small></div>
+          <div class="dv-pending-slider"><i [style.width.%]="collectedPct"></i><em [style.left.%]="collectedPct"></em></div>
+          <div class="dv-pending-note">{{ mi.to_collect > 0 ? 'on open bills this period' : 'Nothing left to collect' }}</div>
+        </div>
+        <div class="dv-vial" aria-hidden="true"><div class="dv-vial-fill" [style.height.%]="collectedPct"></div></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ===== MINI CARDS (the "Biomarkers" row) ===== -->
+  <section class="dv-minis" *ngIf="summaryData.money_in as mi">
+    <h3 class="dv-section">At a glance <small>what moved this period</small></h3>
+    <div class="dv-mini-grid">
+      <article class="dv-minicard">
+        <span class="dv-ico"><i class="fa-solid fa-credit-card"></i></span>
+        <div class="dv-minicard-label">Paid from cards &amp; advances</div>
+        <div class="dv-minicard-val dv-dots">&#8377;{{ mi.redeemed?.total | number:'1.0-0' }}</div>
+        <div class="dv-minicard-sub">Cards &#8377;{{ mi.redeemed?.value_card | number:'1.0-0' }} · Advances &#8377;{{ mi.redeemed?.advance | number:'1.0-0' }}<ng-container *ngIf="mi.redeemed?.cashback > 0"> · Cashback &#8377;{{ mi.redeemed?.cashback | number:'1.0-0' }}</ng-container></div>
+        <div class="dv-minicard-ticks" aria-hidden="true"><i *ngFor="let t of tickMarks" [class.tall]="t"></i></div>
+      </article>
+      <article class="dv-minicard">
+        <span class="dv-ico"><i class="fa-solid fa-tags"></i></span>
+        <div class="dv-minicard-label">Discounts given</div>
+        <div class="dv-minicard-val dv-dots">&#8377;{{ (mi.discounts.bill_level + mi.discounts.line_level) | number:'1.0-0' }}</div>
+        <div class="dv-minicard-sub">On bills &#8377;{{ mi.discounts.bill_level | number:'1.0-0' }} · On items &#8377;{{ mi.discounts.line_level | number:'1.0-0' }}</div>
+        <div class="dv-minicard-ticks" aria-hidden="true"><i *ngFor="let t of tickMarks" [class.tall]="t"></i></div>
+      </article>
+      <article class="dv-minicard" [class.dv-minicard-alert]="mi.cancelled.count > 0">
+        <span class="dv-ico dv-ico-warn"><i class="fa-solid fa-ban"></i></span>
+        <div class="dv-minicard-label">Cancelled bills</div>
+        <div class="dv-minicard-val dv-dots">{{ mi.cancelled.count }}</div>
+        <div class="dv-minicard-sub">{{ mi.cancelled.count > 0 ? ('&#8377;' + (mi.cancelled.amount | number:'1.0-0') + ' not counted in revenue') : 'None this period' }}</div>
+        <div class="dv-minicard-ticks" aria-hidden="true"><i *ngFor="let t of tickMarks" [class.tall]="t"></i></div>
+      </article>
+    </div>
+  </section>
+
+    <!-- How customers paid -->
+    <div class="card" style="margin-bottom: 12px;" *ngIf="summaryData.money_in?.payments?.length">
+      <div class="card-head">
+        <span class="card-title">How customers paid</span>
+        <span class="card-badge">This period, by payment method</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; padding: 4px 0 2px;">
+        <div *ngFor="let p of summaryData.money_in.payments; trackBy: trackByMethod"
+             style="border:1px solid #e5e7eb; border-radius:12px; padding:8px 14px; min-width:130px;">
+          <div style="font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.4px;">{{ paymentLabel(p.method) }}</div>
+          <div style="font-size:16px; font-weight:800;">{{ p.amount | currency:'INR':'symbol':'1.0-2' }}</div>
+          <div style="font-size:11px; color:#9ca3af;">{{ p.count }} payment{{ p.count === 1 ? '' : 's' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main body: Bento Grid -->
+    <div class="bento-grid">
+      <!-- Row 1: 4 columns -->
+      <div class="card bento-span-4 chart-card-tall"
+        style="height: 400px; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-head">
+          <div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Invoices over weekdays</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('summaryLineChart', 'Invoices over weekdays')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+          
+        </div>
+        <div class="chart-wrap" style="flex: 1; min-height: 0; padding-bottom: 20px; position: relative;"><canvas
+            id="summaryLineChart"></canvas></div>
+      </div>
+
+      <div class="card bento-span-2 chart-card-tall"
+        style="height: 350px; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-head">
+          <div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Revenue Breakdown</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('revenuePieChart', 'Revenue Breakdown')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+          
+        </div>
+        <div class="chart-wrap" style="flex: 1; padding-bottom: 20px; position: relative;"><canvas
+            id="revenuePieChart"></canvas></div>
+      </div>
+
+      <div class="card bento-span-2" style="height: 350px; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-head">
+          <span class="card-title">Top Products</span>
+          <span class="card-badge">By volume this period</span>
+        </div>
+        <div class="scrollable-list" style="flex: 1;">
+          <div *ngFor="let p of summaryData?.top_products | slice:0:20; let i = index; trackBy: trackById" class="list-row">
+            <span class="rank-badge" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{i+1}}</span>
+            <div class="list-icon"><i class="fa-solid fa-box-open"></i></div>
+            <div class="list-body">
+              <span class="list-name">{{ $any(p).name | slice:0:22 }}</span>
+              <div class="list-bar-wrap">
+                <div class="list-bar" [style.width]="(($any(p).count / (summaryData?.top_products[0]?.count || 1)) * 100) + '%'"></div>
+              </div>
+            </div>
+            <span class="list-val">{{ $any(p).count }} sold</span>
+          </div>
+          <div *ngIf="!summaryData?.top_products?.length" class="empty-msg">No product data yet</div>
+        </div>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="card bento-span-1" style="height: 280px; margin-bottom: 0;">
+        <div class="card-head"><span class="card-title">Balances and Memberships</span></div>
+        <div class="spend-row">
+          <span style="color:#6b7280">Value Cards ({{ summaryData?.balances?.value_cards?.count || 0 }})</span>
+          <strong>{{ summaryData?.balances?.value_cards?.amount | currency:'INR':'symbol':'1.0-2' }}</strong>
+        </div>
+        <div class="spend-row">
+          <span style="color:#6b7280">Services ({{ summaryData?.balances?.services?.count || 0 }})</span>
+          <strong>{{ summaryData?.balances?.services?.amount | currency:'INR':'symbol':'1.0-2' }}</strong>
+        </div>
+        <div class="spend-row">
+          <span style="color:#6b7280">Advances ({{ summaryData?.balances?.advances?.count || 0 }})</span>
+          <strong>{{ summaryData?.balances?.advances?.amount | currency:'INR':'symbol':'1.0-2' }}</strong>
+        </div>
+        <div class="spend-row" style="border-top: 1px dashed #e5e7eb; padding-top: 12px; margin-top: 4px;">
+          <span style="color:#4b5563; font-weight:500">Memberships this month</span>
+          <strong style="color:#10b981">{{ summaryData?.balances?.memberships || 0 }}</strong>
+        </div>
+      </div>
+
+      <div class="card bento-span-1" style="height: 280px; margin-bottom: 0; display: flex; flex-direction: column;">
+        <div class="card-head"><span class="card-title">Inventory Breakdown</span></div>
+        <table style="width: 100%; text-align: left; font-size: 13px; margin-top: 10px; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <th style="padding: 10px 0; color: #6b7280; font-weight: 500;">Inventory</th>
+              <th style="padding: 10px 0; color: #6b7280; font-weight: 500; text-align: right;">Retail</th>
+              <th style="padding: 10px 0; color: #6b7280; font-weight: 500; text-align: right;">Technical</th>
+              <th style="padding: 10px 0; color: #6b7280; font-weight: 500; text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px dashed #e5e7eb;">
+              <td style="padding: 12px 0; font-weight: 500; color: #374151;">Amount</td>
+              <td style="padding: 12px 0; text-align: right;">{{ summaryData.inventory.amount | currency:'INR':'symbol':'1.0-2' }}</td>
+              <td style="padding: 12px 0; text-align: right; color: #9ca3af;">-</td>
+              <td style="padding: 12px 0; text-align: right; font-weight: 600;">{{ summaryData.inventory.amount | currency:'INR':'symbol':'1.0-2' }}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 0; font-weight: 500; color: #374151;">Count</td>
+              <td style="padding: 12px 0; text-align: right;">{{ summaryData.inventory.count }}</td>
+              <td style="padding: 12px 0; text-align: right; color: #9ca3af;">-</td>
+              <td style="padding: 12px 0; text-align: right; font-weight: 600;">{{ summaryData.inventory.count }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card bento-span-1" style="height: 280px; margin-bottom: 0;">
+        <div class="card-head"><span class="card-title">Avg Spend by Gender</span></div>
+        <div class="spend-row"><span>All</span><strong>{{ summaryData?.avg_spend?.all | currency:'INR':'symbol':'1.0-2'
+            }}</strong></div>
+        <div class="spend-row"><span>Female</span><strong>{{ summaryData?.avg_spend?.female |
+            currency:'INR':'symbol':'1.0-2' }}</strong></div>
+        <div class="spend-row"><span>Male</span><strong>{{ summaryData?.avg_spend?.male |
+            currency:'INR':'symbol':'1.0-2' }}</strong></div>
+        <div class="spend-row"><span>Unknown</span><strong>{{ summaryData?.avg_spend?.unknown |
+            currency:'INR':'symbol':'1.0-2' }}</strong></div>
+      </div>
+
+      <div class="card bento-span-1" style="height: 280px; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-head">
+          <span class="card-title">Top Services</span>
+          <span class="card-badge">By volume this period</span>
+        </div>
+        <div class="scrollable-list" style="flex: 1;">
+          <div *ngFor="let s of summaryData?.top_services | slice:0:20; let i = index; trackBy: trackById" class="list-row">
+            <span class="rank-badge" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{i+1}}</span>
+            <div class="list-icon svc"><i class="fa-solid fa-scissors"></i></div>
+            <div class="list-body">
+              <span class="list-name">{{ $any(s).name | slice:0:20 }}</span>
+              <div class="list-bar-wrap">
+                <div class="list-bar pink" [style.width]="(($any(s).count / ($any(summaryData?.top_services)[0]?.count || 1)) * 100) + '%'"></div>
+              </div>
+            </div>
+            <span class="list-val">{{ $any(s).count }}</span>
+          </div>
+          <div *ngIf="!summaryData?.top_services?.length" class="empty-msg">No service data yet</div>
+        </div>
+      </div>
+
+      <div class="card bento-span-1" style="height: 280px; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-head">
+          <span class="card-title">Top Staff</span>
+          <span class="card-badge">By revenue this period</span>
+        </div>
+        <div class="scrollable-list" style="flex: 1;">
+          <div *ngFor="let staff of summaryData?.top_staff | slice:0:20; let i = index; trackBy: trackById" class="list-row">
+            <span class="rank-badge" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{i+1}}</span>
+            <div class="list-icon" style="background:#e0e7ff;color:#4f46e5"><i class="fa-solid fa-user"></i></div>
+            <div class="list-body">
+              <span class="list-name" style="font-weight:600">{{ $any(staff).name }}</span>
+            </div>
+            <span class="list-val">{{ $any(staff).revenue | currency:'INR':'symbol':'1.0-2' }}</span>
+          </div>
+          <div *ngIf="!summaryData?.top_staff?.length" class="empty-msg">No staff sales yet</div>
+        </div>
+      </div>
+
+      <!-- Row 3 -->
+      <div class="card bento-span-2" style="height: 280px; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-head">
+          <span class="card-title">Top Memberships</span>
+        </div>
+        <div class="scrollable-list" style="flex: 1;">
+          <div *ngFor="let m of summaryData?.top_memberships | slice:0:20; trackBy: trackById" class="list-row"
+            style="display: inline-flex; width: 48%; margin-right: 2%;">
+            <div class="list-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-crown"></i></div>
+            <div class="list-body">
+              <span class="list-name">{{ $any(m).name | slice:0:20 }}</span>
+            </div>
+            <span class="list-val">{{ $any(m).count }}</span>
+          </div>
+          <div *ngIf="!summaryData?.top_memberships?.length" class="empty-msg">No membership sales yet</div>
+        </div>
+      </div>
+
+      <div class="card bento-span-2" style="height: 280px; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-head">
+          <span class="card-title">Top Packages</span>
+        </div>
+        <div class="scrollable-list" style="flex: 1;">
+          <div *ngFor="let p of summaryData?.top_packages | slice:0:20; trackBy: trackById" class="list-row"
+            style="display: inline-flex; width: 48%; margin-right: 2%;">
+            <div class="list-icon" style="background:#fce7f3;color:#be185d"><i class="fa-solid fa-gift"></i></div>
+            <div class="list-body">
+              <span class="list-name">{{ $any(p).name | slice:0:20 }}</span>
+            </div>
+            <span class="list-val">{{ $any(p).count }}</span>
+          </div>
+          <div *ngIf="!summaryData?.top_packages?.length" class="empty-msg">No package sales yet</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ===
+       TAB: REVENUE
+  ================================================================ -->
+  <div *ngIf="activeTab === 'revenues' && !isLoading">
+
+    <div *ngIf="revenuesData; else noRevData">
+      <!-- Stat strip -->
+      <div class="stat-strip" *ngIf="revenuesData.monthly?.length">
+        <div class="stat-chip">
+          <span class="stat-chip-label">Total Revenue</span>
+          <span class="stat-chip-val">{{ getTotal(revenuesData.monthly, 'revenue') | currency:'INR':'symbol':'1.0-2' }}</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Best Month</span>
+          <span class="stat-chip-val">{{ getBest(revenuesData.monthly, 'revenue') }}</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Daily Avg</span>
+          <span class="stat-chip-val">{{ getAvg(revenuesData.daily, 'revenue') | currency:'INR':'symbol':'1.0-2' }}</span>
+        </div>
+        <div class="stat-chip" *ngIf="selectedDrillDownMonth">
+          <span class="stat-chip-label">Viewing Month</span>
+          <span class="stat-chip-val" style="color:#f59e0b">{{ selectedDrillDownMonth }}</span>
+        </div>
+        <div class="stat-chip" *ngIf="selectedDrillDownDay">
+          <span class="stat-chip-label">Viewing Day</span>
+          <span class="stat-chip-val" style="color:#10b981">{{ selectedDrillDownDay }}</span>
+        </div>
+      </div>
+      <!-- Month chips: select any month, the current one included -->
+      <div class="month-chips" *ngIf="revenueMonthChips.length">
+        <span class="month-chips-label">Month</span>
+        <button class="mchip" [class.active]="!selectedDrillDownMonth" (click)="resetDrillDownMonth()">All</button>
+        <button class="mchip" *ngFor="let m of revenueMonthChips" [class.active]="selectedDrillDownMonth === m" (click)="drillIntoMonth(m)">{{ m }}</button>
+      </div>
+      <div class="card chart-card" style="margin-bottom: 14px;">
+        <div class="card-head">
+          <div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Monthly Revenue Trend</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('revMonthlyChart', 'Monthly Revenue Trend')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+          <span style="font-size:10px;color:#9ca3af;margin-left:6px">Click a month, or pick one above</span>
+          <span class="card-badge">Selected Period</span>
+        </div>
+        <div class="chart-wrap" style="height: 350px;"><canvas id="revMonthlyChart"></canvas></div>
+      </div>
+      <div class="card chart-card" style="margin-bottom: 14px;">
+        <div class="card-head">
+          <div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">{{ selectedDrillDownMonth ? 'Daily Revenue - ' + selectedDrillDownMonth : (currentRange === 'past6Months' || currentRange === 'past12Months' ? 'Weekly Revenue' : 'Daily Revenue') }}</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('revDailyChart', selectedDrillDownMonth ? 'Daily Revenue - ' + selectedDrillDownMonth : (currentRange === 'past6Months' || currentRange === 'past12Months' ? 'Weekly Revenue' : 'Daily Revenue'))" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span *ngIf="selectedDrillDownMonth" class="drill-pill"><i class="fa-solid fa-arrow-pointer"></i> {{ selectedDrillDownMonth }}</span>
+            <button *ngIf="selectedDrillDownMonth" (click)="resetDrillDownMonth()" style="background: #f3f4f6; color: #4b5563; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear
+            </button>
+            <span *ngIf="!selectedDrillDownMonth" style="font-size:10px;color:#9ca3af">Click a day to see its hours</span>
+            <span class="card-badge">This period</span>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height: 350px;"><canvas id="revDailyChart"></canvas></div>
+      </div>
+      <div class="card chart-card" style="margin-top:14px">
+        <div class="card-head">
+          <div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">{{ selectedDrillDownDay ? 'Hourly Revenue - ' + selectedDrillDownDay : 'Hourly Revenue (All Day)' }}</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('revHourlyChart', selectedDrillDownDay ? 'Hourly Revenue - ' + selectedDrillDownDay : 'Hourly Revenue (All Day)')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span *ngIf="selectedDrillDownDay" class="drill-pill"><i class="fa-solid fa-clock"></i> {{ selectedDrillDownDay }}</span>
+            <button *ngIf="selectedDrillDownDay" (click)="resetDrillDownDay()" style="background: #f3f4f6; color: #4b5563; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear
+            </button>
+            <span class="card-badge">24h view</span>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height: 350px;"><canvas id="revHourlyChart"></canvas></div>
+      </div>
+    </div>
+    <ng-template #noRevData>
+      <div class="empty-state">No revenue data available for this period.</div>
+    </ng-template>
+  </div>
+
+  <!-- ================================================================
+       TAB: CLIENTS
+  ================================================================ -->
+  <div *ngIf="activeTab === 'clients' && !isLoading">
+
+    <div *ngIf="clientsData; else noClientData">
+      <div class="month-chips" *ngIf="clientMonthChips.length">
+        <span class="month-chips-label">Month</span>
+        <button class="mchip" [class.active]="!selectedClientDrillDownMonth" (click)="resetClientDrillDownMonth()">All</button>
+        <button class="mchip" *ngFor="let m of clientMonthChips" [class.active]="selectedClientDrillDownMonth === m" (click)="drillIntoClientMonth(m)">{{ m }}</button>
+      </div>
+      <div class="two-col-grid">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Client Footfall</span><span class="card-badge">Selected
+              period</span></div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Total</th>
+                <th>Female</th>
+                <th>Male</th>
+                <th>Unknown</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>New</td>
+                <td>{{ clientsData.footfall?.new?.total || 0 }}</td>
+                <td>{{ clientsData.footfall?.new?.female || 0 }}</td>
+                <td>{{ clientsData.footfall?.new?.male || 0 }}</td>
+                <td>{{ clientsData.footfall?.new?.unknown || 0 }}</td>
+              </tr>
+              <tr>
+                <td>Repeat</td>
+                <td>{{ clientsData.footfall?.repeat?.total || 0 }}</td>
+                <td>{{ clientsData.footfall?.repeat?.female || 0 }}</td>
+                <td>{{ clientsData.footfall?.repeat?.male || 0 }}</td>
+                <td>{{ clientsData.footfall?.repeat?.unknown || 0 }}</td>
+              </tr>
+              <tr class="total-row">
+                <td>Total</td>
+                <td>{{ clientsData.footfall?.total?.total || 0 }}</td>
+                <td>{{ clientsData.footfall?.total?.female || 0 }}</td>
+                <td>{{ clientsData.footfall?.total?.male || 0 }}</td>
+                <td>{{ clientsData.footfall?.total?.unknown || 0 }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card chart-card">
+          <div class="card-head"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Client Types & Memberships</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('clientBreakdownChart', 'Client Types & Memberships')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+        </div>
+          <div class="chart-wrap"><canvas id="clientBreakdownChart"></canvas></div>
+        </div>
+      </div>
+      <div class="two-col-grid" style="margin-top:14px">
+        <div class="card chart-card" style="height: 360px">
+          <div class="card-head"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Female Clients Trend</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('femaleTrendChart', 'Female Clients Trend')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div><span class="legend-dot pink"
+              style="margin-left:auto"></span></div>
+          <div class="chart-wrap"><canvas id="femaleTrendChart"></canvas></div>
+        </div>
+        <div class="card chart-card" style="height: 360px">
+          <div class="card-head"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Male Clients Trend</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('maleTrendChart', 'Male Clients Trend')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div><span class="legend-dot blue"
+              style="margin-left:auto"></span></div>
+          <div class="chart-wrap"><canvas id="maleTrendChart"></canvas></div>
+        </div>
+        <div class="card chart-card" style="height: 360px; grid-column: span 2;">
+          <div class="card-head"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Unknown Client Trend</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('unknownTrendChart', 'Unknown Client Trend')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div><span class="legend-dot purple"
+              style="margin-left:auto"></span></div>
+          <div class="chart-wrap"><canvas id="unknownTrendChart"></canvas></div>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="card chart-card" style="height: 300px">
+          <div class="card-head" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Daily Client Footfall</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('clientDailyChart', 'Daily Client Footfall')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+            <button *ngIf="selectedClientDrillDownMonth" (click)="resetClientDrillDownMonth()" style="background: #f3f4f6; color: #4b5563; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Clear Month
+            </button>
+          </div>
+          <div class="chart-wrap"><canvas id="clientDailyChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <ng-template #noClientData>
+      <div class="empty-state">No client data available.</div>
+    </ng-template>
+  </div>
+
+  <!-- ================================================================
+       TAB: FINANCE
+  ================================================================ -->
+  <div *ngIf="activeTab === 'finance' && !isLoading">
+
+    <div *ngIf="financeData && financeDataKeys.length > 0; else noFinData">
+      <div class="bento-grid">
+        <div class="card chart-card bento-span-2">
+          <div class="card-head" style="justify-content: center;"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Services</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('finServicesChart', 'Services')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div></div>
+          <div class="chart-wrap"><canvas id="finServicesChart"></canvas></div>
+        </div>
+        <div class="card chart-card bento-span-2">
+          <div class="card-head" style="justify-content: center;"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Memberships</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('finMembershipsChart', 'Memberships')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div></div>
+          <div class="chart-wrap"><canvas id="finMembershipsChart"></canvas></div>
+        </div>
+        <div class="card chart-card bento-span-2">
+          <div class="card-head" style="justify-content: center;"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Products</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('finProductsChart', 'Products')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div></div>
+          <div class="chart-wrap"><canvas id="finProductsChart"></canvas></div>
+        </div>
+        <div class="card chart-card bento-span-2">
+          <div class="card-head" style="justify-content: center;"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Packages</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('finPackagesChart', 'Packages')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div></div>
+          <div class="chart-wrap"><canvas id="finPackagesChart"></canvas></div>
+        </div>
+        <div class="card chart-card bento-span-2">
+          <div class="card-head" style="justify-content: center;"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Value Cards</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('finValueCardsChart', 'Value Cards')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div></div>
+          <div class="chart-wrap"><canvas id="finValueCardsChart"></canvas></div>
+        </div>
+        <div class="card chart-card bento-span-2">
+          <div class="card-head" style="justify-content: center;"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Advances</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('finAdvancesChart', 'Advances')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div></div>
+          <div class="chart-wrap"><canvas id="finAdvancesChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <ng-template #noFinData>
+      <div class="empty-state">No finance data for the last 6 months.</div>
+    </ng-template>
+  </div>
+
+  <!-- ================================================================
+       TAB: SERVICES & PRODUCTS
+  ================================================================ -->
+  <div *ngIf="activeTab === 'services_products' && !isLoading">
+
+    <div *ngIf="servicesProductsData; else noSPData">
+      <div class="two-col-grid">
+
+        <!-- Services Card -->
+        <div class="card" style="display:flex; flex-direction:column;">
+          <div class="card-head">
+            <span class="card-title"><i class="fa-solid fa-scissors" style="color:#0ea5e9;margin-right:6px"></i>Service Category Sales</span>
+            <span class="card-badge">By revenue · {{ servicesProductsData.services?.length || 0 }} categories</span>
+          </div>
+          <div *ngIf="servicesProductsData.services?.length; else noSvc">
+            <div class="chart-wrap" [style.height]="(servicesProductsData.services?.length * 42 + 40) + 'px'" style="min-height:180px; max-height:520px">
+              <canvas id="serviceCategoryChart"></canvas>
+            </div>
+            <div style="max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 14px;">
+              <table class="data-table" style="margin-top:0">
+                <thead>
+                  <tr>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">#</th>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">Category</th>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">Count</th>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of servicesProductsData.services; let i = index; trackBy: trackById">
+                    <td><span class="rank-badge" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{i+1}}</span></td>
+                    <td style="font-weight:500">{{ s.name }}</td>
+                    <td>{{ s.count }}</td>
+                    <td style="color:#0ea5e9; font-weight:600">{{ s.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <ng-template #noSvc>
+            <div class="empty-msg" style="padding:40px 0"><i class="fa-solid fa-scissors" style="font-size:28px;color:#e5e7eb;margin-bottom:10px;display:block"></i>No service sales in this period</div>
+          </ng-template>
+        </div>
+
+        <!-- Products Card -->
+        <div class="card" style="display:flex; flex-direction:column;">
+          <div class="card-head">
+            <span class="card-title"><i class="fa-solid fa-box-open" style="color:#10b981;margin-right:6px"></i>Product Category Sales</span>
+            <span class="card-badge">By revenue · {{ servicesProductsData.products?.length || 0 }} categories</span>
+          </div>
+          <div *ngIf="servicesProductsData.products?.length; else noProd">
+            <div class="chart-wrap" [style.height]="(servicesProductsData.products?.length * 42 + 40) + 'px'" style="min-height:180px; max-height:520px">
+              <canvas id="productCategoryChart"></canvas>
+            </div>
+            <div style="max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 14px;">
+              <table class="data-table" style="margin-top:0">
+                <thead>
+                  <tr>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">#</th>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">Category</th>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">Count</th>
+                    <th style="position: sticky; top: 0; background: var(--surface); z-index: 1;">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of servicesProductsData.products; let i = index; trackBy: trackById">
+                    <td><span class="rank-badge" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{i+1}}</span></td>
+                    <td style="font-weight:500">{{ p.name }}</td>
+                    <td>{{ p.count }}</td>
+                    <td style="color:#10b981; font-weight:600">{{ p.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <ng-template #noProd>
+            <div class="empty-msg" style="padding:40px 0"><i class="fa-solid fa-box-open" style="font-size:28px;color:#e5e7eb;margin-bottom:10px;display:block"></i>No product sales in this period</div>
+          </ng-template>
+        </div>
+
+      </div>
+    </div>
+
+    <ng-template #noSPData>
+      <div class="empty-state">No data available.</div>
+    </ng-template>
+  </div>
+
+  <!-- ================================================================
+       TAB: STAFF
+  ================================================================ -->
+  <div *ngIf="activeTab === 'staff' && !isLoading">
+    <div *ngIf="staffData; else noStaffData">
+      <div class="two-col-grid">
+        <div class="card chart-card">
+          <div class="card-head">
+            <div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Staff Revenue - This Period</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('staffThisMonthChart', 'Staff Revenue - This Period')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+            <span class="card-badge">Top 10 performers</span>
+          </div>
+          <div *ngIf="staffData.table?.length; else noStaffChart">
+            <div class="chart-wrap"><canvas id="staffThisMonthChart"></canvas></div>
+          </div>
+          <ng-template #noStaffChart>
+            <div class="empty-msg">No staff data for selected dates</div>
+          </ng-template>
+        </div>
+        <div class="card chart-card">
+          <div class="card-head"><div style="display: flex; align-items: center; gap: 8px;"><span class="card-title" style="margin:0;">Revenue Trend - Last 6 Months</span><svg style="cursor: pointer; color: #6b7280; margin-left: 10px; flex-shrink: 0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" (click)="expandChart('staffSixMonthsChart', 'Revenue Trend - Last 6 Months')" title="Expand Chart"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div></div>
+          <div *ngIf="staffData.trends?.length; else noTrend">
+            <div class="chart-wrap"><canvas id="staffSixMonthsChart"></canvas></div>
+          </div>
+          <ng-template #noTrend>
+            <div class="empty-msg">No trend data available</div>
+          </ng-template>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px" *ngIf="staffData.table?.length">
+        <div class="card-head"><span class="card-title">Staff Performance Detail</span><span class="card-badge">Sorted by revenue</span></div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Staff Member</th>
+              <th>Revenue Generated</th>
+              <th>Clients Served</th>
+              <th>Avg / Client</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of staffData.table; let i = index; trackBy: trackById">
+              <td><span class="rank-badge" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">{{i+1}}</span></td>
+              <td style="font-weight:600">{{ s.name }}</td>
+              <td>{{ s.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+              <td>{{ s.clients }}</td>
+              <td>{{ s.avg | currency:'INR':'symbol':'1.0-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ng-template #noStaffData>
+      <div class="empty-state">No staff data available.</div>
+    </ng-template>
+  </div>
+
+</div>
+
+<div class="modal-overlay" *ngIf="expandedChartId" (click)="closeExpandedChart()" style="z-index: 9999; position: fixed; top: 0; left: 0; width: calc(100vw / var(--ui-zoom)); height: calc(100vh / var(--ui-zoom)); background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="background: white; border-radius: 12px; width: calc(90vw / var(--ui-zoom)); max-width: 1200px; height: calc(85vh / var(--ui-zoom)); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+    <div class="modal-header" style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb;">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">{{ expandedChartTitle }}</h2>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn-go" (click)="downloadExpandedChart()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+           Download
+        </button>
+        <button class="btn-cancel" (click)="closeExpandedChart()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Close
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" style="flex: 1; padding: 24px; position: relative; min-height: 0;">
+      <canvas id="expandedChartCanvas"></canvas>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,165 @@
+<div class="bills-page" style="display: flex; flex-direction: column; height: calc(calc(100vh / var(--ui-zoom)) - 180px); overflow: hidden;">
+  <div class="bills-header" style="width: 100%; display: flex; align-items: center; margin-bottom: 16px;">
+    
+    <!-- Left Side: KPIs and Pagination -->
+    <div style="display: flex; gap: 1rem; align-items: center; margin-right: auto; overflow: hidden; flex: 1;">
+      
+      <!-- Compact Total -->
+      <div class="kpi-card-dark" style="display: flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 6px; background: #0f172a; color: white; white-space: nowrap;">
+        <div style="font-size: 10px; font-weight: 600; color: #94a3b8;">TOTAL USERS</div>
+        <div style="font-size: 14px; font-weight: 700;">{{ users.length }}</div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-controls" style="display: flex; gap: 0.25rem; align-items: center;" *ngIf="users.length > 0">
+          <button class="pill-btn outline-btn" style="padding: 2px 8px; font-size: 11px; min-height: 24px;" (click)="prevPage()" [disabled]="currentPage === 1">Prev</button>
+          <span style="font-size: 11px; font-weight: 500; white-space: nowrap;">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="pill-btn outline-btn" style="padding: 2px 8px; font-size: 11px; min-height: 24px;" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
+      </div>
+    </div>
+
+    <!-- Right Side: Buttons -->
+    <div class="bills-controls" style="margin-bottom: 0; display: flex; gap: 8px; flex-shrink: 0;">
+      <button class="pill-btn black-btn" *ngIf="isOwner || permissions.admin?.users?.create" (click)="openModal()">
+        + Add New User
+      </button>
+    </div>
+  </div>
+
+  <div class="bills-list" style="flex: 1; overflow-y: auto; overflow-x: auto; width: 100%;">
+
+      <div class="date-divider" *ngIf="users.length > 0">ALL USERS</div>
+
+      <table class="modern-bills-table" *ngIf="users.length > 0">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Designation</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users; trackBy: trackById">
+            <td>
+              <div class="table-client">
+                <div class="table-avatar">{{ (user.full_name || 'U').charAt(0).toUpperCase() }}</div>
+                <span class="font-semibold">{{ user.full_name }}</span>
+              </div>
+            </td>
+            <td class="text-secondary">{{ user.email }}</td>
+            <td class="text-secondary">{{ user.phone || 'N/A' }}</td>
+            <td class="font-bold">{{ user.designation || 'Staff' }}</td>
+            <td>
+              <span class="status-badge badge-paid">
+                {{ getRoleName(user.role) }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="user.is_active ? 'badge-paid' : 'badge-unpaid'">
+                 {{ user.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 8px;">
+                <button class="icon-action-btn" title="Toggle Status" *ngIf="isOwner || permissions.admin?.users?.update" (click)="toggleUserStatus(user)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                </button>
+                <button class="icon-action-btn" title="Edit User" *ngIf="isOwner || permissions.admin?.users?.update" (click)="editUser(user)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="no-bills-msg" *ngIf="users.length === 0">
+        No users found. Click "+ Add New User" to create one.
+      </div>
+    </div>
+</div>
+  <!-- Modal -->
+<div class="modal-overlay" *ngIf="showModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 style="margin:0;">{{ isEditing ? 'Edit User' : 'New User' }}</h3>
+      <button class="modal-close" (click)="closeModal()">&times;</button>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" ngNativeValidate>
+      <div class="form-group">
+        <input type="text" class="form-control" [(ngModel)]="newUser.full_name" name="full_name" required
+          placeholder="Full Name">
+      </div>
+      <div class="form-group">
+        <input type="email" class="form-control" [(ngModel)]="newUser.email" name="email" required placeholder="Email">
+      </div>
+      <div class="form-group">
+        <input type="password" class="form-control" [(ngModel)]="newUser.password" name="password"
+          [required]="!isEditing" [disabled]="isEditing && !canResetPassword"
+          [placeholder]="isEditing ? (canResetPassword ? 'Leave blank to keep current password' : 'Changing a password needs the Reset a user\'s password permission') : 'Password'">
+      </div>
+      <div class="form-group">
+        <input type="text" class="form-control" [(ngModel)]="newUser.phone" name="phone" placeholder="Phone">
+      </div>
+      <div class="form-group">
+        <input type="text" class="form-control" [(ngModel)]="newUser.designation" name="designation"
+          placeholder="Designation (e.g. Manager, Receptionist)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role <span style="color:#dc2626">*</span></label>
+        <select class="form-control" [(ngModel)]="newUser.role" name="role" required>
+          <option [ngValue]="null">Select Role</option>
+          <option *ngFor="let role of roles; trackBy: trackById" [ngValue]="role.id">{{ role.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assigned Centers <span style="color:#dc2626">*</span> <small style="color:#6b7280;font-weight:400">(at least one)</small></label>
+
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <select class="form-control" #centerSelect style="flex: 1;">
+            <option value="">Select a center to add...</option>
+            <option value="all">-- All Centers --</option>
+            <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{c.display_name || c.center_name}}</option>
+          </select>
+          <button type="button" class="btn btn-outline"
+            (click)="addCenterFromSelect(centerSelect.value); centerSelect.value = ''">Add</button>
+        </div>
+
+        <div class="selected-centers-container"
+          style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 40px; padding: 0.5rem; background: #f9fafb; border-radius: 6px; border: 1px dashed #d1d5db;">
+          <div *ngIf="newUser.centers.length === 0"
+            style="color: #9ca3af; font-size: 0.85rem; display: flex; align-items: center; width: 100%; justify-content: center;">
+            No centers assigned
+          </div>
+          <!-- Every centre picked: one pill, not a pill per centre (78 of them had to be crossed one by one) -->
+          <div *ngIf="allCentersPicked" class="center-pill"
+            style="display: inline-flex; align-items: center; background: #dcfce7; color: #166534; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.85rem; font-weight: 600;">
+            All centers ({{ centers.length }})
+            <button type="button" (click)="clearCenters()" title="Remove all centers"
+              style="background: none; border: none; color: #166534; margin-left: 0.5rem; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; display: flex; align-items: center;">&times;</button>
+          </div>
+          <ng-container *ngIf="!allCentersPicked">
+            <div *ngFor="let id of newUser.centers; trackBy: trackById" class="center-pill"
+              style="display: inline-flex; align-items: center; background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.85rem; font-weight: 500;">
+              {{ getCenterName(id) }}
+              <button type="button" (click)="removeCenter(id)"
+                style="background: none; border: none; color: #4338ca; margin-left: 0.5rem; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; display: flex; align-items: center;">&times;</button>
+            </div>
+            <button type="button" *ngIf="newUser.centers.length > 3" (click)="clearCenters()"
+              style="background: none; border: none; color: #b91c1c; font-size: 0.8rem; font-weight: 600; cursor: pointer;">Clear all</button>
+          </ng-container>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" [disabled]="isSaving">
+        <span *ngIf="isSaving">Saving...</span>
+        <span *ngIf="!isSaving">{{ isEditing ? 'Save Changes' : 'Create User' }}</span>
+      </button>
+    </form>
+  </div>
+</div>

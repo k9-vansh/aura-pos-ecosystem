@@ -1,0 +1,383 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { ApiService } from '../services/api';
+import Chart from 'chart.js/auto';
+import { LocationSelectorComponent } from '../components/location-selector/location-selector';
+import { todayLocal } from '../services/date-util';
+import { LocationMemory } from '../services/location-memory';
+
+interface ModuleCard {
+  title: string;
+  subtitle: string;
+  route: string;
+  icon: SafeHtml;
+  color: string;
+  visible: boolean;
+}
+
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-home',
+  imports: [CommonModule, FormsModule, LocationSelectorComponent],
+  templateUrl: './home.html',
+  styleUrl: './home.css',
+})
+export class HomeComponent implements OnInit {
+  todayDate: string = todayLocal();
+  private destroyRef = inject(DestroyRef);
+  private locationMemory = inject(LocationMemory);
+  router = inject(Router);
+  sanitizer = inject(DomSanitizer);
+  apiService = inject(ApiService);
+  cdr = inject(ChangeDetectorRef);
+  
+  isOwner = false;
+  hasGlobalAccess = false;
+  permissions: any = {};
+  username = 'User';
+  modules: ModuleCard[] = [];
+  
+  monthlyRevenue: number = 0;
+  monthlyTarget: number = 1000000;
+  todayCollection: number = 0;
+  todayCollectionWithTax: number = 0;
+  todayCollectionWithoutTax: number = 0;
+  includeTaxes: boolean = true;
+  
+  revenuePath: string = 'M0,100 L400,100';
+  revenueLabels: string[] = ['1st', '10th', '20th', '30th'];
+  
+  centers: any[] = [];
+  selectedFilterLocation: any = null;
+  
+  isEditingTarget = false;
+  tempMonthlyTarget = 0;
+  
+  summaryData: any = null;
+  
+  chartInstance: any = null;
+  
+  ngOnInit() {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        this.permissions = user.permissions || {};
+        this.isOwner = user.is_superuser === true;
+        this.hasGlobalAccess = this.isOwner || (user?.permissions?.all_centers === true) || (user?.role?.permissions?.all_centers === true);
+        this.username = user.first_name || user.username || 'User';
+      } catch (e) {}
+    }
+
+    const hasModuleReadAccess = (modName: string) => {
+      const mod = this.permissions[modName];
+      if (!mod || typeof mod !== 'object') return false;
+      return Object.values(mod).some((sub: any) => sub && sub.read === true);
+    };
+
+    this.modules = [
+      {
+        title: 'Dashboard',
+        subtitle: 'Live revenue & performance overview',
+        route: '/admin/dashboard',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>'),
+        color: '#65ded2',
+        visible: this.isOwner || hasModuleReadAccess('overview')
+      },
+      {
+        title: 'Finance',
+        subtitle: 'Expenses, taxes & petty cash',
+        route: '/admin/finance',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>'),
+        color: '#22c55e',
+        visible: this.isOwner || hasModuleReadAccess('finance')
+      },
+      {
+        title: 'Billing',
+        subtitle: 'Create invoices & manage payments',
+        route: '/admin/billing',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'),
+        color: '#a78bfa',
+        visible: this.isOwner || hasModuleReadAccess('billing')
+      },
+      {
+        title: 'Appointments',
+        subtitle: 'Staff scheduling & client bookings',
+        route: '/admin/appointments',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),
+        color: '#f59e0b',
+        visible: this.isOwner || hasModuleReadAccess('appointment') || hasModuleReadAccess('appointments')
+      },
+      {
+        title: 'Staff',
+        subtitle: 'Team records, payroll & service logs',
+        route: '/admin/staff',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+        color: '#34d399',
+        visible: this.isOwner || hasModuleReadAccess('staff')
+      },
+      {
+        title: 'Inventory',
+        subtitle: 'Manage stock, products & supplies',
+        route: '/admin/inventory',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>'),
+        color: '#60a5fa',
+        visible: this.isOwner || hasModuleReadAccess('inventory')
+      },
+      {
+        title: 'Marketing',
+        subtitle: 'Packages, memberships & campaigns',
+        route: '/admin/marketing',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>'),
+        color: '#f472b6',
+        visible: this.isOwner || hasModuleReadAccess('marketing')
+      },
+      {
+        title: 'Admin',
+        subtitle: 'Users, centres, roles & services',
+        route: '/admin/centers',
+        icon: this.sanitizer.bypassSecurityTrustHtml('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
+        color: '#fb923c',
+        visible: this.isOwner || hasModuleReadAccess('admin')
+      },
+    ];
+
+    this.apiService.getCenters(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: any) => {
+      this.centers = Array.isArray(data) ? data : (data.results || []);
+      if (!this.hasGlobalAccess) {
+        const u = localStorage.getItem('user');
+        if (u) {
+          const uObj = JSON.parse(u);
+          this.selectedFilterLocation = uObj?.center_id || null;
+        }
+        if (this.centers.length > 0 && !this.centers.some((c:any) => c.id == this.selectedFilterLocation)) {
+          this.selectedFilterLocation = this.centers[0].id;
+        }
+      } else {
+        const remembered = this.locationMemory.pick(this.centers, this.hasGlobalAccess, true);
+        if (remembered !== undefined) this.selectedFilterLocation = remembered;
+      }
+      this.loadDynamicData();
+      this.cdr.detectChanges();
+    });
+  }
+
+  onLocationChange() {
+    this.loadDynamicData();
+  }
+
+  loadDynamicData() {
+    const centerId = !this.selectedFilterLocation ? '' : this.selectedFilterLocation;
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+    const firstDay = `${y}-${m}-01`;
+    
+    const params: any = { start_date: firstDay, end_date: todayStr };
+    if (centerId) params.center_id = centerId;
+
+    // Get Monthly Revenue and Target (and full summary)
+    this.apiService.get('salon_admin/api/dashboard/summary/', params).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res: any) => {
+        this.summaryData = res;
+        this.monthlyRevenue = res?.revenue || 0;
+        this.monthlyTarget = res?.target || 0;
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+
+    // Get Today's Collection
+    this.apiService.get('salon_admin/api/dashboard/summary/', { start_date: todayStr, end_date: todayStr, ...(centerId && {center_id: centerId}) }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res: any) => {
+        this.todayCollectionWithTax = res?.revenue || 0;
+        this.todayCollectionWithoutTax = res?.revenue_without_tax || 0;
+        this.updateTodayCollection();
+      },
+      error: () => {}
+    });
+    
+    // Get Revenue By Day for Chart
+    this.apiService.get('salon_admin/api/dashboard/', params).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res: any) => {
+        if (res?.revenue_by_day) {
+          setTimeout(() => {
+            this.generateChart(res.revenue_by_day);
+            this.cdr.detectChanges();
+          }, 100);
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  saveMonthlyTarget() {
+    if (!this.selectedFilterLocation) {
+      alert("Please select a specific center first to set its target.");
+      this.isEditingTarget = false;
+      return;
+    }
+    
+    // PATCH to backend
+    this.apiService.patch(`salon_admin/api/centers/${this.selectedFilterLocation}/`, { monthly_target: this.tempMonthlyTarget }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.monthlyTarget = this.tempMonthlyTarget;
+        this.isEditingTarget = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        alert("Failed to save target. Make sure you have permission.");
+        console.error(err);
+      }
+    });
+  }
+
+  updateTodayCollection() {
+    this.todayCollection = this.includeTaxes ? this.todayCollectionWithTax : this.todayCollectionWithoutTax;
+    this.cdr.detectChanges();
+  }
+
+  generateChart(data: any[]) {
+    const canvas = document.getElementById('homeRevenueChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.chartInstance) {
+      this.chartInstance.destroy();
+      this.chartInstance = null;
+    }
+
+    if (!data || data.length === 0) {
+      // If no data, show a flat line with 0 for today
+      data = [{ day: todayLocal(), revenue: 0 }];
+    }
+
+    const c2d = canvas.getContext('2d');
+    if (!c2d) return;
+
+    // Use the premium dashboard styling (Red #e11d48)
+    const color = '#e11d48';
+    const grad = c2d.createLinearGradient(0, 0, 0, 300);
+    grad.addColorStop(0, color + '59'); // 0.35 alpha approx (35 hex = 59)
+    grad.addColorStop(1, color + '00');
+
+    const labels = data.map(d => {
+      try { return new Date(d.day).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }); }
+      catch { return d.day; }
+    });
+    const revs = data.map(d => d.revenue);
+    
+    // Fix: If there's only 1 data point, Chart.js can't draw a line. Inject a starting point.
+    if (labels.length === 1) {
+      labels.unshift('Start');
+      revs.unshift(0);
+    }
+
+    this.chartInstance = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Invoices per day',
+          data: revs,
+          borderColor: color,
+          backgroundColor: grad,
+          borderWidth: 3,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: color,
+          pointHoverBackgroundColor: color,
+          pointHoverBorderColor: '#ffffff',
+          pointHoverBorderWidth: 2,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#ffffff',
+            titleFont: { size: 13, family: "'Inter', sans-serif", weight: 'bold' as const },
+            bodyColor: '#e2e8f0',
+            bodyFont: { size: 12, family: "'Inter', sans-serif" },
+            bodySpacing: 6,
+            padding: 12,
+            cornerRadius: 8,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            usePointStyle: true,
+            boxPadding: 6,
+            callbacks: {
+              label: (ctx: any) => ' ₹' + (ctx.parsed.y || 0).toLocaleString('en-IN')
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 8, color: '#9ca3af', font: { size: 11, family: "'Inter', sans-serif" } },
+            grid: { display: false }
+          },
+          y: {
+            position: 'left',
+            ticks: {
+              color: '#9ca3af', font: { size: 11, family: "'Inter', sans-serif" },
+              callback: (v: any) => v >= 1000 ? '₹' + (v / 1000).toFixed(0) + 'k' : '₹' + v
+            },
+            border: { display: false, dash: [4, 4] },
+            grid: { display: true, color: 'rgba(0,0,0,0.04)', tickLength: 0 }
+          }
+        }
+      }
+    });
+  }
+
+  getGaugePath(): string {
+    if (this.monthlyTarget <= 0 || this.monthlyRevenue <= 0) {
+      return 'M 10 50';
+    }
+    const p = Math.min(this.monthlyRevenue / this.monthlyTarget, 1);
+    const theta = Math.PI * (1 - p);
+    const x = 50 + 40 * Math.cos(theta);
+    const y = 50 - 40 * Math.sin(theta);
+    return `M 10 50 A 40 40 0 0 1 ${x} ${y}`;
+  }
+
+  getGaugeCircle(): {x: number, y: number} {
+    if (this.monthlyTarget <= 0 || this.monthlyRevenue <= 0) {
+      return {x: 10, y: 50};
+    }
+    const p = Math.min(this.monthlyRevenue / this.monthlyTarget, 1);
+    const theta = Math.PI * (1 - p);
+    const x = 50 + 40 * Math.cos(theta);
+    const y = 50 - 40 * Math.sin(theta);
+    return {x, y};
+  }
+
+  navigate(route: string) {
+    this.router.navigate([route]);
+  }
+
+  get visibleModules(): ModuleCard[] {
+    return this.modules.filter(m => m.visible);
+  }
+
+  formatRevenue(val: any): string {
+    if (!val || Number(val) <= 0) return '';
+    const num = Number(val);
+    if (num >= 10000000) return ` - ₹${(num / 10000000).toFixed(1)} Cr`;
+    if (num >= 100000) return ` - ₹${(num / 100000).toFixed(1)} L`;
+    if (num >= 1000) return ` - ₹${(num / 1000).toFixed(1)} k`;
+    return ` - ₹${num.toFixed(0)}`;
+  }
+}

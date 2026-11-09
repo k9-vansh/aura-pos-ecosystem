@@ -1,0 +1,308 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sync-page {
+  position: relative;
+  font-family: inherit;
+}
+
+.sync-banner {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.sync-tiles {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.sync-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 130px;
+  padding: 10px 14px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.sync-tile.active {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 1px #0f172a inset;
+}
+
+.sync-tile.alert .tile-count {
+  color: #ef4444;
+}
+
+.tile-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tile-count {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.tile-count small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.sync-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.search-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 6px 10px;
+  min-width: 260px;
+}
+
+.search-pill svg {
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.search-pill input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  width: 100%;
+}
+
+.sync-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+.sync-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.loading-overlay {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 8px;
+}
+
+.modern-bills-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.modern-bills-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+}
+
+.modern-bills-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.font-semibold {
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.text-secondary {
+  color: var(--text-secondary, #64748b);
+}
+
+.error-cell {
+  max-width: 420px;
+  color: #b91c1c;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.sap-ref {
+  color: #166534;
+  font-weight: 500;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.state-attention { background: #fee2e2; color: #b91c1c; }
+.state-retrying  { background: #fef3c7; color: #92400e; }
+.state-waiting   { background: #e0e7ff; color: #4338ca; }
+.state-done      { background: #dcfce7; color: #166534; }
+
+.sync-sub {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+  margin-top: 4px;
+}
+
+.actions-col {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.pill-btn {
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 6px;
+  font-family: inherit;
+}
+
+.pill-btn.ghost {
+  background: transparent;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.pill-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resolve-row td {
+  background: #f8fafc;
+}
+
+.resolve-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.resolve-box input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.sync-empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-secondary, #64748b);
+  font-size: 13px;
+}
+
+.sync-pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+@media (max-width: 576px) {
+  .modern-bills-table { display: block; overflow-x: auto; }
+  .search-pill { min-width: 0; width: 100%; }
+}
+
+/* ==== dark theme: generated pass (light surfaces that had no dark rule) ==== */
+@media screen {
+:host-context([data-theme="dark"]) .sync-banner {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #fdba74 !important;
+}
+:host-context([data-theme="dark"]) .sync-tile {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14)) !important;
+}
+:host-context([data-theme="dark"]) .search-pill {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14)) !important;
+}
+:host-context([data-theme="dark"]) .modern-bills-table {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14)) !important;
+}
+:host-context([data-theme="dark"]) .modern-bills-table th {
+  background: #1a1a1a !important;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.14)) !important;
+}
+:host-context([data-theme="dark"]) .modern-bills-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+:host-context([data-theme="dark"]) .state-attention {
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: #f87171 !important;
+}
+:host-context([data-theme="dark"]) .state-retrying {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #fbbf24 !important;
+}
+:host-context([data-theme="dark"]) .state-waiting {
+  background: rgba(139, 92, 246, 0.16) !important;
+}
+:host-context([data-theme="dark"]) .state-done {
+  background: rgba(34, 197, 94, 0.16) !important;
+  color: #4ade80 !important;
+}
+:host-context([data-theme="dark"]) .pill-btn.ghost {
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+:host-context([data-theme="dark"]) .resolve-row td {
+  background: #1a1a1a !important;
+}
+:host-context([data-theme="dark"]) .resolve-box input {
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+}

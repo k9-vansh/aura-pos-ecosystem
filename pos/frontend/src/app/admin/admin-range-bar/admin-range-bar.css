@@ -1,0 +1,65 @@
+:host { display: block; }
+
+.range-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.range-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+}
+
+.range-dates input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  width: 104px;
+}
+
+.range-to { font-size: 10.5px; color: #94a3b8; }
+
+.range-btn {
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.range-apply { background: #0f172a; color: #ffffff; border: 1px solid #0f172a; }
+.range-apply:hover { background: #1e293b; }
+
+.range-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #059669;
+  cursor: pointer;
+  padding: 0;
+}
+.range-icon:hover { background: #d1fae5; }
+
+:host-context([data-theme="dark"]) .range-dates { background: #101010; }
+:host-context([data-theme="dark"]) .range-icon { background: #101010; }
+:host-context([data-theme="colorful"]) .range-apply { background: var(--cz); border-color: var(--cz); }

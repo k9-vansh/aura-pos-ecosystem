@@ -1,0 +1,67 @@
+<div class="bills-page">
+      <div class="bills-layout-grid">
+    <!-- Left Column: Changes Table -->
+    <div class="bills-list">
+      <app-admin-range-bar></app-admin-range-bar>
+      <div class="loading-overlay" *ngIf="isLoading">Loading...</div>
+
+      <div class="date-divider" *ngIf="changeLogs.length > 0">CHANGES FOUND ({{ changeLogs.length }})</div>
+
+      <table class="modern-bills-table" *ngIf="changeLogs.length > 0">
+        <thead>
+          <tr>
+            <th>Changed On</th>
+            <th>Bill Date</th>
+            <th>Salon</th>
+            <th>Bill-No</th>
+            <th>Bill Amount</th>
+            <th>User</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of changeLogs; trackBy: trackById">
+            <td class="text-secondary">{{ log.created_at | date:'dd-MM-yyyy, HH:mm' }}</td>
+            <td class="text-secondary">{{ log.bill_date ? (log.bill_date | date:'dd-MM-yyyy') : '-' }}</td>
+            <td class="font-semibold">{{log.display_name || log.center_name}}</td>
+            <td class="font-bold"><span class="invoice-tag" style="background:#e0e7ff; color:#4f46e5; padding:4px 8px; border-radius:6px;">#{{ log.invoice }}</span></td>
+            <td class="font-bold amount-pop">{{ log.bill_amount ? '₹' + (log.bill_amount | number:'1.0-2') : '-' }}</td>
+            <td>
+              <div class="table-client">
+                <span class="font-semibold">{{ log.user_name || 'System' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge"
+                    [ngClass]="{'badge-cancelled': log.action === 'Cancel Bill' || log.action === 'Refund', 'badge-paid': log.action !== 'Cancel Bill' && log.action !== 'Refund'}">
+                {{ log.action }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="no-bills-msg" *ngIf="changeLogs.length === 0 && !isLoading">
+        No changes found for the selected salon.
+      </div>
+    </div>
+
+    <!-- Right Column: KPI Snapshot -->
+    <div class="bills-sidebar">
+      <div class="kpi-card-dark">
+        <div class="kpi-label">Total Logs</div>
+        <div class="kpi-value">{{ changeLogs.length }}</div>
+      </div>
+
+      <div class="kpi-card-light" style="border-left: 4px solid #f59e0b;">
+        <div class="kpi-label">Cancel/Refund</div>
+        <div class="kpi-value-small">{{ getCancelRefundCount() }}</div>
+      </div>
+
+      <div class="kpi-card-light" style="border-left: 4px solid #ef4444;">
+        <div class="kpi-label">Value Affected</div>
+        <div class="kpi-value-small" style="color: #ef4444;">₹{{ getLostValue() | number:'1.0-2' }}</div>
+      </div>
+    </div>
+  </div>
+</div>

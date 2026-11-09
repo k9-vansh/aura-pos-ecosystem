@@ -1,0 +1,1695 @@
+<div class="staff-layout">
+  <!-- Sub Header Row containing Location selector and Action buttons -->
+  <div class="page-subheader-row">
+    <div class="subheader-left">
+      <div style="display: flex; align-items: center; gap: 8px;">
+
+      <app-location-selector
+        [centers]="centers"
+        [hasGlobalAccess]="hasGlobalAccess"
+        [multi]="true"
+        [(selectedCenterId)]="selectedFilterLocation"
+        (selectionChange)="onLocationChange()">
+      </app-location-selector>
+    </div>
+    </div>
+    <div class="subheader-right header-actions">
+      <button class="btn btn-outline" *ngIf="isOwner || permissions.staff?.management?.read" style="margin-right:10px;"
+        (click)="openDesignationsModal()">Manage Designations</button>
+      <button class="btn btn-outline"
+        style="display: flex; align-items: center; gap: 6px; color: #10b981; border-color: #10b981; margin-right:10px;"
+        (click)="exportExcel()" *ngIf="staffMembers.length > 0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="8" y1="13" x2="16" y2="13"></line>
+          <line x1="8" y1="17" x2="16" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg> Export Excel
+      </button>
+      <button class="btn btn-secondary" style="margin-right:10px;"
+        *ngIf="isOwner || permissions.staff?.directory?.create" (click)="downloadStaffTemplate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg> Template
+      </button>
+      <input type="file" #fileInput (change)="uploadStaff($event)" style="display: none;" accept=".csv, .xlsx" />
+      <button class="btn btn-secondary" style="margin-right:10px;"
+        *ngIf="isOwner || permissions.staff?.directory?.create" (click)="fileInput.click()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg> Bulk Upload
+      </button>
+      <button class="btn btn-primary" *ngIf="isOwner || permissions.staff?.directory?.create" (click)="openAddStaff()">+
+        Add New Staff</button>
+
+      <div class="dropdown-container">
+        <button class="btn btn-outline" (click)="toggleActionsDropdown()">
+          <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+            stroke-linecap='round' stroke-linejoin='round'>
+            <polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2' />
+          </svg> Quick Actions <span style="font-size:10px;">▼</span>
+        </button>
+        <div class="dropdown-menu" *ngIf="showActionsDropdown">
+          <button class="dropdown-item" *ngIf="isOwner || permissions.staff?.logs?.actions?.add_manual"
+            (click)="openAddLog(); showActionsDropdown = false">
+            <span>+</span> Add Service Log / Perk
+          </button>
+          <button class="dropdown-item" *ngIf="isOwner || permissions.staff?.management?.create"
+            (click)="openTransferModal(); showActionsDropdown = false">
+            <span><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                stroke-linecap='round' stroke-linejoin='round'>
+                <polyline points='1 4 1 10 7 10' />
+                <polyline points='23 20 23 14 17 14' />
+                <path d='M20.49 9A9 9 0 0 0 5.64 5.64L1 10M3.51 15A9 9 0 0 0 18.36 18.36L23 14' />
+              </svg></span> Transfer Staff
+          </button>
+          <button class="dropdown-item" *ngIf="isOwner || permissions.staff?.management?.create"
+            (click)="openToolModal(); showActionsDropdown = false">
+            <span><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                stroke-linecap='round' stroke-linejoin='round'>
+                <path
+                  d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z' />
+              </svg></span> Tool Tracker
+          </button>
+        </div>
+      </div>
+
+      <div class="dropdown-container" *ngIf="isOwner || permissions.staff?.reports?.read">
+        <button class="btn btn-outline" (click)="toggleReportsDropdown()">
+          <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+            stroke-linecap='round' stroke-linejoin='round'>
+            <line x1='18' y1='20' x2='18' y2='10' />
+            <line x1='12' y1='20' x2='12' y2='4' />
+            <line x1='6' y1='20' x2='6' y2='14' />
+          </svg> Reports & Analytics <span style="font-size:10px;">▼</span>
+        </button>
+        <div class="dropdown-menu" *ngIf="showReportsDropdown">
+          <button class="dropdown-item" (click)="openTotalRevenue(); showReportsDropdown = false">
+            <span>₹</span> Total Revenue
+          </button>
+          <button class="dropdown-item" (click)="openUsage(); showReportsDropdown = false">
+            <span><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                stroke-linecap='round' stroke-linejoin='round'>
+                <line x1='18' y1='20' x2='18' y2='10' />
+                <line x1='12' y1='20' x2='12' y2='4' />
+                <line x1='6' y1='20' x2='6' y2='14' />
+              </svg></span> Usage Report
+          </button>
+          <button class="dropdown-item" (click)="openPerkReport(); showReportsDropdown = false">
+            <span><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                stroke-linecap='round' stroke-linejoin='round'>
+                <polyline points='20 12 20 22 4 22 4 12' />
+                <rect x='2' y='7' width='20' height='5' />
+                <line x1='12' y1='22' x2='12' y2='7' />
+                <path d='M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z' />
+                <path d='M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z' />
+              </svg></span> Perk Report
+          </button>
+          <button class="dropdown-item" (click)="openCommission(); showReportsDropdown = false">
+            <span><span class="rupee-glyph" aria-hidden="true">₹</span></span> Payroll & Commission
+          </button>
+          <button class="dropdown-item" (click)="openToolReport(); showReportsDropdown = false">
+            <span><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                stroke-linecap='round' stroke-linejoin='round'>
+                <path
+                  d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z' />
+              </svg></span> Tool Tracking Report
+          </button>
+          <button class="dropdown-item" (click)="openTransferReport(); showReportsDropdown = false">
+            <span><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                stroke-linecap='round' stroke-linejoin='round'>
+                <polyline points='1 4 1 10 7 10' />
+                <polyline points='23 20 23 14 17 14' />
+                <path d='M20.49 9A9 9 0 0 0 5.64 5.64L1 10M3.51 15A9 9 0 0 0 18.36 18.36L23 14' />
+              </svg></span> Staff Transfers Report
+          </button>
+          <button class="dropdown-item" (click)="openIncentiveModal(); showReportsDropdown = false">
+            <span><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                stroke-linecap='round' stroke-linejoin='round'>
+                <polygon
+                  points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2' />
+              </svg></span> Incentives
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-split">
+    <!-- Left Panel: Directory -->
+    <div class="directory-panel">
+      <div class="search-box">
+        <span class="search-icon"><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor'
+            stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+            <circle cx='11' cy='11' r='8' />
+            <line x1='21' y1='21' x2='16.65' y2='16.65' />
+          </svg></span>
+        <input type="text" placeholder="Search name / phone / role" [(ngModel)]="searchQuery" (input)="applyFilters()">
+      </div>
+
+      <div class="staff-list">
+        <div class="staff-item" *ngFor="let staff of filteredStaff; trackBy: trackById"
+          [class.active]="selectedStaff?.id === staff.id"
+          [class.inactive-staff-item]="!staff.is_active"
+          (mousedown)="$event.button === 0 && (selectStaff(staff))">
+          <img *ngIf="staff.image" [src]="staff.image" class="avatar-circle" style="object-fit: cover;">
+          <div *ngIf="!staff.image" class="avatar-circle" [style.background]="staff.is_active ? getAvatarBg(staff) : '#94a3b8'">{{ getInitials(staff) }}</div>
+          <div class="staff-info">
+            <div class="staff-name">
+              <span>{{ staff.first_name }} {{ staff.last_name }}</span>
+              <span *ngIf="staff.has_overdue_tools" title="Has Overdue Tools"
+                style="font-size: 14px; margin-left: 4px; color: #ef4444;"><svg width='14' height='14' viewBox='0 0 24 24' fill='none'
+                  stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                  <path d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z' />
+                  <line x1='12' y1='9' x2='12' y2='13' />
+                  <line x1='12' y1='17' x2='12.01' y2='17' />
+                </svg></span>
+              <span class="inactive-badge-pill" *ngIf="!staff.is_active">INACTIVE</span>
+            </div>
+            <div class="staff-role">{{ staff.designation || 'Staff' }} • {{staff.display_name || staff.center_name}}</div>
+          </div>
+          <div class="gender-pill" [class.gender-male]="staff.gender?.toLowerCase() === 'male'" [class.gender-female]="staff.gender?.toLowerCase() === 'female'">{{ staff.gender | uppercase }}</div>
+        </div>
+
+        <div class="empty-state-small" *ngIf="filteredStaff.length === 0">No staff found.</div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="details-panel">
+      <!-- Clean Empty Selection State -->
+      <div class="empty-staff-selection" *ngIf="!selectedStaff">
+        <div class="empty-icon-circle">
+          <svg width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'>
+            <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'></path>
+            <circle cx='9' cy='7' r='4'></circle>
+            <path d='M23 21v-2a4 4 0 0 0-3-3.87'></path>
+            <path d='M16 3.13a4 4 0 0 1 0 7.75'></path>
+          </svg>
+        </div>
+        <h3>Staff Management & Profiles</h3>
+        <p>Select any team member from the directory on the left to view their profile, performance analytics, tool allocations, and payroll records.</p>
+      </div>
+
+      <!-- Selected Staff Details -->
+      <div class="staff-profile" *ngIf="selectedStaff">
+        <!-- Profile Header Card -->
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="avatar-large" [style.background]="getAvatarBg(selectedStaff)" style="position: relative; overflow: hidden;">
+              <img *ngIf="selectedStaff.image" [src]="selectedStaff.image"
+                style="width: 100%; height: 100%; object-fit: cover;">
+              <span *ngIf="!selectedStaff.image">{{ getInitials(selectedStaff) }}</span>
+              <label class="image-upload-overlay" title="Upload Image"
+                [style.opacity]="selectedStaff.image ? '' : '0.8'">
+                <input type="file" accept="image/*" (change)="onImageUpload($event)" style="display: none;">
+                <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                  stroke-linecap='round' stroke-linejoin='round'>
+                  <path d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z' />
+                  <circle cx='12' cy='13' r='4' />
+                </svg>
+              </label>
+            </div>
+            <div class="profile-title">
+              <h2>{{ selectedStaff.first_name }} {{ selectedStaff.last_name }}
+                <span class="status-chip" [class.inactive]="!selectedStaff.is_active">
+                  {{ selectedStaff.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                </span>
+              </h2>
+              <p class="role-subtitle">{{ selectedStaff.designation || 'Staff' }} - {{selectedStaff.display_name || selectedStaff.center_name}}</p>
+            </div>
+            <div class="action-buttons"
+              style="margin-left: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+              <button class="btn btn-outline" (click)="selectedStaff = null" title="Close Profile"
+                style="padding: 6px 12px; font-weight: bold;">
+                ✕ Close
+              </button>
+              <button class="btn btn-outline"
+                [style.color]="selectedStaff.is_active ? '#dc2626' : '#059669'"
+                [style.borderColor]="selectedStaff.is_active ? '#fca5a5' : '#a7f3d0'"
+                [style.background]="selectedStaff.is_active ? '#fef2f2' : '#ecfdf5'"
+                *ngIf="(isOwner || permissions.staff?.directory?.update) && activeTab === 'profile'"
+                (click)="toggleActive()">
+                <svg *ngIf="selectedStaff.is_active" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                <svg *ngIf="!selectedStaff.is_active" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>{{ selectedStaff.is_active ? 'Deactivate' : 'Activate' }}</span>
+              </button>
+              <button class="btn btn-outline" style="color: #d93025; border-color: #fce8e6; background: #fff5f5;"
+                *ngIf="(isOwner || permissions.staff?.directory?.delete) && activeTab === 'profile'"
+                (click)="deleteStaff()">
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div class="tabs-container">
+            <button class="tab-btn" *ngIf="isOwner || permissions.staff?.directory?.read"
+              [class.active]="activeTab === 'profile'" (click)="setTab('profile')">Overview & Details</button>
+            <button class="tab-btn" *ngIf="isOwner || permissions.staff?.logs?.read"
+              [class.active]="activeTab === 'performance'" (click)="setTab('performance')">Performance &
+              Activity</button>
+            <button class="tab-btn" *ngIf="isOwner || permissions.staff?.management?.read"
+              [class.active]="activeTab === 'management'" (click)="setTab('management')">Transfers & Tools</button>
+            <button class="tab-btn" *ngIf="isOwner || permissions.staff?.payrolls?.read"
+              [class.active]="activeTab === 'payrolls'" (click)="setTab('payrolls')">Payrolls</button>
+          </div>
+
+          <div class="profile-grid" *ngIf="activeTab === 'profile'">
+            <div class="grid-item">
+              <label>GENDER</label>
+              <div class="edit-wrapper">
+                <select class="inline-input" [ngModel]="selectedStaff.gender"
+                  (change)="updateStaffField('gender', $event)">
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span class="edit-icon"><svg width='16' height='16' viewBox='0 0 24 24' fill='none'
+                    stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>WORKS AT</label>
+              <div class="edit-wrapper">
+                <span class="static-value">{{selectedStaff.display_name || selectedStaff.center_name}}</span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>JOINING DATE</label>
+              <div class="edit-wrapper">
+                <input type="date" class="inline-input" [ngModel]="selectedStaff.joining_date"
+                  (change)="updateStaffField('joining_date', $event)">
+                <span class="edit-icon"><svg width='16' height='16' viewBox='0 0 24 24' fill='none'
+                    stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>AADHAR NO.</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.aadhar_number"
+                  (change)="updateStaffField('aadhar_number', $event)" placeholder="--">
+                <span class="edit-icon"><svg width='16' height='16' viewBox='0 0 24 24' fill='none'
+                    stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>DESIGNATION</label>
+              <div class="edit-wrapper">
+                <input type="text" list="designationListEdit" class="inline-input" [ngModel]="selectedStaff.designation"
+                  (change)="updateStaffField('designation', $event)">
+                <datalist id="designationListEdit">
+                  <option *ngFor="let d of designations; trackBy: trackById" [value]="d.name">{{ d.name }}</option>
+                </datalist>
+                <span class="edit-icon"><svg width='16' height='16' viewBox='0 0 24 24' fill='none'
+                    stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>STAFF CODE</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.staff_code"
+                  (change)="updateStaffField('staff_code', $event)" placeholder="--">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>EMAIL</label>
+              <div class="edit-wrapper">
+                <input type="email" class="inline-input" [ngModel]="selectedStaff.email"
+                  (change)="updateStaffField('email', $event)" placeholder="--">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item" style="grid-column: span 2;">
+              <label>ADDRESS</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.address"
+                  (change)="updateStaffField('address', $event)" placeholder="--">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>CITY</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.city"
+                  (change)="updateStaffField('city', $event)" placeholder="--">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>STATE</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.state"
+                  (change)="updateStaffField('state', $event)" placeholder="--">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>PIN CODE</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.pin_code"
+                  (change)="updateStaffField('pin_code', $event)" placeholder="--">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>PHONE</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.phone"
+                  (change)="updateStaffField('phone', $event)" placeholder="--"
+                  [readonly]="!isOwner && !permissions.staff?.directory?.update">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>APP PASSWORD</label>
+              <div class="edit-wrapper">
+                <input type="text" class="inline-input" [ngModel]="selectedStaff.app_password"
+                  (change)="updateStaffField('app_password', $event)" placeholder="--"
+                  [readonly]="!isOwner && !permissions.staff?.directory?.update">
+                <span class="edit-icon" *ngIf="isOwner || permissions.staff?.directory?.update"><svg width='16'
+                    height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'
+                    stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label>SALARY</label>
+              <div class="edit-wrapper">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="inline-input" [ngModel]="selectedStaff.salary"
+                  (change)="updateStaffField('salary', $event)" placeholder="0" [readonly]="!canEditProfile">
+                <span class="edit-icon" *ngIf="canEditProfile"><svg width='16' height='16' viewBox='0 0 24 24' fill='none'
+                    stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+            <div class="grid-item">
+              <label style="color: #007B8F; font-weight:700;">PERK POINTS</label>
+              <div class="edit-wrapper">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="inline-input" style="color: #007B8F; font-weight:600;"
+                  [ngModel]="selectedStaff.allocated_points" (change)="updateStaffField('allocated_points', $event)"
+                  placeholder="0.00" [readonly]="!canEditProfile">
+                <span class="edit-icon" *ngIf="canEditProfile"><svg width='16' height='16' viewBox='0 0 24 24' fill='none'
+                    stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                    <path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' />
+                  </svg></span>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="activeTab === 'management'">
+            <div
+              style="background: var(--bg-2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+              <p style="margin:0; color: var(--text-secondary); font-size: 13px;">Manage tools or initiate transfers
+                from the <strong>Quick Actions</strong> dropdown.</p>
+            </div>
+
+            <h3 style="font-size: 15px; margin-bottom: 12px; font-weight: 700; color: var(--text-primary);">Assigned
+              Tools</h3>
+            <table class="data-table clean-table" style="margin-bottom: 30px;">
+              <thead>
+                <tr>
+                  <th>ITEM</th>
+                  <th>DETAILS</th>
+                  <th>QTY</th>
+                  <th>DATE TAKEN</th>
+                  <th>EXPECTED RETURN</th>
+                  <th>STATUS</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let t of staffTools; trackBy: trackById">
+                  <td>{{ t.tool_name }}</td>
+                  <td>{{ t.details || '-' }}</td>
+                  <td>{{ t.amount }}</td>
+                  <td>{{ t.date_taken | date:'dd MMM yyyy' }}</td>
+                  <td>{{ t.expected_return_date ? (t.expected_return_date | date:'dd MMM yyyy') : 'N/A' }}</td>
+                  <td>
+                    <span class="status-chip" [class.inactive]="t.status === 'Returned'">{{ t.status }}</span>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline" *ngIf="t.status === 'Taken'"
+                      (click)="markToolReturned(t)">Mark Returned</button>
+                    <span *ngIf="t.status === 'Returned'">{{ t.actual_return_date | date:'dd MMM yyyy' }}</span>
+                  </td>
+                </tr>
+                <tr *ngIf="staffTools.length === 0">
+                  <td colspan="7" style="text-align: center; color: var(--text-secondary);">No tools assigned.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3 style="font-size: 15px; margin-bottom: 12px; font-weight: 700; color: var(--text-primary);">Transfer
+              History</h3>
+            <table class="data-table clean-table" style="margin-bottom: 30px;">
+              <thead>
+                <tr>
+                  <th>TYPE</th>
+                  <th>ORIGIN</th>
+                  <th>DESTINATION</th>
+                  <th>START DATE</th>
+                  <th>END DATE</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let tr of staffTransfers; trackBy: trackById">
+                  <td>
+                    <span class="type-badge"
+                      [ngStyle]="{'background': tr.transfer_type === 'Permanent' ? '#fce4ec' : '#fff3e0', 'color': tr.transfer_type === 'Permanent' ? '#c2185b' : '#e65100'}">
+                      {{ tr.transfer_type }}
+                    </span>
+                  </td>
+                  <td>
+                    <span style="display: block; font-size: 0.8rem; color: var(--text-secondary);">From</span>
+                    <strong>{{ tr.from_center_name }}</strong>
+                  </td>
+                  <td>
+                    <span style="display: block; font-size: 0.8rem; color: var(--text-secondary);">To</span>
+                    <strong>{{ tr.to_center_name }}</strong>
+                  </td>
+                  <td>{{ tr.start_date | date:'dd MMM yyyy' }}</td>
+                  <td>{{ tr.end_date ? (tr.end_date | date:'dd MMM yyyy') : 'N/A' }}</td>
+                  <td>
+                    <span class="status-chip">{{ tr.status }}</span>
+                  </td>
+                </tr>
+                <tr *ngIf="staffTransfers.length === 0">
+                  <td colspan="6" style="text-align: center; color: var(--text-secondary);">No transfer history.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- Service Logs Table section -->
+        <div class="logs-section" *ngIf="(isOwner || permissions.staff?.logs?.read) && activeTab === 'performance'">
+
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div class="kpi-title">Total Revenue Generated</div>
+              <div class="kpi-value">{{ revenueCollected | currency:'INR':'symbol':'1.0-2' }}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Perk Points Remaining</div>
+              <div class="kpi-value">{{ selectedStaff.allocated_points }}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Activity Count</div>
+              <div class="kpi-value">{{ combinedLogs.length }}</div>
+            </div>
+            <div class="kpi-card" *ngIf="staffSummary">
+              <div class="kpi-title">Clients Served</div>
+              <div class="kpi-value">{{ staffSummary.totals.clients }}</div>
+            </div>
+            <div class="kpi-card" *ngIf="staffSummary?.show_commission">
+              <div class="kpi-title">Commission (estimate)</div>
+              <div class="kpi-value">{{ staffSummary.totals.commission | currency:'INR':'symbol':'1.0-2' }}</div>
+            </div>
+          </div>
+
+          <div class="logs-toolbar">
+            <div class="preset-tabs">
+              <button class="preset-tab" [class.active]="logDatePreset === 'Just Today'"
+                (click)="setLogPreset('Just Today')">Just Today</button>
+              <button class="preset-tab" [class.active]="logDatePreset === 'This Month'"
+                (click)="setLogPreset('This Month')">This Month</button>
+              <button class="preset-tab" [class.active]="logDatePreset === 'Last 30 Days'"
+                (click)="setLogPreset('Last 30 Days')">Last 30 Days</button>
+              <button class="preset-tab" [class.active]="logDatePreset === 'Custom'"
+                (click)="setLogPreset('Custom')">Custom</button>
+            </div>
+            <div class="date-range" *ngIf="logDatePreset === 'Custom'">
+              <input type="date" class="form-control" [(ngModel)]="logStartDate">
+              <span>to</span>
+              <input type="date" class="form-control" [(ngModel)]="logEndDate">
+              <button class="btn btn-dark" (click)="loadStaffLogs()">Apply</button>
+            </div>
+            <div class="revenue-summary">
+              Revenue collected: <strong>{{ revenueCollected | currency:'INR':'symbol':'1.0-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="mt-3" *ngIf="staffSummary">
+            <div class="kpi-row" style="margin-bottom: 10px;">
+              <div class="kpi-card" *ngFor="let c of staffSummary.by_category" style="cursor: pointer;"
+                [style.outline]="categoryFilter === c.category ? '2px solid var(--text-primary)' : 'none'"
+                (click)="pickCategory(c.category)">
+                <div class="kpi-title">{{ categoryLabels[c.category] || c.category }}</div>
+                <div class="kpi-value">{{ c.sold }}<span *ngIf="c.redeemed" style="font-size: 12px; font-weight: 500;"> +{{ c.redeemed }} used</span></div>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                  {{ c.revenue | currency:'INR':'symbol':'1.0-2' }}
+                  <span *ngIf="staffSummary.show_commission"> · comm. {{ c.commission | currency:'INR':'symbol':'1.0-2' }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="preset-tabs" style="display: inline-flex; margin-bottom: 10px;">
+              <button class="preset-tab" [class.active]="summaryView === 'services'"
+                (click)="summaryView = 'services'">{{ categoryFilter === 'All' ? 'By Service' : categoryLabels[categoryFilter] }}</button>
+              <button class="preset-tab" [class.active]="summaryView === 'months'"
+                (click)="summaryView = 'months'">Month by Month</button>
+              <button class="preset-tab" [class.active]="summaryView === 'bills'"
+                (click)="summaryView = 'bills'">By Bill</button>
+              <button class="preset-tab" [class.active]="summaryView === 'promotions'"
+                (click)="summaryView = 'promotions'">Promotions Used</button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;"
+              *ngIf="staffSummary.show_commission">
+              {{ staffSummary.commission_note }}
+            </div>
+
+            <table class="data-table" *ngIf="summaryView === 'services'">
+              <thead>
+                <tr>
+                  <th>SERVICE</th><th>TYPE</th><th>TIMES DONE</th><th>REVENUE</th>
+                  <th *ngIf="staffSummary.show_commission">COMMISSION</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of summaryServices">
+                  <td>{{ s.service_name }}</td>
+                  <td>
+                    <span class="type-badge">{{ s.service_type }}</span>
+                    <span class="type-badge" *ngIf="s.is_redemption"
+                      style="background: #fff3e0; color: #e65100; margin-left: 4px;">Used from package</span>
+                  </td>
+                  <td>{{ s.count }}</td>
+                  <td class="price-col">{{ s.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+                  <td class="price-col" *ngIf="staffSummary.show_commission">{{ s.commission | currency:'INR':'symbol':'1.0-2' }}</td>
+                </tr>
+                <tr *ngIf="summaryServices.length === 0">
+                  <td [attr.colspan]="staffSummary.show_commission ? 5 : 4" style="text-align: center; color: var(--text-secondary);">No services in this period.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table class="data-table" *ngIf="summaryView === 'months'">
+              <thead>
+                <tr>
+                  <th>MONTH</th><th>SERVICES DONE</th>
+                  <th *ngFor="let c of staffSummary.by_category">{{ (categoryLabels[c.category] || c.category) | uppercase }}</th>
+                  <th>REVENUE</th>
+                  <th *ngIf="staffSummary.show_commission">COMMISSION</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of staffSummary.by_month">
+                  <td>{{ formatMonth(m.month) }}</td>
+                  <td>{{ m.services }}</td>
+                  <td *ngFor="let c of staffSummary.by_category">{{ m.by_type[c.category] || 0 }}</td>
+                  <td class="price-col">{{ m.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+                  <td class="price-col" *ngIf="staffSummary.show_commission">{{ m.commission | currency:'INR':'symbol':'1.0-2' }}</td>
+                </tr>
+                <tr *ngIf="staffSummary.by_month.length === 0">
+                  <td [attr.colspan]="(staffSummary.show_commission ? 4 : 3) + staffSummary.by_category.length" style="text-align: center; color: var(--text-secondary);">Nothing in the last 12 months.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table class="data-table" *ngIf="summaryView === 'bills'">
+              <thead>
+                <tr>
+                  <th>DATE</th><th>BILL</th><th>CLIENT</th><th>ITEMS</th><th>REVENUE</th>
+                  <th *ngIf="staffSummary.show_commission">COMMISSION</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let b of staffSummary.by_bill">
+                  <td>{{ b.date | date:'dd MMM yyyy' }}</td>
+                  <td>{{ b.invoice_number }}</td>
+                  <td>
+                    {{ b.client_name }}
+                    <span class="type-badge" *ngFor="let p of b.promotions"
+                      style="background: #e3f2fd; color: #1565c0; margin-left: 4px;">{{ p }}</span>
+                  </td>
+                  <td>{{ b.items }}</td>
+                  <td class="price-col">{{ b.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+                  <td class="price-col" *ngIf="staffSummary.show_commission">{{ b.commission | currency:'INR':'symbol':'1.0-2' }}</td>
+                </tr>
+                <tr *ngIf="staffSummary.by_bill.length === 0">
+                  <td [attr.colspan]="staffSummary.show_commission ? 6 : 5" style="text-align: center; color: var(--text-secondary);">No bills in this period.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table class="data-table" *ngIf="summaryView === 'promotions'">
+              <thead>
+                <tr><th>PROMOTION</th><th>BILLS</th><th>DISCOUNT GIVEN</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of staffSummary.promotions">
+                  <td>{{ p.name }}</td>
+                  <td>{{ p.bills }}</td>
+                  <td class="price-col">{{ p.discount_given | currency:'INR':'symbol':'1.0-2' }}</td>
+                </tr>
+                <tr *ngIf="staffSummary.promotions.length === 0">
+                  <td colspan="3" style="text-align: center; color: var(--text-secondary);">No promotions were used on this staff member's bills in this period.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <table class="data-table mt-3" *ngIf="combinedLogs.length > 0">
+            <thead>
+              <tr>
+                <th>DATE</th>
+                <th>TIME</th>
+                <th>CLIENT</th>
+                <th>SERVICE</th>
+                <th>TYPE</th>
+                <th>PRICE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let log of combinedLogs; trackBy: trackById">
+                <td>{{ log.date | date:'dd MMM yyyy' }}</td>
+                <td>{{ (log.time || '').slice(0, 5) }}</td>
+                <td>
+                  <ng-container *ngIf="log.is_perk">
+                    <span style="color: #007B8F; font-weight: 500;">Staff Perk</span>
+                  </ng-container>
+                  <ng-container *ngIf="!log.is_perk">
+                    {{ log.client_name }}
+                  </ng-container>
+                </td>
+                <td>{{ log.service_name }}</td>
+                <td>
+                  <span class="type-badge" *ngIf="!log.is_perk">{{ log.service_type }}</span>
+                  <span class="type-badge" *ngIf="log.is_perk"
+                    [ngStyle]="{'background': log.payment_method === 'Points' ? '#e3f2fd' : '#e8f5e9', 'color': log.payment_method === 'Points' ? '#1565c0' : '#2e7d32'}">
+                    {{ log.payment_method === 'Points' ? 'Allocated Points' : 'Own Money' }}
+                  </span>
+                </td>
+                <td class="price-col">{{ log.price | currency:'INR':'symbol':'1.0-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="perf-empty" *ngIf="combinedLogs.length === 0">
+            <div class="perf-empty-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="perf-empty-title">No services logged</div>
+            <div class="perf-empty-text">Nothing was recorded for this period. Pick another range, or check back after the next bill.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payrolls Tab Content -->
+      <div class="payrolls-view" *ngIf="activeTab === 'payrolls'" style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; font-size: 16px;">Payroll Records</h3>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>MONTH/YEAR</th>
+              <th>BASE</th>
+              <th>SRV COMM</th>
+              <th>PROD COMM</th>
+              <th>DEDUCTIONS</th>
+              <th>NET PAY</th>
+              <th>STATUS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of payrolls; trackBy: trackById">
+              <td>{{ p.month }}/{{ p.year }}</td>
+              <td>{{ p.base_salary | currency:'INR' }}</td>
+              <td>{{ p.service_commission | currency:'INR' }}</td>
+              <td>{{ p.product_commission | currency:'INR' }}</td>
+              <td>{{ p.deductions | currency:'INR' }}</td>
+              <td style="font-weight: 700;">{{ p.net_pay | currency:'INR' }}</td>
+              <td>
+                <span class="status-chip" [ngClass]="p.status">{{ p.status }}</span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline"
+                  *ngIf="p.status === 'Draft' && canPayroll('lock')"
+                  (click)="lockPayroll(p.id)">Lock</button>
+                <button class="btn btn-sm btn-outline"
+                  *ngIf="p.status === 'Locked' && canPayroll('mark_paid')"
+                  (click)="markPayrollPaid(p.id)" style="margin-left: 5px; color: #10b981; border-color: #10b981;">Mark
+                  Paid</button>
+              </td>
+            </tr>
+            <tr *ngIf="payrolls.length === 0">
+              <td colspan="8" class="text-center text-muted">No payroll records found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- Designations Modal -->
+<div class="modal-overlay" *ngIf="showDesignationsModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h2>Manage Designations</h2>
+      <button class="close-btn" (click)="showDesignationsModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="form-group" style="flex: 1; min-width: 150px;">
+          <label>Name</label>
+          <input type="text" class="form-control" [(ngModel)]="newDesignation.name" placeholder="e.g. Senior Stylist">
+        </div>
+        <div class="form-group" style="width: 120px;">
+          <label>Base Salary</label>
+          <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newDesignation.salary" placeholder="0">
+        </div>
+        <div class="form-group" style="width: 120px;">
+          <label>Service Comm %</label>
+          <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newDesignation.commission_percentage" placeholder="0">
+        </div>
+        <div class="form-group" style="width: 120px;">
+          <label>Prod Comm %</label>
+          <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newDesignation.product_commission_percentage"
+            placeholder="0">
+        </div>
+        <div class="form-group">
+          <button class="btn btn-primary" (click)="saveDesignation()" [disabled]="!newDesignation.name">Add
+            Role</button>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>DESIGNATION</th>
+            <th>BASE SALARY</th>
+            <th>SERVICE COMM %</th>
+            <th>PRODUCT COMM %</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of designations; trackBy: trackById">
+            <td style="font-weight: 600;">{{ d.name }}</td>
+            <td>{{ d.salary | currency:'INR' }}</td>
+            <td>{{ d.commission_percentage }}%</td>
+            <td>{{ d.product_commission_percentage }}%</td>
+            <td>
+              <button class="btn btn-sm btn-outline" style="color: #d93025; border-color: #fce8e6;"
+                (click)="deleteDesignation(d.id)">Delete</button>
+            </td>
+          </tr>
+          <tr *ngIf="designations.length === 0">
+            <td colspan="5" class="text-center text-muted">No designations created yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Staff Modal -->
+<div class="modal-overlay" *ngIf="showAddStaffModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New Staff</h2>
+      <button class="close-btn" (click)="showAddStaffModal = false">×</button>
+    </div>
+    <form (ngSubmit)="saveNewStaff()" ngNativeValidate>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.first_name" name="first_name" required>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.last_name" name="last_name">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Center</label>
+            <select class="form-control" [(ngModel)]="newStaff.center" name="center" required>
+              <option [ngValue]="null">Select Center</option>
+              <option *ngFor="let c of centers; trackBy: trackById" [ngValue]="c.id">{{ c.display_name || c.center_name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select class="form-control" [(ngModel)]="newStaff.gender" name="gender">
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Designation / Role</label>
+            <input type="text" list="addStaffDesignationList" class="form-control" [(ngModel)]="newStaff.designation"
+              (ngModelChange)="onNewStaffDesignationChange($event)" name="designation" required>
+            <datalist id="addStaffDesignationList">
+              <option *ngFor="let d of designations; trackBy: trackById" [value]="d.name">{{ d.name }}</option>
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label>Joining Date</label>
+            <input type="date" class="form-control" [(ngModel)]="newStaff.joining_date" name="joining_date">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 form-group">
+            <label>Staff Code</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.staff_code" name="staff_code" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 form-group">
+            <label>Phone</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.phone" name="phone" />
+          </div>
+          <div class="col-md-6 form-group">
+            <label>Email</label>
+            <input type="email" class="form-control" [(ngModel)]="newStaff.email" name="email" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12 form-group">
+            <label>Address</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.address" name="address" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 form-group">
+            <label>City</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.city" name="city" />
+          </div>
+          <div class="col-md-4 form-group">
+            <label>State</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.state" name="state" />
+          </div>
+          <div class="col-md-4 form-group">
+            <label>PIN Code</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.pin_code" name="pin_code" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 form-group">
+            <label>App Password (optional)</label>
+            <input type="text" class="form-control" [(ngModel)]="newStaff.app_password" name="app_password">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Salary</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newStaff.salary" name="salary">
+          </div>
+          <div class="form-group">
+            <label>Service Commission (%)</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newStaff.commission_percentage"
+              name="commission_percentage">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Commission (%)</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newStaff.product_commission_percentage"
+              name="product_commission_percentage">
+          </div>
+          <div class="form-group" style="width: 50%;">
+            <label style="color: #007B8F; font-weight: 600;">Perk Points</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newStaff.allocated_points" step="any"
+              name="allocated_points">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-dark"
+          style="width: 100%; margin-top: 1rem; padding: 12px; font-size: 14px;" [disabled]="isSaving">
+          <span *ngIf="isSaving">Saving...</span>
+          <span *ngIf="!isSaving">Create Staff</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Service Log Modal -->
+<div class="modal-overlay" *ngIf="showAddLogModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div>
+        <h2>Add Service Log</h2>
+        <p class="modal-subtitle">Record a service performed by a staff member</p>
+      </div>
+      <button class="close-btn" (click)="showAddLogModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="text-align: center; margin-bottom: 20px;">
+        <div class="preset-tabs" style="display: inline-flex;">
+          <button class="preset-tab" [class.active]="newLogType === 'client'" (click)="newLogType = 'client'">Client
+            Service</button>
+          <button class="preset-tab" [class.active]="newLogType === 'staff'" (click)="newLogType = 'staff'">Staff Perk
+            Consumption</button>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="!selectedStaff">
+        <label>STAFF</label>
+        <select class="form-control" [(ngModel)]="newLog.staff"
+          (ngModelChange)="newConsumptionLog.staff = newLog.staff">
+          <option [ngValue]="null">Select Staff</option>
+          <option *ngFor="let s of activeStaffMembers; trackBy: trackById" [ngValue]="s.id">{{ s.first_name }} {{ s.last_name }} — {{
+            s.designation }}</option>
+        </select>
+      </div>
+
+      <!-- Client Service Fields -->
+      <ng-container *ngIf="newLogType === 'client'">
+        <div class="form-group">
+          <label>Client Name</label>
+          <input type="text" class="form-control" [(ngModel)]="newLog.client_name" list="clientOptions"
+            placeholder="Search by name or number...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Service / Item Name</label>
+            <input type="text" class="form-control" [(ngModel)]="newLog.service_name" list="serviceOptions"
+              placeholder="Search service..." (ngModelChange)="onServiceSelected('client')">
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select class="form-control" [(ngModel)]="newLog.service_type">
+              <option value="Service">Service</option>
+              <option value="Product">Product</option>
+              <option value="Membership">Membership</option>
+              <option value="Package">Package</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" class="form-control" [(ngModel)]="newLog.date">
+          </div>
+          <div class="form-group">
+            <label>Time</label>
+            <input type="time" class="form-control" [(ngModel)]="newLog.time">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Price Collected</label>
+          <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newLog.price">
+        </div>
+      </ng-container>
+
+      <!-- Staff Perk Fields -->
+      <ng-container *ngIf="newLogType === 'staff'">
+        <div
+          style="background-color: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #007B8F; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600; color: var(--text-secondary);">Available Perk Points:</span>
+          <span style="font-size: 1.2rem; font-weight: bold; color: #007B8F;">{{ getSelectedStaffPoints() |
+            number:'1.2-2' }}</span>
+        </div>
+        <div class="form-group">
+          <label>Product / Service Consumed</label>
+          <input type="text" class="form-control" [(ngModel)]="newConsumptionLog.service_name" list="perkServiceOptions"
+            placeholder="Search service..." (ngModelChange)="onServiceSelected('staff')">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" class="form-control" [(ngModel)]="newConsumptionLog.date">
+          </div>
+          <div class="form-group">
+            <label>Time</label>
+            <input type="time" class="form-control" [(ngModel)]="newConsumptionLog.time">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amount (Cost of Service)</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newConsumptionLog.amount">
+          </div>
+          <div class="form-group">
+            <label>Payment Method</label>
+            <select class="form-control" [(ngModel)]="newConsumptionLog.payment_method">
+              <option value="Points">Pay with Allocated Points</option>
+              <option value="Money">Pay with Own Money</option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Global Datalists for Autocomplete -->
+      <datalist id="clientOptions">
+        <option *ngFor="let c of clients | slice:0:200; trackBy: trackById" [value]="c.display_name">{{ c.phone }}
+        </option>
+      </datalist>
+      <datalist id="serviceOptions">
+        <option *ngFor="let s of services | slice:0:500; trackBy: trackByIndex" [value]="s.name">{{ s.name }}</option>
+      </datalist>
+      <datalist id="perkServiceOptions">
+        <option *ngFor="let s of services | slice:0:500; trackBy: trackByIndex" [value]="s.name">{{ s.name }}</option>
+      </datalist>
+
+      <div class="modal-actions mt-4" style="text-align: right;">
+        <button class="btn btn-outline" (click)="showAddLogModal = false" style="margin-right: 10px;">Cancel</button>
+        <button class="btn btn-primary" (click)="saveNewLog()" [disabled]="isSaving">
+          <span *ngIf="isSaving">Saving...</span>
+          <span *ngIf="!isSaving">Save Log</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Total Revenue Modal -->
+<div class="modal-overlay" *ngIf="showTotalRevenueModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <div>
+        <h2>Total Revenue</h2>
+        <p class="modal-subtitle">Staff-wise collection across your team</p>
+      </div>
+      <button class="close-btn" (click)="showTotalRevenueModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-toolbar">
+        <select class="form-control w-auto" [(ngModel)]="reportCenterId">
+          <option [ngValue]="null" *ngIf="hasGlobalAccess">All Locations</option>
+          <option *ngFor="let c of centers; trackBy: trackById" [ngValue]="c.id">{{ c.display_name || c.center_name }}</option>
+        </select>
+        <div class="date-range">
+          <input type="date" class="form-control" [(ngModel)]="reportStartDate">
+          <span>to</span>
+          <input type="date" class="form-control" [(ngModel)]="reportEndDate">
+          <button class="btn btn-dark" (click)="loadRevenueReport()">Apply</button>
+          <button class="btn btn-outline" style="margin-left: 10px; color: #10b981; border-color: #10b981;"
+            (click)="exportRevenueExcel()" *ngIf="revenueReport?.breakdown?.length > 0">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-cards" *ngIf="revenueReport">
+        <div class="sum-card">
+          <label>TOTAL REVENUE</label>
+          <div class="sum-val">{{ revenueReport.total_revenue | currency:'INR':'symbol':'1.0-2' }}</div>
+        </div>
+        <div class="sum-card">
+          <label>SERVICES LOGGED</label>
+          <div class="sum-val">{{ revenueReport.total_services }}</div>
+        </div>
+        <div class="sum-card">
+          <label>STAFF CONTRIBUTING</label>
+          <div class="sum-val">{{ revenueReport.total_staff }}</div>
+        </div>
+      </div>
+
+      <div class="report-table-container">
+        <table class="data-table clean-table" *ngIf="revenueReport">
+          <thead>
+            <tr>
+              <th>STAFF</th>
+              <th>LOCATION</th>
+              <th class="text-right">SERVICES</th>
+              <th class="text-right">REVENUE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of revenueReport.breakdown; trackBy: trackByIndex">
+              <td>{{ item.staff_name }}</td>
+              <td>{{ item.location }}</td>
+              <td class="text-right">{{ item.services }}</td>
+              <td class="text-right font-weight-bold">{{ item.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Usage Modal -->
+<div class="modal-overlay" *ngIf="showUsageModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <div>
+        <h2>Usage</h2>
+        <p class="modal-subtitle">Service and item usage across all staff</p>
+      </div>
+      <button class="close-btn" (click)="showUsageModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-toolbar">
+        <div class="date-range">
+          <input type="date" class="form-control" [(ngModel)]="reportStartDate">
+          <span>to</span>
+          <input type="date" class="form-control" [(ngModel)]="reportEndDate">
+          <button class="btn btn-dark" (click)="loadUsageReport()">Apply</button>
+          <button class="btn btn-outline" style="margin-left: 10px; color: #10b981; border-color: #10b981;"
+            (click)="exportUsageExcel()" *ngIf="usageReport?.breakdown?.length > 0">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-cards" *ngIf="usageReport">
+        <div class="sum-card">
+          <label>SERVICES</label>
+          <div class="sum-val">{{ usageReport.services_count }}</div>
+        </div>
+        <div class="sum-card">
+          <label>PRODUCTS</label>
+          <div class="sum-val">{{ usageReport.products_count }}</div>
+        </div>
+        <div class="sum-card">
+          <label>MEMBERSHIPS</label>
+          <div class="sum-val">{{ usageReport.memberships_count }}</div>
+        </div>
+        <div class="sum-card">
+          <label>PACKAGES</label>
+          <div class="sum-val">{{ usageReport.packages_count }}</div>
+        </div>
+      </div>
+
+      <div class="report-table-container">
+        <table class="data-table clean-table" *ngIf="usageReport">
+          <thead>
+            <tr>
+              <th>ITEM</th>
+              <th>TYPE</th>
+              <th class="text-right">TIMES USED</th>
+              <th class="text-right">REVENUE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of usageReport.breakdown; trackBy: trackByIndex">
+              <td>{{ item.service_name }}</td>
+              <td><span class="type-badge">{{ item.service_type }}</span></td>
+              <td class="text-right">{{ item.times_used }}</td>
+              <td class="text-right font-weight-bold">{{ item.revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Commission Modal -->
+<div class="modal-overlay" *ngIf="showCommissionModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <div>
+        <h2>Payroll & Commission Report</h2>
+        <p class="modal-subtitle">Staff performance and commission calculations</p>
+      </div>
+      <button class="close-btn" (click)="showCommissionModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-toolbar">
+        <div class="date-range">
+          <input type="date" class="form-control" [(ngModel)]="reportStartDate">
+          <span>to</span>
+          <input type="date" class="form-control" [(ngModel)]="reportEndDate">
+          <button class="btn btn-dark" (click)="loadCommissionReport()">Apply</button>
+          <button class="btn btn-outline" style="margin-left: 10px; color: #10b981; border-color: #10b981;"
+            (click)="exportCommissionExcel()" *ngIf="commissionReport.length > 0">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="report-table-container">
+        <table class="data-table clean-table" *ngIf="commissionReport.length > 0">
+          <thead>
+            <tr>
+              <th>STAFF</th>
+              <th>CENTER</th>
+              <th class="text-right">SERVICE REV</th>
+              <th class="text-right">PRODUCT REV</th>
+              <th class="text-right">COMMISSION</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of commissionReport; trackBy: trackById">
+              <td class="font-weight-bold">{{ item.staff_name }}</td>
+              <td>{{item.display_name || item.center_name}}</td>
+              <td class="text-right">{{ item.service_revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+              <td class="text-right">{{ item.product_revenue | currency:'INR':'symbol':'1.0-2' }}</td>
+              <td class="text-right font-weight-bold" style="color: #65ded2;">{{ item.total_commission |
+                currency:'INR':'symbol':'1.0-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state-block" *ngIf="commissionReport.length === 0">
+          <p>Click Apply to generate commission report for the selected dates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Perk Report Modal -->
+<div class="modal-overlay" *ngIf="showPerkReportModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <div>
+        <h2>Staff Perk Consumption Report</h2>
+        <p class="modal-subtitle">Track points and money spent by staff on services</p>
+      </div>
+      <button class="close-btn" (click)="showPerkReportModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-toolbar">
+        <select class="form-control w-auto" [(ngModel)]="reportCenterId">
+          <option [ngValue]="null" *ngIf="hasGlobalAccess">All Locations</option>
+          <option *ngFor="let c of centers; trackBy: trackById" [ngValue]="c.id">{{ c.display_name || c.center_name }}</option>
+        </select>
+        <div class="date-range">
+          <input type="date" class="form-control" [(ngModel)]="reportStartDate">
+          <span>to</span>
+          <input type="date" class="form-control" [(ngModel)]="reportEndDate">
+          <button class="btn btn-dark" (click)="loadPerkReport()">Apply</button>
+          <button class="btn btn-outline" style="margin-left: 10px; color: #10b981; border-color: #10b981;"
+            (click)="exportPerkExcel()" *ngIf="consumptionReport.length > 0">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="report-table-container">
+        <table class="data-table clean-table" *ngIf="consumptionReport.length > 0">
+          <thead>
+            <tr>
+              <th>STAFF</th>
+              <th>CENTER</th>
+              <th>SERVICE</th>
+              <th>PAYMENT METHOD</th>
+              <th class="text-right">TIMES USED</th>
+              <th class="text-right">TOTAL SPENT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of consumptionReport; trackBy: trackByIndex">
+              <td class="font-weight-bold">{{ item.staff_name }}</td>
+              <td>{{item.display_name || item.center_name}}</td>
+              <td>{{ item.service_name }}</td>
+              <td>
+                <span class="type-badge"
+                  [ngStyle]="{'background': item.payment_method === 'Points' ? '#e3f2fd' : '#e8f5e9', 'color': item.payment_method === 'Points' ? '#1565c0' : '#2e7d32'}">
+                  {{ item.payment_method === 'Points' ? 'Allocated Points' : 'Own Money' }}
+                </span>
+              </td>
+              <td class="text-right">{{ item.times_used }}</td>
+              <td class="text-right font-weight-bold">{{ item.total_amount | currency:'INR':'symbol':'1.0-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state-block" *ngIf="consumptionReport.length === 0">
+          <p>No perk consumption data found for the selected dates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tool Tracking Report Modal -->
+<div class="modal-overlay" *ngIf="showToolReportModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <div>
+        <h2>Tool Tracking Report</h2>
+        <p class="modal-subtitle">Comprehensive list of all assigned tools across all staff</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <button class="btn btn-outline"
+          style="color: #10b981; border-color: #10b981; padding: 0.25rem 0.5rem; font-size: 0.85rem;"
+          (click)="exportToolsExcel()" *ngIf="allToolsReport.length > 0">
+          <i class="bi bi-file-earmark-excel"></i> Export Excel
+        </button>
+        <button class="close-btn" (click)="showToolReportModal = false">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="report-table-container" style="margin-top: 10px;">
+        <table class="data-table clean-table" *ngIf="allToolsReport.length > 0">
+          <thead>
+            <tr>
+              <th>STAFF</th>
+              <th>CENTER</th>
+              <th>ITEM</th>
+              <th>DETAILS</th>
+              <th>QTY</th>
+              <th>TAKEN ON</th>
+              <th>RETURN BY</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of allToolsReport; trackBy: trackByIndex" [class.danger-row]="t.is_overdue">
+              <td class="font-weight-bold">
+                {{ t.staff_name }}
+                <span *ngIf="t.is_overdue" class="alert-icon" title="Overdue"><svg width='16' height='16'
+                    viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'
+                    stroke-linejoin='round'>
+                    <circle cx='12' cy='12' r='10' />
+                    <line x1='12' y1='8' x2='12' y2='12' />
+                    <line x1='12' y1='16' x2='12.01' y2='16' />
+                  </svg></span>
+              </td>
+              <td>{{ t.staff_center_name || 'N/A' }}</td>
+              <td>{{ t.tool_name }}</td>
+              <td>{{ t.details || '-' }}</td>
+              <td>{{ t.amount }}</td>
+              <td>{{ t.date_taken | date:'mediumDate' }}</td>
+              <td>
+                <span [style.color]="t.is_overdue ? '#ef4444' : 'inherit'">
+                  {{ t.expected_return_date ? (t.expected_return_date | date:'mediumDate') : 'N/A' }}
+                </span>
+              </td>
+              <td>
+                <span class="status-chip" [class.inactive]="t.status === 'Returned'">{{ t.status }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state-block" *ngIf="allToolsReport.length === 0">
+          <p>No tools are currently assigned to any staff member.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Transfer Report Modal -->
+<div class="modal-overlay" *ngIf="showTransferReportModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <div>
+        <h2>Staff Transfers Report</h2>
+        <p class="modal-subtitle">History of all staff movements between centers</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <button class="btn btn-outline"
+          style="color: #10b981; border-color: #10b981; padding: 0.25rem 0.5rem; font-size: 0.85rem;"
+          (click)="exportTransfersExcel()" *ngIf="allTransfersReport.length > 0">
+          <i class="bi bi-file-earmark-excel"></i> Export Excel
+        </button>
+        <button class="close-btn" (click)="showTransferReportModal = false">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="report-table-container" style="margin-top: 10px;">
+        <table class="data-table clean-table" *ngIf="allTransfersReport.length > 0">
+          <thead>
+            <tr>
+              <th>STAFF</th>
+              <th>FROM</th>
+              <th>TO</th>
+              <th>TYPE</th>
+              <th>START DATE</th>
+              <th>END DATE</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let tr of allTransfersReport; trackBy: trackByIndex">
+              <td class="font-weight-bold">{{ tr.staff_name || 'Staff #'+tr.staff }}</td>
+              <td>{{ tr.from_center_name }}</td>
+              <td>{{ tr.to_center_name }}</td>
+              <td>{{ tr.transfer_type }}</td>
+              <td>{{ tr.start_date | date:'mediumDate' }}</td>
+              <td>{{ tr.end_date ? (tr.end_date | date:'mediumDate') : '-' }}</td>
+              <td>
+                <span class="status-chip" [class.active]="tr.status === 'Active'"
+                  [class.inactive]="tr.status === 'Completed'">{{ tr.status }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state-block" *ngIf="allTransfersReport.length === 0">
+          <p>No staff transfers recorded.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Transfer Modal -->
+<div class="modal-overlay" *ngIf="showTransferModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Transfer Staff</h2>
+      <button class="close-btn" (click)="showTransferModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" *ngIf="!selectedStaff">
+        <label>Staff to Transfer</label>
+        <select class="form-control" [(ngModel)]="newTransfer.staff">
+          <option [ngValue]="null">Select Staff</option>
+          <option *ngFor="let s of activeStaffMembers; trackBy: trackById" [ngValue]="s.id">{{ s.first_name }} {{ s.last_name }} — {{
+            s.designation }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Transfer Type</label>
+        <select class="form-control" [(ngModel)]="newTransfer.transfer_type">
+          <option value="Temporary">Temporary</option>
+          <option value="Permanent">Permanent</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>To Center</label>
+        <select class="form-control" [(ngModel)]="newTransfer.to_center">
+          <option [ngValue]="null">Select Destination Center</option>
+          <option *ngFor="let c of centers; trackBy: trackById" [ngValue]="c.id">{{ c.display_name || c.center_name }}</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" class="form-control" min="{{todayDate}}" [(ngModel)]="newTransfer.start_date">
+        </div>
+        <div class="form-group" *ngIf="newTransfer.transfer_type === 'Temporary'">
+          <label>End Date (Optional)</label>
+          <input type="date" class="form-control" min="{{todayDate}}" [(ngModel)]="newTransfer.end_date">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="showTransferModal = false">Cancel</button>
+      <button class="btn btn-dark" (click)="saveTransfer()" [disabled]="isSaving">
+        <span *ngIf="isSaving">Transferring...</span>
+        <span *ngIf="!isSaving">Transfer Staff</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Tool Tracker Modal -->
+<div class="modal-overlay" *ngIf="showToolModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h2>Tool Tracker{{ selectedStaff ? ': ' + selectedStaff.first_name : '' }}</h2>
+      <button class="close-btn" (click)="showToolModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" *ngIf="!selectedStaff" style="margin-bottom: 20px;">
+        <label>Staff Member</label>
+        <select class="form-control" [(ngModel)]="newTool.staff" (ngModelChange)="loadStaffTools(newTool.staff)">
+          <option [ngValue]="null">Select Staff</option>
+          <option *ngFor="let s of activeStaffMembers; trackBy: trackById" [ngValue]="s.id">{{ s.first_name }} {{ s.last_name }} — {{
+            s.designation }}</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tool / Item Name</label>
+          <input type="text" class="form-control" [(ngModel)]="newTool.tool_name" placeholder="e.g. Trimmer">
+        </div>
+        <div class="form-group" style="width: 20%;">
+          <label>Qty / Amount</label>
+          <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" [(ngModel)]="newTool.amount">
+        </div>
+        <div class="form-group">
+          <label>Date Taken</label>
+          <input type="date" class="form-control" [(ngModel)]="newTool.date_taken">
+        </div>
+        <div class="form-group">
+          <label>Expected Return</label>
+          <input type="date" class="form-control" [(ngModel)]="newTool.expected_return_date">
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end;">
+          <button class="btn btn-primary" (click)="saveTool()" [disabled]="isSaving">
+            <span *ngIf="isSaving">Assigning...</span>
+            <span *ngIf="!isSaving">Assign</span>
+          </button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="width: 100%;">
+          <label>Item Details / Description</label>
+          <input type="text" class="form-control" [(ngModel)]="newTool.details"
+            placeholder="e.g. Serial number, condition, specific brand...">
+        </div>
+      </div>
+
+      <h3 style="margin-top: 20px; font-size: 14px;">Assigned Tools</h3>
+      <table class="data-table clean-table">
+        <thead>
+          <tr>
+            <th>ITEM</th>
+            <th>DETAILS</th>
+            <th>QTY</th>
+            <th>DATE TAKEN</th>
+            <th>EXPECTED RETURN</th>
+            <th>STATUS</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of staffTools; trackBy: trackById">
+            <td>{{ t.tool_name }}</td>
+            <td>{{ t.details || '-' }}</td>
+            <td>{{ t.amount }}</td>
+            <td>{{ t.date_taken | date:'dd MMM yyyy' }}</td>
+            <td>{{ t.expected_return_date ? (t.expected_return_date | date:'dd MMM yyyy') : 'N/A' }}</td>
+            <td>
+              <span class="status-chip" [class.inactive]="t.status === 'Returned'">{{ t.status }}</span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline" *ngIf="t.status === 'Taken'" (click)="markToolReturned(t)">Mark
+                Returned</button>
+              <span *ngIf="t.status === 'Returned'">{{ t.actual_return_date | date:'dd MMM yyyy' }}</span>
+            </td>
+          </tr>
+          <tr *ngIf="staffTools.length === 0">
+            <td colspan="7" style="text-align: center; color: var(--text-secondary);">No tools assigned.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Incentive Report Modal -->
+<div class="modal-overlay" *ngIf="showIncentiveModal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <div>
+        <h2>Incentive Report</h2>
+        <p class="modal-subtitle">Incentives calculated based on sales multiples</p>
+      </div>
+      <button class="close-btn" (click)="showIncentiveModal = false">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-toolbar">
+        <div class="date-range" style="align-items: center; justify-content: flex-start; gap: 10px;">
+          <label style="font-weight: 600;">Select Month:</label>
+          <input type="month" class="form-control" style="width: auto;" [(ngModel)]="reportMonth">
+          <label style="font-weight: 600; margin-left: 10px;">Target Multiplier (x):</label>
+          <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" style="width: 80px;" [(ngModel)]="targetMultiplier" min="0"
+            step="any">
+          <label style="font-weight: 600; margin-left: 10px;">Incentive %:</label>
+          <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control" style="width: 80px;" [(ngModel)]="incentivePercent" min="0">
+          <button class="btn btn-dark" (click)="loadIncentiveReport()">Calculate Incentives</button>
+          <button class="btn btn-primary" style="background-color: #10b981; border-color: #10b981;"
+            (click)="exportIncentivesExcel()" *ngIf="incentiveReport.length > 0">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="report-table-container">
+        <table class="data-table clean-table" *ngIf="incentiveReport.length > 0">
+          <thead>
+            <tr>
+              <th>STAFF</th>
+              <th>CENTER</th>
+              <th class="text-right">SALARY</th>
+              <th class="text-right">TOTAL SALES</th>
+              <th class="text-center">MULTIPLIER</th>
+              <th class="text-center">INCENTIVE %</th>
+              <th class="text-right">EARNED</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of incentiveReport; trackBy: trackByIndex">
+              <td class="font-weight-bold">{{ item.staff_name }}</td>
+              <td>{{item.display_name || item.center_name}}</td>
+              <td class="text-right">
+                <input type="number" min="0" oninput="validity.valid||(value='');" class="form-control inline-input"
+                  style="width: 100px; display: inline-block; text-align: right;" [(ngModel)]="item.salary"
+                  (change)="updateStaffSalary(item.staff_id, item.salary)">
+              </td>
+              <td class="text-right">{{ item.total_sales | currency:'INR':'symbol':'1.0-2' }}</td>
+              <td class="text-center">{{ item.multiplier }}x</td>
+              <td class="text-center">
+                <span class="type-badge" *ngIf="item.incentive_percentage > 0">{{ item.incentive_percentage }}%</span>
+                <span *ngIf="item.incentive_percentage === 0">0%</span>
+              </td>
+              <td class="text-right font-weight-bold" style="color: #ff9800;">{{ item.incentive_amount |
+                currency:'INR':'symbol':'1.0-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state-block" *ngIf="incentiveReport.length === 0">
+          <p>Click Apply to generate incentive report for the selected dates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

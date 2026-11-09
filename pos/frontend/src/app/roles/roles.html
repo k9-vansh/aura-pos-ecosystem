@@ -1,0 +1,191 @@
+<div class="rp">
+
+  <!-- ───────────── Roles list ───────────── -->
+  <aside class="rp-list" aria-label="Roles">
+    <div class="rp-list-head">
+      <div>
+        <h2 class="rp-title">Roles</h2>
+        <p class="rp-sub">{{ roles.length }} role{{ roles.length === 1 ? '' : 's' }}</p>
+      </div>
+      <button type="button" class="rp-btn rp-btn-dark" *ngIf="canCreate" (click)="newRole()">+ New role</button>
+    </div>
+
+    <input type="search" class="rp-search" placeholder="Search roles" [(ngModel)]="search" aria-label="Search roles">
+
+    <div class="rp-cards">
+      <div class="rp-empty-small" *ngIf="loading">Loading roles…</div>
+      <div class="rp-empty-small" *ngIf="!loading && roles.length === 0">No roles yet. Create the first one.</div>
+      <div class="rp-empty-small" *ngIf="!loading && roles.length > 0 && filteredRoles.length === 0">No role matches “{{ search }}”.</div>
+
+      <button type="button" class="rp-card" *ngFor="let role of filteredRoles; trackBy: trackById"
+        [class.active]="draft && !isNew && draft.id === role.id" (click)="open(role)">
+        <span class="rp-card-name">{{ role.name }}</span>
+        <span class="rp-card-meta">
+          <span>{{ roleSummary(role) }}</span>
+          <span class="rp-dot"></span>
+          <span>{{ role.users_count || 0 }} user{{ role.users_count === 1 ? '' : 's' }}</span>
+        </span>
+        <span class="rp-tag rp-tag-green" *ngIf="role.permissions?.all_centers">All centres</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ───────────── Editor ───────────── -->
+  <section class="rp-editor" *ngIf="draft; else nothingOpen">
+
+    <div class="rp-scroll">
+
+      <!-- Identity -->
+      <div class="rp-panel">
+        <div class="rp-identity">
+          <div class="rp-field rp-grow">
+            <label for="roleName">Role name</label>
+            <input id="roleName" type="text" class="rp-input" [(ngModel)]="draft.name" [readonly]="!canEditDraft"
+              maxlength="100" placeholder="e.g. Salon Manager" [class.bad]="nameProblem && (draft.name?.length > 0 || !isNew)">
+            <span class="rp-problem" *ngIf="nameProblem && (draft.name?.length > 0 || !isNew)">{{ nameProblem }}</span>
+          </div>
+          <div class="rp-field rp-grow2">
+            <label for="roleDesc">What is this role for? <small>(optional)</small></label>
+            <input id="roleDesc" type="text" class="rp-input" [(ngModel)]="draft.description" [readonly]="!canEditDraft"
+              placeholder="e.g. Runs one salon day to day">
+          </div>
+        </div>
+
+        <div class="rp-scope">
+          <div class="rp-scope-text">
+            <strong>Which centres can this role see?</strong>
+            <span>The centres each person is assigned to, or every centre in the business.</span>
+          </div>
+          <div class="rp-seg" role="radiogroup" aria-label="Centre access">
+            <button type="button" role="radio" [attr.aria-checked]="!draft.permissions.all_centers"
+              [class.on]="!draft.permissions.all_centers" [disabled]="!canEditDraft" (click)="setAllCentres(false)">Assigned centres</button>
+            <button type="button" role="radio" [attr.aria-checked]="draft.permissions.all_centers"
+              [class.on]="draft.permissions.all_centers" [disabled]="!canEditDraft" (click)="setAllCentres(true)">All centres</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- What the role-holder will see -->
+      <div class="rp-panel rp-preview">
+        <div class="rp-preview-head">
+          <strong>Who holds this role will see</strong>
+          <span class="rp-note" *ngIf="!isNew">{{ draft.users_count || 0 }} user{{ draft.users_count === 1 ? '' : 's' }} hold it</span>
+        </div>
+        <div class="rp-chips">
+          <span class="rp-chip" *ngFor="let page of preview; trackBy: trackByIndex">
+            <b>{{ page.label }}</b><em *ngIf="page.detail">{{ page.detail }}</em>
+          </span>
+        </div>
+        <p class="rp-note" *ngIf="preview.length <= 1">Nothing beyond the Home page yet. Open a module below and choose what this role may do.</p>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="rp-toolbar">
+        <h3 class="rp-h3">What this role can do</h3>
+        <div class="rp-toolbar-actions">
+          <select class="rp-select" *ngIf="canEditDraft && roles.length > (isNew ? 0 : 1)" (change)="copyFrom($any($event.target).value); $any($event.target).value = ''" aria-label="Start from another role">
+            <option value="">Copy from another role…</option>
+            <ng-container *ngFor="let r of roles; trackBy: trackById">
+              <option *ngIf="isNew || r.id !== draft.id" [value]="r.id">{{ r.name }}</option>
+            </ng-container>
+          </select>
+          <button type="button" class="rp-btn rp-btn-ghost" (click)="expandAll(true)">Expand all</button>
+          <button type="button" class="rp-btn rp-btn-ghost" (click)="expandAll(false)">Collapse all</button>
+          <button type="button" class="rp-btn rp-btn-ghost" *ngIf="canEditDraft" (click)="clearAll()">Clear all</button>
+        </div>
+      </div>
+
+      <!-- Modules -->
+      <div class="rp-module" *ngFor="let mod of modules; trackBy: trackByKey"
+        [class.open]="openModules.has(mod.key)" [attr.data-state]="moduleState(mod)">
+
+        <div class="rp-module-head">
+          <button type="button" class="rp-module-toggle" (click)="toggleOpen(mod.key)" [attr.aria-expanded]="openModules.has(mod.key)">
+            <svg class="rp-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <span class="rp-module-text">
+              <span class="rp-module-name">{{ mod.label }}</span>
+              <span class="rp-module-help">{{ mod.help }}</span>
+            </span>
+          </button>
+
+          <span class="rp-state" [attr.data-state]="moduleState(mod)">{{ stateLabel(moduleState(mod)) }}
+            <small *ngIf="moduleState(mod) !== 'none'">· {{ moduleCount(mod) }}</small></span>
+
+          <div class="rp-presets" role="group" [attr.aria-label]="mod.label + ' access'" *ngIf="canEditDraft">
+            <button type="button" [class.on]="moduleState(mod) === 'none'" (click)="setPreset(mod, 'none')">None</button>
+            <button type="button" [class.on]="moduleState(mod) === 'view'" (click)="setPreset(mod, 'view')">View only</button>
+            <button type="button" [class.on]="moduleState(mod) === 'full'" (click)="setPreset(mod, 'full')">Full</button>
+          </div>
+        </div>
+
+        <div class="rp-module-body" *ngIf="openModules.has(mod.key)">
+          <div class="rp-grid rp-grid-head">
+            <span>Part of {{ mod.label }}</span>
+            <ng-container *ngFor="let verb of verbs">
+              <button type="button" class="rp-colhead" *ngIf="columnApplies(mod, verb)" [disabled]="!canEditDraft"
+                [class.on]="columnOn(mod, verb)" (click)="toggleColumn(mod, verb)"
+                [title]="'Toggle ' + verbLabel[verb] + ' for every row'">{{ verbLabel[verb] }}</button>
+              <span *ngIf="!columnApplies(mod, verb)"></span>
+            </ng-container>
+          </div>
+
+          <div class="rp-row" *ngFor="let sub of mod.submodules; trackBy: trackByKey" [class.held]="holds(mod.key, sub)">
+            <div class="rp-grid">
+              <div class="rp-part">
+                <span class="rp-part-name">{{ sub.label }}</span>
+                <span class="rp-part-help" *ngIf="sub.help">{{ sub.help }}</span>
+              </div>
+
+              <ng-container *ngFor="let verb of verbs">
+                <span class="rp-cell">
+                  <button type="button" class="rp-cb" role="checkbox" *ngIf="applies(sub, verb)"
+                    [class.on]="has(mod.key, sub.key, verb)" [attr.aria-checked]="has(mod.key, sub.key, verb)"
+                    [attr.aria-label]="verbLabel[verb] + ' ' + sub.label" [disabled]="!canEditDraft"
+                    (click)="toggleVerb(mod, sub, verb)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </button>
+                  <span class="rp-na" *ngIf="!applies(sub, verb)" title="Not applicable here">–</span>
+                </span>
+              </ng-container>
+            </div>
+
+            <div class="rp-actions" *ngIf="sub.actions?.length">
+              <span class="rp-actions-label">Also allow</span>
+              <button type="button" class="rp-pill" *ngFor="let act of sub.actions; trackBy: trackByKey"
+                [class.on]="hasAction(mod.key, sub.key, act.key)" [attr.aria-pressed]="hasAction(mod.key, sub.key, act.key)"
+                [disabled]="!canEditDraft" (click)="toggleAction(mod, sub, act.key)">
+                <svg *ngIf="hasAction(mod.key, sub.key, act.key)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                {{ act.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="rp-note rp-foot-note">Add, Edit and Delete always include View. A person only ever sees the pages and tabs their role holds.</p>
+    </div>
+
+    <!-- Save bar -->
+    <div class="rp-savebar">
+      <span class="rp-unsaved" *ngIf="dirty || isNew"><i></i>{{ isNew ? 'New role, not saved yet' : 'Unsaved changes' }}</span>
+      <span class="rp-readonly" *ngIf="!canEditDraft">You can look at this role but not change it.</span>
+      <span class="rp-grow"></span>
+      <button type="button" class="rp-btn rp-btn-danger" *ngIf="!isNew && canDelete" [disabled]="isSaving" (click)="deleteRole()"
+        [title]="draft.users_count > 0 ? 'Give its users another role first' : 'Delete this role'">Delete role</button>
+      <button type="button" class="rp-btn rp-btn-ghost" *ngIf="canEditDraft" (click)="discard()" [disabled]="isSaving || (!dirty && !isNew)">{{ isNew ? 'Cancel' : 'Discard' }}</button>
+      <button type="button" class="rp-btn rp-btn-dark" *ngIf="canEditDraft" (click)="saveRole()" [disabled]="!canSave">
+        {{ isSaving ? 'Saving…' : (isNew ? 'Create role' : 'Save role') }}
+      </button>
+    </div>
+  </section>
+
+  <ng-template #nothingOpen>
+    <section class="rp-editor rp-blank">
+      <div class="rp-blank-card">
+        <h3>Choose a role</h3>
+        <p>Pick a role on the left to see and change what it can open and do, or create a new one.</p>
+        <button type="button" class="rp-btn rp-btn-dark" *ngIf="canCreate" (click)="newRole()">+ New role</button>
+      </div>
+    </section>
+  </ng-template>
+</div>

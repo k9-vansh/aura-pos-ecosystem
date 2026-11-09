@@ -1,0 +1,219 @@
+<div class="cx-panel" *ngIf="isOpen" role="dialog" aria-label="Messages">
+
+  <!-- ============ Conversations ============ -->
+  <aside class="cx-side" [class.cx-hide-mobile]="selectedRoom">
+    <header class="cx-side-head">
+      <div class="cx-side-title">
+        <h2>Messages</h2>
+        <p>
+          <ng-container *ngIf="rooms.length">{{ rooms.length }} {{ rooms.length === 1 ? 'conversation' : 'conversations' }}</ng-container>
+          <span class="cx-pill" *ngIf="totalUnread">{{ totalUnread }} unread</span>
+        </p>
+      </div>
+      <button type="button" class="cx-icon-btn" (click)="toggleChat()" aria-label="Close messages" title="Close (Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+
+    <div class="cx-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" data-nb="bare" placeholder="Search conversations" aria-label="Search conversations"
+             [(ngModel)]="search" autocomplete="off">
+      <button type="button" class="cx-clear" *ngIf="search" (click)="search = ''" aria-label="Clear search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="cx-rooms" role="list">
+      <button type="button" class="cx-room" role="listitem" *ngFor="let room of visibleRooms; trackBy: trackRoom"
+              (click)="selectRoom(room)" [class.active]="selectedRoom?.id === room.id">
+        <img class="cx-avatar" [src]="getAvatarUrl(room.display_name || room.id)" alt="">
+        <span class="cx-room-body">
+          <span class="cx-room-top">
+            <span class="cx-room-name">{{ room.display_name }}</span>
+            <span class="cx-room-time" [class.unread]="room.unread_count" *ngIf="room.last_message_time">{{ roomTime(room.last_message_time) }}</span>
+          </span>
+          <span class="cx-room-bottom">
+            <span class="cx-room-last" [class.unread]="room.unread_count">{{ room.last_message || 'No messages yet' }}</span>
+            <span class="cx-badge" *ngIf="room.unread_count">{{ room.unread_count > 99 ? '99+' : room.unread_count }}</span>
+          </span>
+        </span>
+      </button>
+
+      <div class="cx-list-note" *ngIf="isLoadingRooms && !rooms.length">Loading conversations…</div>
+      <div class="cx-list-note" *ngIf="!isLoadingRooms && !rooms.length">No conversations yet.</div>
+      <div class="cx-list-note" *ngIf="rooms.length && !visibleRooms.length">Nothing matches “{{ search }}”.</div>
+    </div>
+  </aside>
+
+  <!-- ============ Conversation ============ -->
+  <section class="cx-main" [class.cx-show-mobile]="selectedRoom">
+    <ng-container *ngIf="selectedRoom; else noRoomSelected">
+
+      <header class="cx-head">
+        <button type="button" class="cx-icon-btn cx-back" (click)="backToRooms()" aria-label="Back to conversations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+        <span class="cx-avatar-wrap">
+          <img class="cx-avatar" [src]="getAvatarUrl(selectedRoom.display_name || selectedRoom.id)" alt="">
+          <i class="cx-online" *ngIf="connection === 'connected' && partner && onlineUsers.has(partner.id)"></i>
+        </span>
+        <div class="cx-head-info">
+          <div class="cx-head-name">{{ selectedRoom.display_name }}</div>
+          <div class="cx-head-status" [class.live]="isTypingOrOnline" [class.warn]="connection !== 'connected'" aria-live="polite">
+            <i class="cx-state-dot" *ngIf="connection !== 'connected'"></i>{{ statusLine }}
+          </div>
+        </div>
+        <button type="button" class="cx-icon-btn cx-close-desktop" (click)="toggleChat()" aria-label="Close messages" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <div class="cx-messages" #chatScrollContainer [class.menu-open]="contextMenuMsg !== null" (scroll)="onScroll($event)">
+        <div class="cx-older" *ngIf="isLoadingMore">Loading earlier messages…</div>
+
+        <div class="cx-skeleton" *ngIf="isLoadingFirst" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+
+        <div class="cx-empty-room" *ngIf="!isLoadingFirst && !messages.length">
+          <div class="cx-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg>
+          </div>
+          <strong>No messages yet</strong>
+          <span>Say hello to {{ selectedRoom.display_name }}.</span>
+        </div>
+
+        <ng-container *ngFor="let msg of messages; let i = index; trackBy: trackMsg">
+          <div class="cx-day" *ngIf="showDay(i)"><span>{{ dayLabel(msg.timestamp) }}</span></div>
+
+          <div class="cx-row" [class.out]="isMine(msg)" [class.in]="!isMine(msg)"
+               [class.first]="isFirst(i)" [class.last]="isLast(i)">
+            <div class="cx-bubble" (contextmenu)="openMenu(msg.id, $event)">
+              <div class="cx-sender" *ngIf="selectedRoom.is_group && !isMine(msg) && isFirst(i)">{{ msg.sender_name }}</div>
+
+              <div class="cx-quote" *ngIf="$any(msg).reply_to">
+                <b>{{ $any(msg).reply_to.sender_name }}</b>
+                <span>{{ $any(msg).reply_to.content }}</span>
+              </div>
+
+              <div class="cx-text" *ngIf="!$any(msg).is_deleted && msg.content">{{ msg.content }}</div>
+              <div class="cx-deleted" *ngIf="$any(msg).is_deleted">This message was deleted</div>
+              <img class="cx-image" *ngIf="$any(msg).image && !$any(msg).is_deleted" [src]="$any(msg).image" alt="Picture"
+                   (click)="openImage($any(msg).image)" loading="lazy">
+
+              <div class="cx-reactions" *ngIf="!$any(msg).is_deleted && objectKeys($any(msg).reactions_summary).length">
+                <button type="button" class="cx-chip" *ngFor="let emoji of objectKeys($any(msg).reactions_summary)"
+                        [class.mine]="iReacted(msg, emoji)" [title]="reactionNames($any(msg), emoji)"
+                        (click)="react(msg, emoji)">{{ emoji }} <b>{{ $any(msg).reactions_summary[emoji].length }}</b></button>
+              </div>
+
+              <div class="cx-meta">
+                <span *ngIf="$any(msg).edited_at && !$any(msg).is_deleted">edited</span>
+                <span>{{ msg.timestamp | date:'shortTime' }}</span>
+                <span class="cx-ticks" *ngIf="isMine(msg)" [class.read]="msg.status === 'read'"
+                      [attr.aria-label]="msg.status">{{ msg.status === 'sent' ? '✓' : '✓✓' }}</span>
+              </div>
+
+              <button type="button" class="cx-more" (click)="openMenu(msg.id, $event)" aria-label="Message options">
+                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+              </button>
+
+              <div class="cx-menu" *ngIf="contextMenuMsg === msg.id" (click)="$event.stopPropagation()">
+                <div class="cx-react-row" *ngIf="!$any(msg).is_deleted">
+                  <button type="button" *ngFor="let e of reactionEmojis" (click)="react(msg, e)" [class.mine]="iReacted(msg, e)">{{ e }}</button>
+                </div>
+                <button type="button" (click)="replyToMessage(msg)" *ngIf="!$any(msg).is_deleted">Reply</button>
+                <button type="button" (click)="copyMessage(msg)" *ngIf="msg.content && !$any(msg).is_deleted">Copy text</button>
+                <button type="button" (click)="startEdit(msg)" *ngIf="canEdit(msg)">Edit</button>
+                <!-- The server soft-deletes the row and tells the whole room, so this is "for everyone". -->
+                <button type="button" class="danger" (click)="deleteMessage(msg.id)" *ngIf="isMine(msg) && !$any(msg).is_deleted">Delete for everyone</button>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="cx-typing" *ngIf="typingUsers.size > 0" aria-hidden="true"><i></i><i></i><i></i></div>
+      </div>
+
+      <button type="button" class="cx-jump" *ngIf="!atBottom && messages.length" (click)="jumpToLatest()" aria-label="Jump to the latest message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        <span *ngIf="newBelow">{{ newBelow }} new</span>
+      </button>
+
+      <footer class="cx-composer">
+        <div class="cx-error" *ngIf="chatError" role="alert">{{ chatError }}</div>
+
+        <div class="cx-banner" *ngIf="replyingTo">
+          <div class="cx-banner-text">
+            <b>Replying to {{ replyingTo.sender_name }}</b>
+            <span>{{ replyingTo.content || 'Picture' }}</span>
+          </div>
+          <button type="button" class="cx-icon-btn small" (click)="replyingTo = null" aria-label="Cancel reply">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="cx-banner" *ngIf="editing">
+          <div class="cx-banner-text">
+            <b>Editing message</b>
+            <span>{{ editing.content }}</span>
+          </div>
+          <button type="button" class="cx-icon-btn small" (click)="cancelEdit()" aria-label="Cancel editing">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="cx-banner cx-image-banner" *ngIf="imagePreview">
+          <img [src]="imagePreview" alt="Picture to send">
+          <button type="button" class="cx-icon-btn small" (click)="clearImage()" aria-label="Remove picture">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="cx-input-row">
+          <input type="file" #chatFileInput style="display:none;" accept="image/*" (change)="onFileSelected($event)">
+          <button type="button" class="cx-icon-btn" (click)="chatFileInput.click()" [disabled]="!!editing" aria-label="Attach a picture" title="Attach a picture">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 12-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"/></svg>
+          </button>
+
+          <div class="cx-field">
+            <textarea #composer rows="1" data-nb="bare" class="cx-textarea"
+                      [placeholder]="editing ? 'Edit your message' : 'Write a message'"
+                      aria-label="Message"
+                      [(ngModel)]="newMessage"
+                      (input)="onTyping()"
+                      (keydown)="onComposerKeydown($event)"></textarea>
+          </div>
+
+          <button type="button" class="cx-send" (click)="sendMessage()" [disabled]="!canSend"
+                  [attr.aria-label]="editing ? 'Save the change' : 'Send message'">
+            <svg *ngIf="!editing" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21 12 3.4 3.6 3.3 10.1 15 12 3.3 13.9z"/></svg>
+            <svg *ngIf="editing" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+          </button>
+        </div>
+        <div class="cx-hint">Enter to send · Shift+Enter for a new line</div>
+      </footer>
+    </ng-container>
+
+    <ng-template #noRoomSelected>
+      <div class="cx-empty">
+        <button type="button" class="cx-icon-btn cx-close-empty" (click)="toggleChat()" aria-label="Close messages" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+        <div class="cx-empty-art" aria-hidden="true">
+          <svg viewBox="0 0 120 100" fill="none">
+            <rect x="8" y="14" width="68" height="44" rx="14" class="a"/>
+            <path d="M24 58v14l16-14" class="a"/>
+            <rect x="44" y="40" width="68" height="40" rx="14" class="b"/>
+            <path d="M96 80v12L82 80" class="b"/>
+            <circle cx="30" cy="36" r="3.4" class="dot"/><circle cx="42" cy="36" r="3.4" class="dot"/><circle cx="54" cy="36" r="3.4" class="dot"/>
+          </svg>
+        </div>
+        <h3>Your conversations</h3>
+        <p>Pick someone from the list to start chatting.</p>
+        <small>Messages are kept on the server. They are not end-to-end encrypted.</small>
+      </div>
+    </ng-template>
+  </section>
+</div>

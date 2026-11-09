@@ -1,0 +1,609 @@
+/* ======================================================
+   LOGIN: a white POS printer, seen from above, feeding out an invoice
+====================================================== */
+:host {
+  display: block;
+  --paper: #ffffff;
+  --ink: #0d0d0d;
+  --ink-soft: #55554f;
+  --hair: #c9c6bf;
+  --wall-a: #dedad3;
+  --wall-b: #cdc8bf;
+  --danger: #dc2626;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --sans: 'Manrope', 'Inter', system-ui, sans-serif;
+  /* delay before the printer appears. The black boot splash fades out at ~3.7s on a fresh load */
+  --base: 0.05s;
+}
+
+.login-wrapper {
+  position: relative;
+  display: flex;
+  min-height: calc(100vh / var(--ui-zoom));
+  width: 100%;
+  font-family: var(--sans);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    radial-gradient(1100px circle at 50% 18%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 65%),
+    linear-gradient(180deg, var(--wall-a), var(--wall-b));
+}
+.login-wrapper.first-load { --base: 3.3s; }
+
+/* fine paper-wall grain */
+.wall-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.42  0 0 0 0 0.38  0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.login-auth-panel {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* anchored near the top (not centred) so the printer never jumps when an error line is printed */
+  justify-content: flex-start;
+  padding: clamp(1.25rem, 9vh, 5rem) 1rem 3.4rem;
+  min-height: calc(100vh / var(--ui-zoom));
+}
+
+/* Cursor tilt (outer) is separate from the entrance animation (inner) so they never fight over transform */
+.tilt {
+  margin: 0 auto;
+  perspective: 1500px;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.6s var(--ease);
+  will-change: transform;
+}
+
+.printer-machine {
+  position: relative;
+  width: min(540px, 94vw);
+  padding-top: 56px; /* the paper starts at the top edge of the opening in the printer body */
+  opacity: 0;
+  animation: printerIn 0.9s var(--ease) both;
+  animation-delay: var(--base);
+}
+@keyframes printerIn {
+  from { opacity: 0; transform: translateY(-26px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- power cable ---------- */
+.cable {
+  position: absolute;
+  z-index: 0;
+  left: 58%;
+  bottom: calc(100% - 14px);
+  width: 40px;
+  height: 100vh;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(3px 6px 4px rgba(0, 0, 0, 0.28));
+}
+.cable path {
+  fill: none;
+  stroke: #17171a;
+  stroke-width: 5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- printer body ---------- */
+.printer-body {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  border-radius: 42px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f4f3f0 45%, #e6e4df 100%);
+  box-shadow:
+    0 40px 60px -26px rgba(52, 44, 34, 0.5),
+    0 14px 24px -10px rgba(52, 44, 34, 0.25),
+    inset 0 2px 0 #ffffff,
+    inset 0 -8px 16px rgba(0, 0, 0, 0.07);
+}
+/* the soft inner rim you can see on the reference */
+.printer-body::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+.printer-slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+}
+.printer-logo-text {
+  position: absolute;
+  top: 19px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  color: #9b9992;
+}
+
+.leds {
+  position: absolute;
+  right: 34px;
+  top: 19px;
+  display: flex;
+  gap: 8px;
+}
+.led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981, inset 0 1px 1px rgba(255, 255, 255, 0.7);
+}
+.led-power { animation: breathe 3s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: 0.5; } }
+
+/* status LED: amber while printing, green when ready, red on error */
+.led-status { transition: background 0.3s, box-shadow 0.3s; }
+.printing .led-status {
+  background: #f59e0b;
+  box-shadow: 0 0 9px #f59e0b, inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  animation: blink 0.28s steps(2, jump-none) infinite;
+}
+.jam .led-status {
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444, inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  animation: blink 0.45s steps(2, jump-none) 3;
+}
+@keyframes blink { 50% { opacity: 0.25; } }
+
+/* the dark opening the paper comes out of */
+.slot-opening {
+  position: absolute;
+  top: 52px;
+  left: 6%;
+  right: 6%;
+  height: 40px;
+  border-radius: 12px 12px 6px 6px;
+  background: linear-gradient(180deg, #0c0c0d 0%, #1d1d20 100%);
+  box-shadow: inset 0 6px 10px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* the printer hums a little while it feeds */
+.printing .printer-body { animation: chatter 0.09s linear infinite alternate; }
+@keyframes chatter { from { transform: translateY(0); } to { transform: translateY(0.6px); } }
+
+/* ---------- paper ---------- */
+.receipt-wrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 3.6rem; /* room for the drop shadow */
+  /* clip only the top edge: the paper vanishes into the slot, but spreads freely over the printer */
+  clip-path: inset(0 -90px -240px -90px);
+}
+/* shadow the printer's rear lip casts onto the paper */
+.receipt-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(380px, 100%);
+  transform: translateX(-50%);
+  height: 38px;
+  z-index: 30;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.26), rgba(0, 0, 0, 0));
+}
+
+/* the paper feeds out in bursts: pause, feed, pause, like a real thermal printer */
+.paper-fx {
+  width: 100%;
+  max-width: 380px;
+  filter: drop-shadow(0 22px 22px rgba(40, 34, 26, 0.22)) drop-shadow(0 2px 3px rgba(40, 34, 26, 0.12));
+  transform: translateY(-101%);
+  animation: feed 3.6s both;
+  animation-delay: calc(var(--base) + 0.7s);
+}
+@keyframes feed {
+  0%   { transform: translateY(-101%); animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1); }
+  17%  { transform: translateY(-74%);  animation-timing-function: linear; }
+  23%  { transform: translateY(-74%);  animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1); }
+  42%  { transform: translateY(-46%);  animation-timing-function: linear; }
+  47%  { transform: translateY(-46%);  animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1); }
+  68%  { transform: translateY(-17%);  animation-timing-function: linear; }
+  72%  { transform: translateY(-17%);  animation-timing-function: cubic-bezier(0.3, 0, 0.1, 1); }
+  92%  { transform: translateY(5px);   animation-timing-function: ease-out; }
+  100% { transform: translateY(0); }
+}
+
+.receipt-paper {
+  position: relative;
+  width: 100%;
+  padding: 1.35rem 1.7rem 1.9rem;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), transparent 90px),
+    var(--paper);
+  border-radius: 0 0 3px 3px;
+  color: var(--ink);
+}
+
+/* failed attempt: the invoice jolts, like a paper jam */
+.receipt-paper.shake-a { animation: shakeA 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.receipt-paper.shake-b { animation: shakeB 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+@keyframes shakeA { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(4px); } 30%,50%,70% { transform: translateX(-7px); } 40%,60% { transform: translateX(7px); } }
+@keyframes shakeB { 10%,90% { transform: translateX(-2px); } 20%,80% { transform: translateX(4px); } 30%,50%,70% { transform: translateX(-7px); } 40%,60% { transform: translateX(7px); } }
+
+.receipt-header { margin: 0.2rem 0 0.9rem; }
+.receipt-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+/* "INVOICE N° ______ 0001" row */
+.doc-no {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.doc-no-rule { flex: 1; height: 1px; background: var(--ink); margin-bottom: 3px; }
+.doc-no-value { font-weight: 600; color: var(--ink-soft); letter-spacing: 0.1em; }
+
+.receipt-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.9fr;
+  gap: 0.6rem;
+  margin-bottom: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.receipt-meta div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.receipt-meta b {
+  margin-bottom: 3px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.receipt-meta span { font-size: 0.64rem; font-weight: 500; color: var(--ink-soft); line-height: 1.35; }
+.meta-date { text-align: right; align-items: flex-end; }
+.meta-date .date-big { font-size: 0.88rem; font-weight: 600; letter-spacing: 0.02em; color: var(--ink); }
+
+/* ---------- error line (printed like a receipt line) ---------- */
+.alert-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #f3b4b4;
+  border-radius: 3px;
+  background: #fef3f3;
+  color: var(--danger);
+  font-size: 0.74rem;
+  font-weight: 700;
+  animation: lineIn 0.4s var(--ease) both;
+}
+.alert-tag {
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+}
+@keyframes lineIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- form: flat ruled rows, like invoice line items ---------- */
+.auth-form { display: flex; flex-direction: column; gap: 0.95rem; }
+
+.input-group label {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-top: 1px dashed var(--hair);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  transition: color 0.2s, border-color 0.2s;
+}
+.input-group:focus-within label { color: var(--ink); border-top-color: var(--ink); }
+
+.input-field-wrapper { position: relative; display: flex; align-items: center; }
+
+.input-icon {
+  position: absolute;
+  left: 2px;
+  width: 17px;
+  height: 17px;
+  color: #a5a39b;
+  pointer-events: none;
+  transition: color 0.25s, transform 0.3s var(--ease);
+}
+.input-field-wrapper:focus-within .input-icon { color: var(--ink); transform: scale(1.12); }
+
+.floating-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 0.25rem 0 2rem;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  transition: background 0.25s, border-color 0.25s;
+}
+.floating-input.has-eye { padding-right: 2.6rem; }
+.floating-input::placeholder { color: #b7b5ad; font-weight: 500; }
+.floating-input:hover { border-bottom-color: #8f8d85; }
+.floating-input:focus { background: rgba(13, 13, 13, 0.025); border-bottom-color: transparent; }
+/* ink bar that draws itself under the focused field */
+.focus-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s var(--ease);
+  pointer-events: none;
+}
+.input-field-wrapper:focus-within .focus-bar { transform: scaleX(1); }
+
+.floating-input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ink);
+  box-shadow: 0 0 0 60px #fff inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.eye {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #a5a39b;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.eye:hover { background: rgba(13, 13, 13, 0.06); color: var(--ink); }
+.eye:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.eye svg { width: 18px; height: 18px; animation: eyeIn 0.25s var(--ease); }
+@keyframes eyeIn { from { opacity: 0; transform: scale(0.7) rotate(-12deg); } to { opacity: 1; transform: none; } }
+
+.caps-hint {
+  margin-top: 0.4rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #b45309;
+  animation: lineIn 0.3s var(--ease) both;
+}
+
+/* ---------- button ---------- */
+.receipt-btn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 50px;
+  margin-top: 0.35rem;
+  border: 0;
+  border-radius: 3px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease), box-shadow 0.25s, background 0.3s;
+}
+.receipt-btn:hover:not(:disabled) {
+  background: #26262a;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.6);
+}
+.receipt-btn:hover:not(:disabled) .btn-text i { transform: translateX(5px); }
+.receipt-btn:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+.receipt-btn:focus-visible { outline: 3px solid rgba(13, 13, 13, 0.3); outline-offset: 3px; }
+.receipt-btn:disabled { cursor: default; }
+.receipt-btn.loading { background: #3b3b40; }
+.receipt-btn.done { background: #059669; }
+
+.btn-text {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  animation: lineIn 0.3s var(--ease) both;
+}
+.btn-text i { font-style: normal; font-size: 1rem; letter-spacing: 0; transition: transform 0.3s var(--ease); }
+.btn-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%);
+  transform: translateX(-120%);
+}
+.receipt-btn:hover:not(:disabled) .btn-shine { animation: sweep 0.85s var(--ease); }
+@keyframes sweep { to { transform: translateX(120%); } }
+
+.loader {
+  width: 15px;
+  height: 15px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- footer: terms + barcode ---------- */
+.receipt-footer {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 1rem;
+  align-items: end;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--hair);
+}
+.terms b { display: block; margin-bottom: 4px; font-size: 0.52rem; font-weight: 800; letter-spacing: 0.12em; }
+.terms p { margin: 0; font-size: 0.58rem; line-height: 1.45; color: var(--ink-soft); }
+
+.barcode-block { text-align: center; }
+.barcode-container { position: relative; display: block; width: 100%; }
+
+.receipt-barcode {
+  height: 34px;
+  width: 100%;
+  margin-bottom: 0.35rem;
+  background: repeating-linear-gradient(
+    to right,
+    #111 0, #111 2px, transparent 2px, transparent 5px,
+    #111 5px, #111 6px, transparent 6px, transparent 10px,
+    #111 10px, #111 14px, transparent 14px, transparent 16px,
+    #111 16px, #111 17px, transparent 17px, transparent 22px,
+    #111 22px, #111 25px
+  );
+  /* scanned in left to right once the paper has stopped */
+  clip-path: inset(0 100% 0 0);
+  animation: barDraw 1.3s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+  animation-delay: calc(var(--base) + 3.6s);
+}
+@keyframes barDraw { to { clip-path: inset(0 0 0 0); } }
+
+.barcode-laser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 5;
+  background: rgba(239, 68, 68, 0.85);
+  box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.4);
+  animation: scanLaser 1.5s infinite linear alternate;
+}
+@keyframes scanLaser { from { transform: translateY(0); } to { transform: translateY(34px); } }
+
+.barcode-numbers {
+  margin: 0;
+  font-size: 0.56rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.22em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- success stamp ---------- */
+.stamp {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  padding: 0.3rem 0.85rem;
+  border: 3px double #15803d;
+  border-radius: 6px;
+  color: #15803d;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  mix-blend-mode: multiply;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(-11deg) scale(2.4);
+}
+.granted .stamp { animation: stampIn 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) forwards; }
+@keyframes stampIn {
+  0%   { opacity: 0; transform: translate(-50%, -50%) rotate(-11deg) scale(2.4); }
+  55%  { opacity: 0.95; transform: translate(-50%, -50%) rotate(-11deg) scale(0.94); }
+  100% { opacity: 0.9; transform: translate(-50%, -50%) rotate(-11deg) scale(1); }
+}
+
+.powered-by {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: #6b675f;
+  opacity: 0;
+  animation: fadeIn 1s ease both;
+  animation-delay: calc(var(--base) + 1.5s);
+}
+@keyframes fadeIn { to { opacity: 1; } }
+
+/* ---------- dark theme: the wall goes dark, the printer and paper stay light ---------- */
+@media screen {
+:host-context([data-theme="dark"]) {
+  --wall-a: #2d2c2a;
+  --wall-b: #1e1d1c;
+}
+:host-context([data-theme="dark"]) .login-wrapper {
+  background:
+    radial-gradient(1100px circle at 50% 18%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 65%),
+    linear-gradient(180deg, var(--wall-a), var(--wall-b));
+}
+:host-context([data-theme="dark"]) .wall-grain { opacity: 0.25; }
+:host-context([data-theme="dark"]) .powered-by { color: #a8b3c5; }
+:host-context([data-theme="dark"]) .cable path { stroke: #08080a; }
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 480px) {
+  .receipt-paper { padding: 1.2rem 1.1rem 1.6rem; }
+  .printer-body { height: 250px; border-radius: 32px; }
+  .receipt-footer { grid-template-columns: 1fr; }
+  .stamp { font-size: 1.15rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .printer-machine, .powered-by { animation: none; opacity: 1; }
+  .paper-fx { animation: none; transform: none; }
+  .receipt-barcode { animation: none; clip-path: none; }
+  .printing .printer-body, .led-power, .led-status, .barcode-laser { animation: none; }
+  .tilt { transform: none; }
+}

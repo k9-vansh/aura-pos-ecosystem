@@ -1,0 +1,1699 @@
+<div class="dash-wrap">
+  <!-- ===== HEADER CONTROLS ===== -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <app-location-selector
+        [centers]="centers"
+        [hasGlobalAccess]="hasGlobalAccess"
+        [multi]="true"
+        [(selectedCenterId)]="selectedCenterId"
+        (selectionChange)="onCenterChange()">
+      </app-location-selector>
+      <div class="tabs-bar">
+        <button class="tab-btn" *ngFor="let tab of tabs; trackBy: trackById" 
+                [class.active]="activeTab === tab"
+                (click)="setTab(tab)">
+          {{ tab }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       1. PRODUCT MASTER TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Product Master'">
+    
+    <!-- KPI Strip -->
+    <div class="kpi-strip">
+      <div class="kpi-tile kpi-dark">
+        <div class="kpi-tile-header">
+          <span class="kpi-tile-label">Total Products</span>
+          <span class="kpi-pill" *ngIf="topLowStock.length > 0">Low: {{ topLowStock.length }}</span>
+        </div>
+        <div class="kpi-tile-amount">{{ products.length }}</div>
+        <div class="kpi-tile-sub">Cataloged SKU items</div>
+      </div>
+
+      <div class="kpi-tile kpi-alert">
+        <div class="kpi-tile-header">
+          <span class="kpi-tile-label">Low Stock Alerts</span>
+        </div>
+        <div class="kpi-tile-val">{{ topLowStock.length }}</div>
+        <div class="kpi-tile-sub">Items below reorder lvl</div>
+      </div>
+
+      <div class="kpi-tile kpi-fast">
+        <div class="kpi-tile-header">
+          <span class="kpi-tile-label">Fast Movers</span>
+        </div>
+        <div class="kpi-tile-val">{{ fastMovers.length }}</div>
+        <div class="kpi-tile-sub">High consumption stock</div>
+      </div>
+
+      <div class="kpi-tile kpi-value">
+        <div class="kpi-tile-header">
+          <span class="kpi-tile-label">Stock Value</span>
+        </div>
+        <div class="kpi-tile-amount">{{ totalValue | currency:'INR':'symbol':'1.0-2' }}</div>
+        <div class="kpi-tile-sub">Capital on shelves</div>
+      </div>
+    </div>
+
+    <!-- Smart Lists: Restock & Fast Movers -->
+    <div class="register-grid">
+      <div class="report-card restock-card">
+        <div class="card-header restock-header">
+          <div class="header-title-wrap">
+            <span class="header-icon-badge amber-badge">⚠️</span>
+            <h4>Restock Priority</h4>
+          </div>
+          <button class="btn btn-emerald-pill btn-sm" (click)="exportLowStockExcel()" *ngIf="topLowStock.length > 0">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Export
+          </button>
+        </div>
+        <div class="compact-scroll-list">
+          <div class="smart-item-row" *ngFor="let item of topLowStock; trackBy: trackById">
+            <div class="smart-item-name">{{ item.name }}</div>
+            <div class="smart-deficit-pill">
+              <span class="stock-current">{{ item.current_stock }}</span>
+              <span class="stock-divider">/</span>
+              <span class="stock-target">{{ item.reorder_level }}</span>
+            </div>
+          </div>
+          <div *ngIf="topLowStock.length === 0" class="empty-state-smart">
+            <span class="smart-ok-badge">✓</span> All stock levels are healthy!
+          </div>
+        </div>
+      </div>
+      
+      <div class="report-card movers-card">
+        <div class="card-header movers-header">
+          <div class="header-title-wrap">
+            <span class="header-icon-badge emerald-badge">🔥</span>
+            <h4>Fast-Moving Products</h4>
+          </div>
+        </div>
+        <div class="compact-scroll-list">
+          <div class="smart-item-row" *ngFor="let item of fastMovers; trackBy: trackById">
+            <div class="smart-item-name">{{ item.service_name }}</div>
+            <div class="smart-usage-pill">
+              <strong>{{ item.times_used }}</strong> used
+            </div>
+          </div>
+          <div *ngIf="fastMovers.length === 0" class="empty-state-smart">
+            No consumption data recorded yet.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add / Edit Product Form -->
+    <div class="form-card product-master-form" *ngIf="isOwner || permissions.inventory?.products?.create">
+      <div class="form-card-title">
+        <span class="form-title-badge">📦</span>
+        <span>{{ newProduct.id ? 'Edit Product: ' + newProduct.name : 'Add New Product' }}</span>
+      </div>
+
+      <form (ngSubmit)="addProduct()" ngNativeValidate class="product-form-grid">
+        <div class="form-group">
+          <label>Product ID</label>
+          <input type="text" class="form-control" [(ngModel)]="newProduct.product_id_str" name="product_id_str" placeholder="Auto / Custom ID">
+        </div>
+        <div class="form-group">
+          <label>Product Code</label>
+          <input type="text" class="form-control" [(ngModel)]="newProduct.product_code" name="product_code" placeholder="Code">
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+          <label>Product Name *</label>
+          <input type="text" class="form-control font-bold" [(ngModel)]="newProduct.name" name="name" required placeholder="Full product name">
+        </div>
+        <div class="form-group">
+          <label>Brand</label>
+          <input type="text" class="form-control" [(ngModel)]="newProduct.brand" name="brand" placeholder="Brand">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" class="form-control" [(ngModel)]="newProduct.category" name="category" placeholder="Retail / Bar">
+        </div>
+        <div class="form-group">
+          <label>Sub Category</label>
+          <input type="text" class="form-control" [(ngModel)]="newProduct.sub_category" name="sub_category" placeholder="Sub-category">
+        </div>
+        <div class="form-group">
+          <label>Vendor</label>
+          <select class="form-control" [(ngModel)]="newProduct.vendor_name" name="vendor_name">
+            <option value="">Select Vendor</option>
+            <option *ngFor="let v of vendors; trackBy: trackById" [value]="v.name">{{ v.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cost (₹)</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="newProduct.price" name="price" step="0.01" placeholder="Base Cost" (ngModelChange)="onCostOrGstChange()">
+        </div>
+        <div class="form-group">
+          <label>MRP (₹)</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="newProduct.mrp" name="mrp" step="0.01" placeholder="Selling Price">
+        </div>
+        <div class="form-group">
+          <label>GST %</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="newProduct.gst_percent" name="gst_percent" step="0.01" placeholder="18" (ngModelChange)="onCostOrGstChange()">
+        </div>
+        <div class="form-group">
+          <label>Barcode</label>
+          <input type="text" class="form-control" [(ngModel)]="newProduct.barcode" name="barcode" placeholder="Scan / Enter">
+        </div>
+        <div class="form-group">
+          <label>SAC Code</label>
+          <input type="text" class="form-control" [(ngModel)]="newProduct.sac_code" name="sac_code" placeholder="HSN/SAC">
+        </div>
+        <div class="form-group">
+          <label>Reorder Lvl</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="newProduct.reorder_level" name="reorder_level" placeholder="Min">
+        </div>
+        <div class="form-group">
+          <label>Reorder Qty</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="newProduct.reorder_quantity" name="reorder_quantity" placeholder="Qty">
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 6px; height: 28px;">
+          <input type="checkbox" [(ngModel)]="newProduct.is_active" name="is_active" id="prodActiveCheck" class="custom-checkbox">
+          <label for="prodActiveCheck" style="margin: 0; cursor: pointer; color: #0f172a; font-weight: 700;">Active</label>
+        </div>
+
+        <div class="form-actions-toolbar">
+          <input type="file" #fileInputProducts (change)="uploadProducts($event)" style="display: none;" accept=".csv, .xlsx" />
+          <button type="button" class="btn btn-emerald-pill" (click)="exportExcel()" *ngIf="products.length > 0">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Export
+          </button>
+          <button type="button" class="btn btn-blue-pill" (click)="downloadTemplate()">Template</button>
+          <button type="button" class="btn btn-secondary-pill" *ngIf="can('products', 'create')" (click)="fileInputProducts.click()">Bulk Upload</button>
+          <button type="submit" class="btn btn-primary-gradient" *ngIf="newProduct.id ? can('products', 'update') : can('products', 'create')" [disabled]="isSaving">
+            <span *ngIf="isSaving">SAVING...</span>
+            <span *ngIf="!isSaving">{{ newProduct.id ? 'UPDATE PRODUCT' : '+ ADD PRODUCT' }}</span>
+          </button>
+          <button type="button" class="btn btn-danger-pill" *ngIf="newProduct.id && can('products', 'delete')" (click)="deleteProduct(newProduct.id)">DELETE</button>
+          <button type="button" class="btn btn-clear-pill" (click)="newProduct = { product_id_str: '', product_code: '', name: '', brand: '', category: 'Retail', sub_category: '', vendor_name: '', is_active: true, price: null, mrp: null, gst_percent: 0, barcode: '', sac_code: '', reorder_level: 0, reorder_quantity: 0 }; selectedProduct = null;">CLEAR</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Product Table & Lots View -->
+    <div class="master-split-layout">
+      <!-- Main Table -->
+      <div class="master-left">
+        <div class="list-card">
+          <div class="table-toolbar">
+            <div class="toolbar-title-wrap">
+              <span class="toolbar-icon">📑</span>
+              <h4>All Products Catalog</h4>
+              <span class="count-badge">{{ masterFilteredProducts.length }}</span>
+            </div>
+            <div class="search-bar-wrap">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" class="search-input-compact" placeholder="Search product name, code, brand..." [(ngModel)]="productMasterSearchTerm" (ngModelChange)="onProductMasterSearch()">
+            </div>
+          </div>
+          <div class="table-scroll-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Brand</th>
+                  <th>Category</th>
+                  <th>Sub Cat</th>
+                  <th>Cost (₹)</th>
+                  <th>MRP (₹)</th>
+                  <th>GST</th>
+                  <th>Stock</th>
+                  <th>Barcode</th>
+                  <th>SAC</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let product of masterPaginatedProducts; trackBy: trackById" (mousedown)="$event.button === 0 && (editProduct(product))" [class.active-row]="selectedProduct?.id === product.id" style="cursor: pointer;">
+                  <td class="text-secondary">{{ product.product_code || '-' }}</td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <span class="font-bold product-title-text">{{ product.name }}</span>
+                      <span *ngIf="product.sap_sync_status" class="sap-chip sap-synced" title="Synced to SAP">SAP</span>
+                      <!-- false with no message is "not sent yet" (SAP off or still queued), not a failure -->
+                      <span *ngIf="product.sap_sync_status === false && product.sap_sync_message" class="sap-chip sap-failed" [title]="product.sap_sync_message">SAP ERR</span>
+                      <span *ngIf="product.current_stock <= product.reorder_level" class="status-badge badge-low-stock">LOW</span>
+                    </div>
+                  </td>
+                  <td>{{ product.brand || '-' }}</td>
+                  <td><span class="status-badge badge-category">{{ product.category || '-' }}</span></td>
+                  <td><span class="status-badge badge-sub-category" *ngIf="product.sub_category">{{ product.sub_category }}</span><span *ngIf="!product.sub_category" class="text-muted">-</span></td>
+                  <td class="amount-bold text-muted">{{ product.price !== null ? (product.price | currency:'INR':'symbol':'1.0-2') : '-' }}</td>
+                  <td class="amount-bold">{{ product.mrp !== null ? (product.mrp | currency:'INR':'symbol':'1.0-2') : '-' }}</td>
+                  <td>{{ product.gst_percent }}%</td>
+                  <td>
+                    <span class="stock-pill" [class.stock-zero]="product.current_stock <= 0" [class.stock-low]="product.current_stock > 0 && product.current_stock <= product.reorder_level" [class.stock-ok]="product.current_stock > product.reorder_level">
+                      {{ product.current_stock }}
+                    </span>
+                  </td>
+                  <td class="text-secondary">{{ product.barcode || '-' }}</td>
+                  <td class="text-secondary">{{ product.sac_code || '-' }}</td>
+                  <td>
+                    <span class="badge-active-chip" *ngIf="product.is_active"><span class="dot green-dot"></span> Active</span>
+                    <span class="badge-inactive-chip" *ngIf="!product.is_active"><span class="dot red-dot"></span> Inactive</span>
+                  </td>
+                </tr>
+                <tr *ngIf="masterPaginatedProducts.length === 0">
+                  <td colspan="12" class="empty-state">No products found for this center.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-controls">
+            <button class="btn btn-outline btn-sm" (click)="prevProductMasterPage()" [disabled]="productMasterCurrentPage === 1">Previous</button>
+            <span class="text-secondary">Page <strong style="color: #0f172a;">{{ productMasterCurrentPage }}</strong> of <strong style="color: #0f172a;">{{ productMasterTotalPages }}</strong> ({{ masterFilteredProducts.length }} items)</span>
+            <button class="btn btn-outline btn-sm" (click)="nextProductMasterPage()" [disabled]="productMasterCurrentPage === productMasterTotalPages">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Side Lots (when product selected) -->
+      <div class="master-right" *ngIf="selectedProduct">
+        <div class="master-right-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <h4 style="margin: 0; font-size: 11.5px; font-weight: 700; color: #0f172a;">Lots: {{ selectedProduct.name }}</h4>
+            <button class="icon-btn" (click)="selectedProduct = null">✕</button>
+          </div>
+          
+          <form (ngSubmit)="addProductLot()" style="display: grid; grid-template-columns: 1fr 60px 60px 1fr auto; gap: 4px; align-items: end; margin-bottom: 8px;">
+            <div class="form-group">
+              <label>Lot No</label>
+              <input type="text" class="form-control" placeholder="Lot #" [(ngModel)]="newLot.lot_number" name="lot_number" required>
+            </div>
+            <div class="form-group">
+              <label>MRP</label>
+              <input type="number" min="0" class="form-control" placeholder="MRP" [(ngModel)]="newLot.mrp" name="mrp" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Net</label>
+              <input type="number" min="0" class="form-control" placeholder="Net" [(ngModel)]="newLot.net_price" name="net_price" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Expiry</label>
+              <input type="date" class="form-control" [(ngModel)]="newLot.expiry_date" name="expiry_date">
+            </div>
+            <button type="submit" class="btn btn-primary-gradient btn-sm" [disabled]="isSaving">
+              + Add
+            </button>
+          </form>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Lot #</th>
+                <th>Net / MRP</th>
+                <th>Expiry</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let lot of selectedProduct.lots; trackBy: trackById">
+                <td><strong>{{ lot.lot_number }}</strong></td>
+                <td>{{ lot.net_price }} / {{ lot.mrp }}</td>
+                <td>{{ lot.expiry_date ? (lot.expiry_date | date:'MMM yyyy') : '-' }}</td>
+                <td><button class="icon-btn" (click)="deleteLot(lot.id)">✕</button></td>
+              </tr>
+              <tr *ngIf="!selectedProduct.lots || selectedProduct.lots.length === 0">
+                <td colspan="4" class="text-center text-muted" style="padding: 10px;">No lots added yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       2. VENDOR MASTER TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Vendor Master'">
+    <div class="tab-header-context">
+      <div>
+        <h2>Supplier Management</h2>
+        <p class="tab-subtitle">Manage vendors and product mappings</p>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <input type="file" #fileInputVendors (change)="uploadVendors($event)" style="display: none;" accept=".csv, .xlsx" />
+        <button type="button" class="btn btn-blue-pill btn-sm" (click)="downloadVendorTemplate()">Template</button>
+        <button type="button" class="btn btn-secondary-pill btn-sm" *ngIf="can('vendors', 'create')" (click)="fileInputVendors.click()">Bulk Upload</button>
+      </div>
+    </div>
+    
+    <div class="three-col-layout">
+      <!-- Left: Form -->
+      <div class="side-panel">
+        <div class="form-card vendor-form-card" *ngIf="isOwner || permissions.inventory?.vendors?.create">
+          <div class="form-card-title">
+            <span style="font-size:15px;">🏪</span>
+            {{ newVendor.id ? 'Edit Vendor' : 'Add New Vendor' }}
+          </div>
+          <form (ngSubmit)="addVendor()" ngNativeValidate class="vendor-form-body">
+
+            <!-- Identity Section -->
+            <div class="vendor-form-section">
+              <div class="vendor-section-label">Identity</div>
+              <div class="vendor-field-row two-col">
+                <div class="form-group">
+                  <label>Vendor Code</label>
+                  <div class="input-with-icon">
+                    <span class="input-icon">🔖</span>
+                    <input type="text" class="form-control" [(ngModel)]="newVendor.vendor_code" name="vendor_code" placeholder="e.g. VND-001">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Short Name</label>
+                  <div class="input-with-icon">
+                    <span class="input-icon">✏️</span>
+                    <input type="text" class="form-control" [(ngModel)]="newVendor.short_name" name="short_name" placeholder="Display name">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Full Name <span class="required-star">*</span></label>
+                <div class="input-with-icon">
+                  <span class="input-icon">🏢</span>
+                  <input type="text" class="form-control font-bold" [(ngModel)]="newVendor.name" name="name" required placeholder="Legal entity name">
+                </div>
+              </div>
+            </div>
+
+            <!-- Tax Section -->
+            <div class="vendor-form-section">
+              <div class="vendor-section-label">Tax & Compliance</div>
+              <div class="vendor-field-row two-col">
+                <div class="form-group">
+                  <label>GST / CST No</label>
+                  <div class="input-with-icon">
+                    <span class="input-icon">📄</span>
+                    <input type="text" class="form-control" [(ngModel)]="newVendor.cst_number" name="cst_number" placeholder="GST Number">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>PAN No</label>
+                  <div class="input-with-icon">
+                    <span class="input-icon">🪪</span>
+                    <input type="text" class="form-control" [(ngModel)]="newVendor.pan_number" name="pan_number" placeholder="PAN Number">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Section -->
+            <div class="vendor-form-section">
+              <div class="vendor-section-label">Contact</div>
+              <div class="vendor-field-row two-col">
+                <div class="form-group">
+                  <label>Phone</label>
+                  <div class="input-with-icon">
+                    <span class="input-icon">📞</span>
+                    <input type="text" class="form-control" [(ngModel)]="newVendor.phone" name="phone" placeholder="Phone number">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Email</label>
+                  <div class="input-with-icon">
+                    <span class="input-icon">✉️</span>
+                    <input type="email" class="form-control" [(ngModel)]="newVendor.email" name="email" placeholder="Email address">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Address Section -->
+            <div class="vendor-form-section">
+              <div class="vendor-section-label">Address</div>
+              <div class="form-group">
+                <label>Street Address</label>
+                <div class="input-with-icon">
+                  <span class="input-icon">📍</span>
+                  <input type="text" class="form-control" [(ngModel)]="newVendor.address" name="address" placeholder="Street / Area">
+                </div>
+              </div>
+              <div class="vendor-field-row two-col">
+                <div class="form-group">
+                  <label>City</label>
+                  <input type="text" class="form-control" [(ngModel)]="newVendor.city" name="city" placeholder="City">
+                </div>
+                <div class="form-group">
+                  <label>State</label>
+                  <input type="text" class="form-control" [(ngModel)]="newVendor.state" name="state" placeholder="State">
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="vendor-form-actions">
+              <button type="submit" class="btn btn-primary-gradient vendor-submit-btn" *ngIf="newVendor.id ? can('vendors', 'update') : can('vendors', 'create')" [disabled]="isSaving">
+                <span *ngIf="isSaving">⏳ Saving...</span>
+                <span *ngIf="!isSaving">{{ newVendor.id ? '✔ UPDATE VENDOR' : '➕ ADD VENDOR' }}</span>
+              </button>
+              <div class="vendor-secondary-actions">
+                <button type="button" class="btn btn-danger-pill vendor-del-btn" *ngIf="newVendor.id && can('vendors', 'delete')" (click)="deleteVendor(newVendor.id)">🗑 DEL</button>
+                <button type="button" class="btn btn-clear-pill vendor-clr-btn" (click)="newVendor = {vendor_code: '', name: '', short_name: '', phone: '', email: '', cst_number: '', pan_number: '', address: '', city: '', state: '', pin_code: '', mapped_products: []}; selectedVendor = null;">✕ CLR</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+      </div>
+      
+      <!-- Middle: List -->
+      <div class="main-panel">
+        <div class="list-card">
+          <div class="table-toolbar">
+            <label style="font-size: 11px; color: #0f172a; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" [(ngModel)]="showMappedVendorsOnly" class="custom-checkbox"> 
+              <span class="font-bold">Only Mapped Vendors</span>
+            </label>
+          </div>
+          <div class="table-scroll-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Vendor Name</th>
+                  <th>Phone</th>
+                  <th>GST Number</th>
+                  <th>PAN Number</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let vendor of filteredVendors; trackBy: trackById" (mousedown)="$event.button === 0 && (editVendor(vendor))" [class.active-row]="selectedVendor?.id === vendor.id" style="cursor: pointer;">
+                  <td><strong>{{ vendor.name }}</strong></td>
+                  <td>{{ vendor.phone || '-' }}</td>
+                  <td>{{ vendor.cst_number || '-' }}</td>
+                  <td>{{ vendor.pan_number || '-' }}</td>
+                </tr>
+                <tr *ngIf="filteredVendors.length === 0">
+                  <td colspan="4" class="empty-state">{{ selectedCenterId ? 'This centre has no vendors yet. SAP gives each centre only the vendors assigned to it. Pick another centre or All Locations.' : 'No vendors found.' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Mapping Form -->
+      <div class="side-panel right-panel" *ngIf="selectedVendor">
+        <div class="master-right-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <h4 style="margin: 0 0 2px 0; font-size: 11.5px; font-weight: 700; color: #0f172a;">{{ selectedVendor.name }}</h4>
+              <div class="text-secondary" style="font-size: 10px; margin-bottom: 6px;">
+                {{ newVendor.mapped_products?.length || 0 }} mapped of {{ products.length }} items
+              </div>
+            </div>
+            <button class="btn btn-sm" style="background: none; border: none; font-size: 16px; cursor: pointer; color: #64748b; padding: 0;" (click)="selectedVendor = null">&times;</button>
+          </div>
+          
+          <div class="mapping-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 30px;"></th>
+                  <th>Brand</th>
+                  <th>Product</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of products; trackBy: trackById">
+                  <td>
+                    <input type="checkbox" [checked]="newVendor.mapped_products?.includes(p.id)" (change)="toggleVendorMapping(p.id)" class="custom-checkbox">
+                  </td>
+                  <td>{{ p.brand || p.category }}</td>
+                  <td>{{ p.name }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div style="margin-top: 6px; text-align: right;">
+            <button class="btn btn-primary-gradient btn-sm" (click)="addVendor()">SAVE MAPPINGS</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ============================================================
+       3. PURCHASE ORDERS TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Purchase Orders'">
+    <div class="po-layout">
+      <!-- Left Column: List of POs -->
+      <div class="po-sidebar">
+        <div class="po-sidebar-header">
+          <h3>Orders</h3>
+          <button class="btn btn-primary-gradient btn-sm" *ngIf="isOwner || permissions.inventory?.purchase_orders?.create" (click)="newPO = {vendor_id: null, invoice_number: '', items: []}; selectedVendor = null; selectedPO = null;">+ NEW</button>
+        </div>
+        <div class="po-list">
+          <div class="po-item" *ngFor="let po of purchaseOrders; trackBy: trackById" (mousedown)="$event.button === 0 && (selectPO(po))" [class.active-po]="selectedPO?.id === po.id">
+            <div class="po-item-header">
+              <span class="po-vendor-name">{{ po.vendor_details?.name }}</span>
+              <span class="po-date">{{ po.created_at | date:'d-MMM HH:mm' }}</span>
+            </div>
+            <div class="po-item-body">
+              <span class="amount-bold">{{ po.total_amount | currency:'INR':'symbol':'1.0-2' }}</span>
+              <span class="po-status" [class.status-draft]="po.status === 'Draft'">{{ po.status }}</span>
+            </div>
+          </div>
+          <div *ngIf="purchaseOrders.length === 0" class="empty-state">
+            No purchase orders found.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Create / View PO Form -->
+      <div class="po-main-area">
+        <!-- CREATE MODE -->
+        <ng-container *ngIf="!selectedPO">
+          <div class="po-action-header">
+            <span class="po-form-title">Create New Purchase Order</span>
+          </div>
+
+          <div class="po-form-body">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+              <div class="form-group" style="width: 180px;">
+                <label>Vendor *</label>
+                <select class="form-control" [(ngModel)]="newPO.vendor_id" (change)="onVendorSelect()">
+                  <option [ngValue]="null">Select Vendor</option>
+                  <option *ngFor="let v of vendors; trackBy: trackById" [ngValue]="v.id">{{ v.name }}</option>
+                </select>
+              </div>
+              <div class="form-group" style="width: 140px;">
+                <label>Invoice Number</label>
+                <input type="text" class="form-control" [(ngModel)]="newPO.invoice_number" placeholder="Inv #">
+              </div>
+            </div>
+
+            <!-- Info Cards -->
+            <div class="po-info-cards">
+              <div class="po-info-card">
+                <h4>Vendor Details</h4>
+                <ng-container *ngIf="selectedVendor; else noVendor">
+                  <p><strong>Address:</strong> {{ selectedVendor.address || 'N/A' }}</p>
+                  <p><strong>Phone:</strong> {{ selectedVendor.phone || 'N/A' }}</p>
+                  <p><strong>GST:</strong> {{ selectedVendor.cst_number || 'N/A' }}</p>
+                </ng-container>
+                <ng-template #noVendor>
+                  <p class="text-muted">Select a vendor above</p>
+                </ng-template>
+              </div>
+
+              <div class="po-info-card">
+                <h4>Order Raised From</h4>
+                <ng-container *ngIf="activeCenterDetails; else noCenter">
+                  <p><strong>Center:</strong> {{ activeCenterDetails.display_name || activeCenterDetails.center_name }}</p>
+                  <p><strong>Address:</strong> {{ activeCenterDetails.address }}</p>
+                  <p><strong>Phone:</strong> {{ activeCenterDetails.phone }}</p>
+                </ng-container>
+                <ng-template #noCenter>
+                  <p class="text-muted">Loading center details...</p>
+                </ng-template>
+              </div>
+            </div>
+
+            <!-- Products Table -->
+            <div style="margin-top: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span class="font-bold">Add Line Items</span>
+                <button class="btn btn-blue-pill btn-sm" (click)="addPOItem()">+ Add Item</button>
+              </div>
+
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Product Name</th>
+                    <th>Bar Code</th>
+                    <th>HSN/SAC</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th>Disc %</th>
+                    <th>Tax %</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of newPO.items; let i = index; trackBy: trackById">
+                    <td>
+                      <select class="form-control" [(ngModel)]="item.product_id" (change)="onProductSelect(item)">
+                        <option [ngValue]="null">Select Product</option>
+                        <option *ngFor="let p of getVendorProducts(); trackBy: trackById" [ngValue]="p.id">{{ p.name }}</option>
+                      </select>
+                    </td>
+                    <td><span class="text-secondary">{{ item.product_id ? getProductProperty(item.product_id, 'barcode') : '-' }}</span></td>
+                    <td><span class="text-secondary">{{ item.product_id ? getProductProperty(item.product_id, 'sac_code') : '-' }}</span></td>
+                    <td><input type="number" min="1" class="form-control text-center" style="width: 55px;" [(ngModel)]="item.quantity"></td>
+                    <td><input type="number" min="0" step="0.01" class="form-control text-right" style="width: 75px;" [(ngModel)]="item.rate"></td>
+                    <td><input type="number" min="0" step="0.01" class="form-control text-center" style="width: 60px;" [(ngModel)]="item.discount_percent"></td>
+                    <td><input type="number" min="0" step="0.01" class="form-control text-center" style="width: 60px;" [(ngModel)]="item.tax_percent"></td>
+                    <td class="text-right amount-bold">{{ calculateItemTotal(item) | currency:'INR':'symbol':'1.0-2' }}</td>
+                    <td><button class="icon-btn" (click)="removePOItem(i)">✕</button></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="po-total-section">
+                <button class="btn btn-primary-gradient" *ngIf="isOwner || permissions.inventory?.purchase_orders?.create" (click)="createPurchaseOrder()" [disabled]="isSaving">
+                  <span *ngIf="isSaving">SAVING...</span>
+                  <span *ngIf="!isSaving">{{ newPO.id ? 'UPDATE ORDER' : 'CREATE ORDER' }}</span>
+                </button>
+                <div class="grand-total">
+                  <span>Grand Total:</span>
+                  <h2>{{ calculatePOTotal() | currency:'INR':'symbol':'1.0-2' }}</h2>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- VIEW MODE -->
+        <ng-container *ngIf="selectedPO">
+          <!-- Stepper -->
+          <div class="po-stepper-container">
+            <div class="po-stepper">
+              <ng-container *ngFor="let status of poStatuses; let i = index; trackBy: trackById">
+                <div class="step" [class.active]="selectedPO.status === status" [class.completed]="isStatusCompleted(status)">
+                  <div class="step-icon" (mousedown)="$event.button === 0 && (updatePOStatus(status))">
+                    <span *ngIf="!isStatusCompleted(status) || selectedPO.status === status">{{ i + 1 }}</span>
+                    <span *ngIf="isStatusCompleted(status) && selectedPO.status !== status">✓</span>
+                  </div>
+                  <div class="step-label">{{ status }}</div>
+                </div>
+                <div class="stepper-line" *ngIf="i < poStatuses.length - 1" [class.completed]="isStatusCompleted(poStatuses[i + 1])"></div>
+              </ng-container>
+            </div>
+            <div class="stepper-hint">Click a step to advance status. Note: "Delivered" automatically adds items to shelf stock.</div>
+          </div>
+
+          <div class="po-form-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; gap: 12px;">
+                <span>PO ID: <strong>#{{ selectedPO.id }}</strong></span>
+                <span>Invoice: <strong>{{ selectedPO.invoice_number || 'N/A' }}</strong></span>
+                <span>Status: <strong [class.status-draft]="selectedPO.status === 'Draft'">{{ selectedPO.status }}</strong></span>
+                <span>Date: <strong>{{ selectedPO.created_at | date:'dd MMM yyyy' }}</strong></span>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn btn-blue-pill btn-sm" *ngIf="can('purchase_orders', 'update')" (click)="editPO()" [disabled]="selectedPO.status === 'Delivered'">Edit</button>
+                <button class="btn btn-danger-pill btn-sm" *ngIf="can('purchase_orders', 'delete')" (click)="deletePO(selectedPO.id)" [disabled]="selectedPO.status === 'Delivered'">Delete</button>
+              </div>
+            </div>
+
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>Quantity</th>
+                  <th *ngIf="['Partially Received', 'Delivered'].includes(selectedPO.status)">Received</th>
+                  <th *ngIf="['Partially Received', 'Delivered'].includes(selectedPO.status)">Remaining</th>
+                  <th>Rate</th>
+                  <th>Discount %</th>
+                  <th>Tax %</th>
+                  <th class="text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of selectedPO.items; trackBy: trackByIndex">
+                  <td><strong>{{ getProductName(item.product) }}</strong></td>
+                  <td>{{ item.quantity }}</td>
+                  <td *ngIf="['Partially Received', 'Delivered'].includes(selectedPO.status)">
+                    <span class="badge-success">{{ item.received_quantity || 0 }}</span>
+                  </td>
+                  <td *ngIf="['Partially Received', 'Delivered'].includes(selectedPO.status)">
+                    <span class="badge-warning" *ngIf="(item.quantity - (item.received_quantity || 0)) > 0">{{ item.quantity - (item.received_quantity || 0) }}</span>
+                    <span class="badge-success" *ngIf="(item.quantity - (item.received_quantity || 0)) <= 0">0</span>
+                  </td>
+                  <td>{{ item.rate | currency:'INR':'symbol':'1.0-2' }}</td>
+                  <td>{{ item.discount_percent }}%</td>
+                  <td>{{ item.tax_percent }}%</td>
+                  <td class="text-right amount-bold">{{ item.total_price | currency:'INR':'symbol':'1.0-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="po-total-section">
+              <div></div>
+              <div class="grand-total">
+                <span>Grand Total:</span>
+                <h2>{{ selectedPO.total_amount | currency:'INR':'symbol':'1.0-2' }}</h2>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GRPO (Partial Receipts) TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'GRPO'">
+    <div class="po-layout">
+      <div class="po-sidebar">
+        <div class="po-sidebar-header">
+          <h3>Purchase Orders</h3>
+        </div>
+        <div class="po-list">
+          <div class="po-item" *ngFor="let po of grpoOrders; trackBy: trackById" (mousedown)="$event.button === 0 && (selectGRPO(po))" [class.active-po]="selectedPO?.id === po.id">
+            <div class="po-item-header">
+              <span class="po-vendor-name">PO-{{ po.id }}</span>
+              <span class="po-date">{{ po.created_at | date:'d-MMM HH:mm' }}</span>
+            </div>
+            <div class="po-item-body">
+              <span class="amount-bold">{{ po.status }}</span>
+              <span class="po-status" [class.status-draft]="!po.sap_sync_status">{{ po.sap_sync_status ? (po.status === 'Delivered' ? 'Completed in SAP' : (po.status === 'Partially Received' ? 'Partial Synced' : 'SAP Synced')) : 'Pending SAP Sync' }}</span>
+            </div>
+          </div>
+          <div *ngIf="grpoOrders.length === 0" class="empty-state">No open purchase orders.</div>
+        </div>
+      </div>
+      <div class="po-main-area">
+        <ng-container *ngIf="selectedPO">
+          <div class="po-action-header" style="justify-content: space-between;">
+            <span class="po-form-title">Receive PO-{{ selectedPO.id }}</span>
+            <button class="btn btn-primary-gradient btn-sm" *ngIf="can('purchase_orders', 'update')" [disabled]="isSaving || selectedPO.status === 'Delivered'" (click)="submitGRPO()">Submit GRPO</button>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Ordered</th>
+                  <th>Previously Received</th>
+                  <th>Receive Now</th>
+                  <th>Batch Number</th>
+                  <th>Mfg Date</th>
+                  <th>Exp Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of selectedPO.items; trackBy: trackById">
+                  <td>{{ item.product_name }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>{{ item.received_quantity || 0 }}</td>
+                  <td>
+                    <input type="number" class="form-control" style="width: 80px;" [(ngModel)]="grpoQuantities[item.id]" [disabled]="(item.received_quantity || 0) >= item.quantity" min="0" [max]="item.quantity - (item.received_quantity || 0)">
+                  </td>
+                  <td>
+                    <input type="text" class="form-control" style="width: 120px;" [(ngModel)]="grpoBatches[item.id]" [disabled]="(item.received_quantity || 0) >= item.quantity" placeholder="Batch No.">
+                  </td>
+                  <td>
+                    <input type="date" class="form-control" style="width: 130px;" [(ngModel)]="grpoMfgDates[item.id]" [disabled]="(item.received_quantity || 0) >= item.quantity">
+                  </td>
+                  <td>
+                    <input type="date" class="form-control" style="width: 130px;" [(ngModel)]="grpoExpDates[item.id]" [disabled]="(item.received_quantity || 0) >= item.quantity">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STOCK TRANSFERS TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Stock Transfers'">
+    <div class="po-layout">
+      <div class="po-sidebar">
+        <div class="po-sidebar-header">
+          <h3>Transfers</h3>
+          <button class="btn btn-primary-gradient btn-sm" (click)="newStockTransfer = {from_center_id: null, to_center_id: null, items: [], notes: '', stock_request_id: null, wanted: []}; transferProducts = []; selectedStockTransfer = null;">+ NEW</button>
+        </div>
+        <div class="po-list">
+          <div class="po-item" *ngFor="let st of stockTransfers; trackBy: trackById" (mousedown)="$event.button === 0 && (selectStockTransfer(st))" [class.active-po]="selectedStockTransfer?.id === st.id">
+            <div class="po-item-header">
+              <span class="po-vendor-name">ST-{{ st.id }}</span>
+              <span class="po-date">{{ st.created_at | date:'d-MMM HH:mm' }}</span>
+            </div>
+            <div class="po-item-body">
+              <span class="amount-bold">{{ transferStatusText(st.status) }}</span>
+              <span class="po-status" [class.status-draft]="!st.sap_sync_status" [title]="st.sap_sync_message || ''">{{
+                st.sap_sync_status ? 'SAP Synced'
+                : (st.status === 'Draft' ? 'Not sent yet'
+                : (st.sap_sync_message ? 'SAP: no stock' : 'SAP pending')) }}</span>
+            </div>
+          </div>
+          <div *ngIf="stockTransfers.length === 0" class="empty-state">No stock transfers found.</div>
+        </div>
+      </div>
+      
+      <div class="po-main-area">
+        <!-- CREATE MODE -->
+        <ng-container *ngIf="!selectedStockTransfer">
+          <div class="po-action-header">
+            <span class="po-form-title">New Stock Transfer</span>
+          </div>
+          <div class="po-form-body">
+            <div class="note-box" *ngIf="newStockTransfer.stock_request_id" style="margin-bottom: 12px;">
+              Sending approved request <strong>REQ-{{ newStockTransfer.stock_request_id }}</strong>.
+              Choose where the stock comes from (a warehouse or a centre); the requested products are filled in from there.
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+              <div class="form-group" style="width: 200px;">
+                <label>From Location *</label>
+                <select class="form-control" [ngModel]="newStockTransfer.from_center_id" (ngModelChange)="onTransferSourceChange($event)">
+                  <option [ngValue]="null">Select Source</option>
+                  <option *ngFor="let c of centers; trackBy: trackById" [ngValue]="c.id">{{ c.center_name }}</option>
+                </select>
+              </div>
+              <div class="form-group" style="width: 200px;">
+                <label>To Location *</label>
+                <select class="form-control" [(ngModel)]="newStockTransfer.to_center_id">
+                  <option [ngValue]="null">Select Destination</option>
+                  <option *ngFor="let c of centers; trackBy: trackById" [ngValue]="c.id">{{ c.center_name }}</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label>Scan a barcode <small>(each scan adds one to that product's Scanned count)</small></label>
+              <input class="form-control" [(ngModel)]="transferScan" (keydown.enter)="scanIntoNewTransfer(); $event.preventDefault()"
+                placeholder="Click here and scan, or type a barcode / product code and press Enter" autocomplete="off">
+            </div>
+            <div class="table-container" style="margin-bottom: 12px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th title="Counted with the barcode reader">Scanned</th>
+                    <th title="Counted by hand and typed in">Manual</th>
+                    <th class="req-money-col">Rate</th>
+                    <th class="req-money-col" title="Quantity x rate, with GST">Amount</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of newStockTransfer.items; let i = index; trackBy: trackById">
+                    <td>
+                      <select class="form-control" [(ngModel)]="item.product_id">
+                        <option [ngValue]="null">{{ newStockTransfer.from_center_id ? 'Select Product' : 'Select From Location first' }}</option>
+                        <option *ngFor="let p of transferProductsFor(item); trackBy: trackById" [ngValue]="p.id">{{ p.name }} (Stk: {{ p.current_stock }})</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="number" class="form-control" [(ngModel)]="item.quantity" min="1">
+                      <small *ngIf="transferStock(item) !== null && item.quantity > transferStock(item)!" style="color:var(--danger)">Only {{ transferStock(item) }} in stock here</small>
+                    </td>
+                    <td style="width:110px">
+                      <input type="number" class="form-control" [(ngModel)]="item.scanned" min="0" placeholder="0">
+                    </td>
+                    <td style="width:110px">
+                      <input type="number" class="form-control" [(ngModel)]="item.manual" min="0" placeholder="0">
+                      <small *ngIf="item.scanned || item.manual" [style.color]="inventoryCountOk(item) ? '#059669' : '#d97706'">
+                        {{ (item.scanned || 0) * 1 + (item.manual || 0) * 1 }} of {{ item.quantity }}{{ inventoryCountOk(item) ? ' ✓' : '' }}
+                      </small>
+                    </td>
+                    <td class="req-money" *ngIf="transferProduct(item) as tp">
+                      {{ tp.price | number:'1.2-2' }}<small *ngIf="tp.gst_percent"> +{{ tp.gst_percent | number:'1.0-2' }}%</small>
+                    </td>
+                    <td class="req-money" *ngIf="!transferProduct(item)">-</td>
+                    <td class="req-money amount-bold" *ngIf="transferProduct(item) as tp">{{ lineAmountOf(item.quantity, tp.price, tp.gst_percent) | number:'1.2-2' }}</td>
+                    <td class="req-money" *ngIf="!transferProduct(item)">-</td>
+                    <td>
+                      <button class="btn-icon" style="color:var(--danger)" (click)="removeStockTransferItem(i)">🗑️</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="req-total" *ngIf="newStockTransfer.items.length">
+                Total (with GST): <strong>₹ {{ newTransferTotal | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm" (click)="addStockTransferItem()" style="margin-bottom: 12px;">+ Add Product</button>
+            
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea class="form-control" [(ngModel)]="newStockTransfer.notes" rows="2"></textarea>
+            </div>
+          </div>
+          
+          <div class="po-action-footer">
+            <button class="btn btn-primary-gradient" *ngIf="can('stock_transfers', 'create')" [disabled]="isSaving" (click)="saveStockTransfer()">Create Transfer</button>
+          </div>
+        </ng-container>
+
+        <!-- VIEW MODE -->
+        <ng-container *ngIf="selectedStockTransfer">
+          <div class="po-action-header" style="justify-content: space-between;">
+            <div>
+              <span class="po-form-title">Transfer ST-{{ selectedStockTransfer.id }}</span>
+              <span class="status-badge" style="margin-left:8px;">{{ transferStatusText(selectedStockTransfer.status) }}</span>
+              <span class="status-badge" *ngIf="selectedStockTransfer.has_difference" style="margin-left:6px;background:#fee2e2;color:#991b1b;">Difference</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-outline btn-sm" (click)="printTransfer()">Print transfer</button>
+              <button class="btn btn-primary-gradient btn-sm" *ngIf="selectedStockTransfer.status === 'Draft' && can('stock_transfers', 'update')"
+                [disabled]="isSaving" (click)="sendTransfer()">Send</button>
+            </div>
+          </div>
+          <div class="po-form-body">
+            <div style="display: flex; gap: 20px; margin-bottom: 12px;">
+              <div><strong>From:</strong> {{ selectedStockTransfer.from_center_name }}<small *ngIf="selectedStockTransfer.from_info?.state"> ({{ selectedStockTransfer.from_info.state }})</small></div>
+              <div><strong>To:</strong> {{ selectedStockTransfer.to_center_name }}<small *ngIf="selectedStockTransfer.to_info?.state"> ({{ selectedStockTransfer.to_info.state }})</small></div>
+              <div>
+                <span class="status-badge" *ngIf="selectedStockTransfer.transfer_kind === 'interstate'" style="background:#fef3c7;color:#92400e;">Inter-state (IGST)</span>
+                <span class="status-badge" *ngIf="selectedStockTransfer.transfer_kind === 'same_state'" style="background:#dcfce7;color:#166534;">Same state</span>
+                <span class="status-badge" *ngIf="selectedStockTransfer.transfer_kind === 'unknown'">State not known</span>
+              </div>
+            </div>
+            <!-- Stock sent to another branch (another GSTIN) goes with a tax invoice; SAP works out the IGST. -->
+            <div class="note-box" *ngIf="selectedStockTransfer.supply_kind === 'igst' || selectedStockTransfer.supply_kind === 'cgst_sgst' || selectedStockTransfer.transfer_kind === 'interstate'" style="margin-bottom: 10px;">
+              <strong>This goes to another branch, so it goes with a tax invoice.</strong>
+              <span *ngIf="selectedStockTransfer.sap_ar_doc_num">
+                SAP tax invoice <strong>{{ selectedStockTransfer.sap_ar_doc_num }}</strong>: taxable ₹ {{ selectedStockTransfer.sap_taxable_value | number:'1.2-2' }},
+                {{ selectedStockTransfer.supply_kind === 'cgst_sgst' ? 'CGST + SGST' : 'IGST' }} ₹ {{ selectedStockTransfer.sap_tax_amount | number:'1.2-2' }},
+                total ₹ {{ selectedStockTransfer.sap_invoice_total | number:'1.2-2' }}.
+                <span *ngIf="selectedStockTransfer.sap_ap_doc_num"> Purchase invoice at the receiving branch: <strong>{{ selectedStockTransfer.sap_ap_doc_num }}</strong>.</span>
+              </span>
+              <span *ngIf="!selectedStockTransfer.sap_ar_doc_num"> The tax invoice is raised in SAP when the goods are sent; it is not there yet.
+                {{ selectedStockTransfer.sap_branch_message }}</span>
+            </div>
+            <div class="note-box" *ngIf="selectedStockTransfer.status === 'Completed' && !selectedStockTransfer.sap_sync_status && selectedStockTransfer.sap_sync_message && selectedStockTransfer.sap_sync_message !== selectedStockTransfer.sap_branch_message" style="margin-bottom: 10px;">
+              <strong>SAP has not taken this yet:</strong> {{ selectedStockTransfer.sap_sync_message }}
+              The stock in the POS is already moved; it is sent to SAP again automatically once SAP has the stock.
+            </div>
+            <div class="note-box" *ngIf="selectedStockTransfer.status === 'Draft' && sendProblems(selectedStockTransfer).length" style="margin-bottom: 10px;">
+              <strong>Not ready to send:</strong> {{ sendProblems(selectedStockTransfer).join('; ') }}
+            </div>
+            <div class="note-box" *ngIf="selectedStockTransfer.status === 'Completed'" style="margin-bottom: 10px;">
+              Received by <strong>{{ selectedStockTransfer.received_by_name || '-' }}</strong> on {{ selectedStockTransfer.received_at | date:'medium' }}.
+              <span *ngIf="selectedStockTransfer.has_difference"> <strong>Less arrived than was sent:</strong> {{ selectedStockTransfer.received_note }}</span>
+              <span *ngIf="!selectedStockTransfer.has_difference && selectedStockTransfer.received_note"> {{ selectedStockTransfer.received_note }}</span>
+              <a *ngIf="selectedStockTransfer.bill_url" [href]="billLink(selectedStockTransfer)" target="_blank" rel="noopener" style="margin-left:10px;">View the bill</a>
+              <span *ngIf="!selectedStockTransfer.bill_url" style="margin-left:10px;color:var(--text-muted)">No bill attached (received before bills were required).</span>
+            </div>
+            <div class="form-group" *ngIf="selectedStockTransfer.status !== 'Completed' && can('stock_transfers', 'update')" style="margin-bottom: 8px;">
+              <label>Scan a barcode <small>({{ selectedStockTransfer.status === 'In Transit' ? 'counts what arrived' : 'counts what is being sent' }})</small></label>
+              <input class="form-control" [(ngModel)]="transferScan" (keydown.enter)="scanIntoOpenTransfer(); $event.preventDefault()"
+                placeholder="Scan, or type a barcode / product code and press Enter" autocomplete="off">
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Sent: scanned</th>
+                    <th>Sent: manual</th>
+                    <th>Received: scanned</th>
+                    <th>Received: manual</th>
+                    <th *ngIf="selectedStockTransfer.status === 'Completed'">Accepted</th>
+                    <th class="req-money-col">Rate</th>
+                    <th class="req-money-col" title="Quantity x rate, with GST">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of selectedStockTransfer.items; trackBy: trackById">
+                    <td>{{ item.product_name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <ng-container *ngIf="countDraft[item.id] as d">
+                      <td><input type="number" class="form-control" min="0" [(ngModel)]="d.sScan" [disabled]="selectedStockTransfer.status === 'Completed'" style="width:90px"></td>
+                      <td><input type="number" class="form-control" min="0" [(ngModel)]="d.sMan" [disabled]="selectedStockTransfer.status === 'Completed'" style="width:90px">
+                        <small [style.color]="countStatusColor(item.quantity, d.sScan, d.sMan)">{{ countStatusText(item.quantity, d.sScan, d.sMan) }}</small></td>
+                      <td><input type="number" class="form-control" min="0" [(ngModel)]="d.rScan" [disabled]="selectedStockTransfer.status !== 'In Transit'" style="width:90px"></td>
+                      <td><input type="number" class="form-control" min="0" [(ngModel)]="d.rMan" [disabled]="selectedStockTransfer.status !== 'In Transit'" style="width:90px">
+                        <small [style.color]="countStatusColor(item.quantity, d.rScan, d.rMan)">{{ countStatusText(item.quantity, d.rScan, d.rMan) }}</small></td>
+                    </ng-container>
+                    <td *ngIf="selectedStockTransfer.status === 'Completed'" class="amount-bold"
+                      [style.color]="item.received_quantity !== null && item.received_quantity < item.quantity ? '#b91c1c' : ''">{{ item.received_quantity ?? item.quantity }}</td>
+                    <td class="req-money">{{ item.product_price | number:'1.2-2' }}<small *ngIf="item.product_gst"> +{{ item.product_gst | number:'1.0-2' }}%</small></td>
+                    <td class="req-money amount-bold">{{ lineAmountOf(item.received_quantity ?? item.quantity, item.product_price, item.product_gst) | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="req-total" *ngIf="selectedStockTransfer.amounts && !selectedStockTransfer.sap_ar_doc_num">
+                Total (with GST): <strong>₹ {{ (selectedStockTransfer.status === 'Completed' ? selectedStockTransfer.amounts.accepted_total : selectedStockTransfer.amounts.total) | number:'1.2-2' }}</strong>
+                <small *ngIf="selectedStockTransfer.status === 'Completed' && selectedStockTransfer.has_difference"> (sent: ₹ {{ selectedStockTransfer.amounts.total | number:'1.2-2' }})</small>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm" *ngIf="selectedStockTransfer.status !== 'Completed' && can('stock_transfers', 'update')"
+              [disabled]="isSaving" (click)="saveTransferCounts()" style="margin-top: 10px;">Save counts</button>
+
+            <!-- The centre signs the goods in: its count, the bill that came with them, a note if something is missing -->
+            <div class="req-card" *ngIf="canReceive(selectedStockTransfer)" style="margin-top: 14px;">
+              <div class="req-row">
+                <span class="req-label">Receive</span>
+                <span class="req-hint">Count what arrived above (or press the button if the box matches the challan), attach the bill, then sign it in.</span>
+                <button type="button" class="btn btn-outline btn-sm" (click)="everythingArrived()">All arrived as sent</button>
+              </div>
+              <div class="req-row">
+                <span class="req-label">Bill *</span>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" (change)="onBillPicked($event)" class="req-file">
+                <span class="req-hint" *ngIf="!receiveBill" style="color:#b91c1c;">Required: photo or PDF of the bill / challan that came with the goods</span>
+              </div>
+              <div class="req-row">
+                <span class="req-label">Note</span>
+                <input class="form-control req-notes" [(ngModel)]="receiveNote" maxlength="300"
+                  [placeholder]="receiveShortLines(selectedStockTransfer).length ? 'Required - what is missing?' : 'Optional'">
+              </div>
+              <div class="note-box" *ngIf="receiveShortLines(selectedStockTransfer).length" style="margin-top:8px;">
+                Less than sent: {{ receiveShortLines(selectedStockTransfer).join(', ') }}. Only what you counted is added to your stock.
+              </div>
+              <div class="note-box" *ngIf="receiveOverLines(selectedStockTransfer).length" style="margin-top:8px;color:#b91c1c;">
+                More than sent: {{ receiveOverLines(selectedStockTransfer).join(', ') }}. Check the count.
+              </div>
+              <button class="btn btn-primary-gradient" [disabled]="isSaving || !receiveBill" (click)="signInTransfer()" style="margin-top: 10px;">Received - sign in</button>
+            </div>
+            <div class="note-box" *ngIf="selectedStockTransfer.status === 'In Transit' && !canReceive(selectedStockTransfer)" style="margin-top: 12px;">
+              On the way to {{ selectedStockTransfer.to_center_name }}. Someone there counts it and signs it in.
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       X. STOCK REQUESTS TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Stock Requests'">
+    <div class="po-layout">
+      <div class="po-sidebar">
+        <div class="po-sidebar-header">
+          <h3>Requests</h3>
+          <button class="btn btn-primary-gradient btn-sm" *ngIf="can('stock_requests', 'create')" (click)="newStockRequest = {items: [], notes: '', stock_type: '', brands: []}; showStockRequestForm = true; selectedStockRequest = null;">+ NEW</button>
+        </div>
+        <div class="po-list">
+          <div class="po-item" *ngFor="let req of stockRequests; trackBy: trackById" (mousedown)="$event.button === 0 && (selectStockRequest(req)); $event.button === 0 && (showStockRequestForm = false)" [class.active-po]="selectedStockRequest?.id === req.id">
+            <div class="po-item-header">
+              <span class="po-vendor-name">REQ-{{ req.id }}</span>
+              <span class="po-date">{{ req.created_at | date:'d-MMM HH:mm' }}</span>
+            </div>
+            <div class="po-item-body">
+              <span class="amount-bold">{{ req.status }} · {{ req.stock_type }}</span>
+              <span>{{ req.requesting_center_name }}</span>
+            </div>
+          </div>
+          <div *ngIf="stockRequests.length === 0" class="empty-state">No requests found.</div>
+        </div>
+      </div>
+      
+      <div class="po-main-area">
+        <!-- CREATE MODE -->
+        <ng-container *ngIf="showStockRequestForm">
+          <div class="po-action-header">
+            <span class="po-form-title">New Stock Request</span>
+          </div>
+          <div class="po-form-body req-form">
+            <div class="req-for">Requesting stock for <strong>{{ selectedCenterName || 'Select a centre first' }}</strong></div>
+
+            <div class="req-card">
+              <div class="req-row">
+                <span class="req-label">Category *</span>
+                <div class="req-seg" *ngIf="requestCategories.length">
+                  <button type="button" class="req-seg-btn" *ngFor="let c of requestCategories"
+                    [class.active]="newStockRequest.stock_type === c.name" (click)="setStockType(c.name)">
+                    {{ c.name }}<span class="req-count">{{ c.count }}</span>
+                  </button>
+                </div>
+                <span class="req-hint" *ngIf="!requestCategories.length">
+                  {{ selectedCenterId ? 'This centre has no products yet.' : 'Select a centre above to see its categories.' }}
+                </span>
+                <span class="req-hint" *ngIf="requestCategories.length && !newStockRequest.stock_type">Retail is for sale to clients; Technical is everything the salon uses.</span>
+              </div>
+
+              <div class="req-row req-row-top" *ngIf="newStockRequest.stock_type && requestBrands.length">
+                <span class="req-label">Brand / group * <small>(tick one or more)</small></span>
+                <div class="req-chips">
+                  <button type="button" class="req-chip" *ngIf="requestBrands.length > 1"
+                    [class.active]="allBrandsPicked" (click)="toggleAllBrands()">All</button>
+                  <button type="button" class="req-chip" *ngFor="let b of requestBrands"
+                    [class.active]="isBrandPicked(b.name)" (click)="toggleRequestBrand(b.name)">
+                    {{ b.name }}<span class="req-count">{{ b.count }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="req-card req-items">
+              <table class="data-table req-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th class="req-qty-col">Qty needed</th>
+                    <th class="req-money-col">Rate</th>
+                    <th class="req-money-col" title="Quantity x rate, with GST">Amount</th>
+                    <th class="req-del-col"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of newStockRequest.items; let i = index; trackBy: trackById">
+                    <td>
+                      <select class="form-control" [(ngModel)]="item.product_id" [disabled]="!newStockRequest.stock_type || !pickedBrands.length">
+                        <option [ngValue]="null">{{ !newStockRequest.stock_type ? 'Choose a category first' : (!pickedBrands.length ? 'Choose a brand first' : 'Select product') }}</option>
+                        <option *ngFor="let p of requestProductsFor(item); trackBy: trackById" [ngValue]="p.id">{{ p.name }}</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="number" class="form-control" [(ngModel)]="item.quantity" min="1">
+                    </td>
+                    <td class="req-money" *ngIf="requestProduct(item) as rp">
+                      {{ rp.price | number:'1.2-2' }}<small *ngIf="rp.gst_percent"> +{{ rp.gst_percent | number:'1.0-2' }}%</small>
+                    </td>
+                    <td class="req-money" *ngIf="!requestProduct(item)">-</td>
+                    <td class="req-money amount-bold" *ngIf="requestProduct(item) as rp">{{ lineAmountOf(item.quantity, rp.price, rp.gst_percent) | number:'1.2-2' }}</td>
+                    <td class="req-money" *ngIf="!requestProduct(item)">-</td>
+                    <td>
+                      <button class="btn-icon" style="color:var(--danger)" (click)="removeStockRequestItem(i)" title="Remove">🗑️</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="req-total" *ngIf="newStockRequest.items.length">
+                Total (with GST): <strong>₹ {{ newRequestTotal | number:'1.2-2' }}</strong>
+              </div>
+              <div class="req-items-foot">
+                <button class="btn btn-outline btn-sm" (click)="addStockRequestItem()">+ Add product</button>
+                <input class="form-control req-notes" [(ngModel)]="newStockRequest.notes" placeholder="Notes / reason (optional)">
+              </div>
+            </div>
+          </div>
+
+          <div class="po-action-footer">
+            <button class="btn btn-primary-gradient" *ngIf="can('stock_requests', 'create')" [disabled]="isSaving" (click)="saveStockRequest()">Submit Request</button>
+          </div>
+        </ng-container>
+
+        <!-- VIEW MODE -->
+        <ng-container *ngIf="selectedStockRequest">
+          <div class="po-action-header" style="justify-content: space-between;">
+            <div>
+              <span class="po-form-title">Request REQ-{{ selectedStockRequest.id }}</span>
+              <span class="status-badge" style="margin-left:8px;">{{ selectedStockRequest.status }}</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <!-- Whoever holds Approve Stock Requests decides; the stock person then sends it. -->
+              <ng-container *ngIf="selectedStockRequest.status === 'Pending' && canDecide(selectedStockRequest)">
+                <button class="btn btn-primary-gradient btn-sm" [disabled]="isSaving" (click)="decideStockRequest(selectedStockRequest, 'approve')">Approve</button>
+                <button class="btn btn-outline btn-sm" [disabled]="isSaving" (click)="decideStockRequest(selectedStockRequest, 'reject')">Reject</button>
+              </ng-container>
+              <button class="btn btn-primary-gradient btn-sm"
+                *ngIf="selectedStockRequest.status === 'Approved' && canSendStock && !selectedStockRequest.transfer_id"
+                (click)="sendStockRequest(selectedStockRequest)">Send stock (make transfer)</button>
+              <button class="btn btn-outline btn-sm" [disabled]="isSaving"
+                *ngIf="(selectedStockRequest.status === 'Pending' || selectedStockRequest.status === 'Approved') && !selectedStockRequest.transfer_id && canWithdraw(selectedStockRequest)"
+                (click)="decideStockRequest(selectedStockRequest, 'cancel')">Cancel Request</button>
+            </div>
+          </div>
+          
+          <div class="po-form-body">
+            <div style="display:flex; justify-content:space-between; margin-bottom: 16px;">
+              <div>
+                <p style="margin:0; font-size:12px; color:var(--text-muted)">Requesting Center</p>
+                <h4 style="margin:4px 0 0 0">{{ selectedStockRequest.requesting_center_name }}</h4>
+              </div>
+              <div>
+                <p style="margin:0; font-size:12px; color:var(--text-muted)">Category</p>
+                <h4 style="margin:4px 0 0 0">{{ selectedStockRequest.stock_type }}</h4>
+              </div>
+              <div>
+                <p style="margin:0; font-size:12px; color:var(--text-muted)">Asked by</p>
+                <h4 style="margin:4px 0 0 0">{{ selectedStockRequest.created_by_name || '-' }}</h4>
+              </div>
+              <div>
+                <p style="margin:0; font-size:12px; color:var(--text-muted)">Date</p>
+                <h4 style="margin:4px 0 0 0">{{ selectedStockRequest.created_at | date:'medium' }}</h4>
+              </div>
+            </div>
+            <div class="req-steps">
+              <div class="req-step" *ngFor="let s of requestSteps(selectedStockRequest)" [ngClass]="'req-step-' + s.state">
+                <span class="req-step-dot">{{ s.state === 'done' ? '✓' : '' }}</span>{{ s.label }}
+              </div>
+            </div>
+            <div class="note-box" *ngIf="selectedStockRequest.decided_by_name" style="margin-bottom: 12px;">
+              <strong>{{ selectedStockRequest.status === 'Rejected' ? 'Rejected' : 'Approved' }}</strong>
+              by {{ selectedStockRequest.decided_by_name }} on {{ selectedStockRequest.decided_at | date:'medium' }}
+              <span *ngIf="selectedStockRequest.decision_note"> - {{ selectedStockRequest.decision_note }}</span>
+            </div>
+            <div class="note-box" *ngIf="selectedStockRequest.transfer_id" style="margin-bottom: 12px;">
+              Sent by transfer <strong>ST-{{ selectedStockRequest.transfer_id }}</strong>
+              ({{ selectedStockRequest.transfer_status }}).
+              <span *ngIf="selectedStockRequest.status !== 'Fulfilled'">The request is fulfilled once the centre receives it.</span>
+            </div>
+            
+            <div class="table-container" style="margin-bottom: 24px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Product Code</th>
+                    <th>Product Name</th>
+                    <th>Qty Requested</th>
+                    <th class="req-money-col">Rate</th>
+                    <th class="req-money-col" title="Quantity x rate, with GST">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let i of selectedStockRequest.items; trackBy: trackById">
+                    <td class="text-sub">{{ i.product_code }}</td>
+                    <td>{{ i.product_name }}</td>
+                    <td class="amount-bold">{{ i.quantity }}</td>
+                    <td class="req-money">{{ i.product_price | number:'1.2-2' }}<small *ngIf="i.product_gst"> +{{ i.product_gst | number:'1.0-2' }}%</small></td>
+                    <td class="req-money amount-bold">{{ lineAmountOf(i.quantity, i.product_price, i.product_gst) | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="req-total" *ngIf="selectedStockRequest.amounts">
+                Total (with GST): <strong>₹ {{ selectedStockRequest.amounts.total | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+
+            <div class="note-box" *ngIf="selectedStockRequest.notes">
+              <strong>Notes:</strong> {{ selectedStockRequest.notes }}
+            </div>
+          </div>
+        </ng-container>
+        
+        <div *ngIf="!selectedStockRequest && !showStockRequestForm" class="empty-state">
+          Select a request to view details or click + NEW to create one.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       4. CHECKOUT TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Checkout'">
+    <div class="tab-header-context">
+      <div>
+        <h2>Shelf Checkout</h2>
+        <p class="tab-subtitle">Deduct stock items directly from shelves for salon services or retail</p>
+      </div>
+      <div class="context-location-badge">
+        <div class="loc-label">Active Center</div>
+        <div class="loc-name">{{ activeCenterDetails?.display_name || activeCenterDetails?.center_name || 'Selected Center' }}</div>
+      </div>
+    </div>
+    
+    <div class="master-split-layout">
+      <!-- Left: Stock List -->
+      <div class="master-left">
+        <div class="list-card">
+          <div class="table-toolbar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="search-bar-wrap">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" class="search-input-compact" placeholder="Search product or barcode..." [(ngModel)]="checkoutSearchTerm" (ngModelChange)="onCheckoutSearch()">
+              </div>
+              <label style="font-size: 11px; color: #0f172a; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <input type="checkbox" [(ngModel)]="showInStockOnly" class="custom-checkbox"> <span class="font-bold">In Stock Only</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="table-scroll-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Brand</th>
+                  <th>Type</th>
+                  <th>Lot #</th>
+                  <th>MRP</th>
+                  <th>Count</th>
+                  <th>Value</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let product of checkoutPaginatedProducts; trackBy: trackById">
+                  <td><strong>{{ product.name }}</strong></td>
+                  <td>{{ product.brand || 'Generic' }}</td>
+                  <td><span class="status-badge badge-category">{{ product.category }}</span></td>
+                  <td>{{ product.lots && product.lots.length > 0 ? product.lots[0].lot_number : '1' }}</td>
+                  <td>{{ product.price !== null ? (product.price | currency:'INR':'symbol':'1.0-2') : '-' }}</td>
+                  <td>
+                    <span class="stock-pill" [class.stock-zero]="product.current_stock <= 0" [class.stock-ok]="product.current_stock > 0">
+                      {{ product.current_stock }}
+                    </span>
+                  </td>
+                  <td class="amount-bold">{{ ((product.price * product.current_stock) || 0) | currency:'INR':'symbol':'1.0-2' }}</td>
+                  <td>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <input type="number" min="1" class="form-control text-center" style="width: 55px;" [(ngModel)]="checkoutQuantities[product.id]" placeholder="1">
+                      <button class="btn btn-primary-gradient btn-sm" *ngIf="can('checkout', 'create')" (click)="processCheckout(product)" [disabled]="isSaving">
+                        Confirm
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="checkoutPaginatedProducts.length === 0">
+                  <td colspan="8" class="empty-state">No products found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination-controls">
+            <button class="btn btn-outline btn-sm" (click)="prevCheckoutPage()" [disabled]="checkoutCurrentPage === 1">Previous</button>
+            <span class="text-secondary">Page <strong style="color: #0f172a;">{{ checkoutCurrentPage }}</strong> of <strong style="color: #0f172a;">{{ checkoutTotalPages }}</strong></span>
+            <button class="btn btn-outline btn-sm" (click)="nextCheckoutPage()" [disabled]="checkoutCurrentPage === checkoutTotalPages">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Today's Checkouts -->
+      <div class="master-right">
+        <div class="master-right-card">
+          <div class="card-header movers-header" style="margin-bottom: 6px;">
+            <div class="header-title-wrap">
+              <span class="header-icon-badge emerald-badge">📉</span>
+              <h4>Today's Deductions</h4>
+            </div>
+          </div>
+          <div class="table-scroll-container" style="max-height: calc(calc(100vh / var(--ui-zoom)) - 270px); overflow-y: auto;">
+            <table class="data-table">
+              <tbody>
+                <tr *ngFor="let tx of todayCheckouts; trackBy: trackById">
+                  <td>{{ tx.product_name }}</td>
+                  <td style="color: #dc2626; font-weight: 700;">-{{ tx.quantity_change * -1 }}</td>
+                  <td class="text-secondary text-right" style="font-size: 9.5px;">{{ tx.created_at | date:'HH:mm' }}</td>
+                </tr>
+                <tr *ngIf="todayCheckouts.length === 0">
+                  <td colspan="3" class="text-center text-muted" style="padding: 12px;">No checkouts today.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       5. AUDIT TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Transfer Bills'">
+    <div class="tab-header-context">
+      <div>
+        <h2>Transfer Bills</h2>
+        <p class="tab-subtitle">The bill each centre attached when it received stock, with a summary across centres</p>
+      </div>
+    </div>
+
+    <div class="bill-cards" *ngIf="bills.summary as s">
+      <div class="bill-card"><span class="bill-card-label">Received transfers</span><strong>{{ s.count }}</strong></div>
+      <div class="bill-card"><span class="bill-card-label">With a bill</span><strong>{{ s.with_bill }}</strong></div>
+      <div class="bill-card" [class.bill-card-warn]="s.without_bill"><span class="bill-card-label">Without a bill</span><strong>{{ s.without_bill }}</strong></div>
+      <div class="bill-card" [class.bill-card-warn]="s.with_difference"><span class="bill-card-label">With a difference</span><strong>{{ s.with_difference }}</strong></div>
+      <div class="bill-card"><span class="bill-card-label">Value received (with GST)</span><strong>₹ {{ s.total | number:'1.2-2' }}</strong></div>
+    </div>
+
+    <div class="bill-filters">
+      <select class="form-control" [(ngModel)]="billFilter.center_id" (ngModelChange)="loadBills()">
+        <option value="">All centres</option>
+        <option *ngFor="let c of centers; trackBy: trackById" [value]="c.id">{{ c.display_name || c.center_name }}</option>
+      </select>
+      <input class="form-control" type="date" [(ngModel)]="billFilter.date_from" (ngModelChange)="loadBills()" title="Received from">
+      <input class="form-control" type="date" [(ngModel)]="billFilter.date_to" (ngModelChange)="loadBills()" title="Received up to">
+      <select class="form-control" [(ngModel)]="billFilter.has_bill" (ngModelChange)="loadBills()">
+        <option value="">Bill: any</option>
+        <option value="1">With a bill</option>
+        <option value="0">Without a bill</option>
+      </select>
+      <label class="bill-check"><input type="checkbox" [(ngModel)]="billFilter.difference" (ngModelChange)="loadBills()"> Difference only</label>
+      <input class="form-control" [(ngModel)]="billFilter.q" (keydown.enter)="loadBills()" placeholder="Search ST number, centre or person" autocomplete="off">
+      <button class="btn btn-outline btn-sm" (click)="loadBills()">Search</button>
+      <button class="btn btn-outline btn-sm" (click)="clearBillFilters()">Clear</button>
+    </div>
+
+    <div class="bill-by-centre" *ngIf="bills.summary?.by_centre?.length">
+      <span class="bill-card-label">By receiving centre</span>
+      <div class="bill-chips">
+        <span class="bill-chip" *ngFor="let c of bills.summary.by_centre">{{ c.centre }} <small>{{ c.transfers }} · ₹ {{ c.total | number:'1.0-0' }}</small></span>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Transfer</th>
+            <th>From</th>
+            <th>To (received at)</th>
+            <th>Received by</th>
+            <th>Received on</th>
+            <th>Items</th>
+            <th class="req-money-col">Value (with GST)</th>
+            <th>Status</th>
+            <th>Bill</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let b of bills.results; trackBy: trackById">
+            <td class="amount-bold">ST-{{ b.id }}</td>
+            <td>{{ b.from_name }}</td>
+            <td>{{ b.to_name }}</td>
+            <td>{{ b.received_by_name || '-' }}</td>
+            <td>{{ b.received_at | date:'d MMM y, HH:mm' }}</td>
+            <td>{{ b.item_count }}</td>
+            <td class="req-money amount-bold">{{ b.amounts.accepted_total | number:'1.2-2' }}</td>
+            <td>
+              <span class="status-badge" *ngIf="b.has_difference" style="background:#fee2e2;color:#991b1b;" [title]="b.received_note">Difference</span>
+              <span class="status-badge" *ngIf="!b.has_difference" style="background:#dcfce7;color:#166534;">Matched</span>
+            </td>
+            <td>
+              <a *ngIf="b.bill_url" [href]="billHref(b.bill_url)" target="_blank" rel="noopener">View bill</a>
+              <span *ngIf="!b.bill_url" style="color:var(--text-muted)">No bill</span>
+            </td>
+          </tr>
+          <tr *ngIf="!bills.results.length">
+            <td colspan="9" class="empty-state">{{ billsLoading ? 'Loading...' : 'No received transfers match.' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="bill-pager" *ngIf="billPages > 1">
+      <button class="btn btn-outline btn-sm" [disabled]="bills.page <= 1" (click)="loadBills(bills.page - 1)">Previous</button>
+      <span>Page {{ bills.page }} of {{ billPages }}</span>
+      <button class="btn btn-outline btn-sm" [disabled]="bills.page >= billPages" (click)="loadBills(bills.page + 1)">Next</button>
+    </div>
+  </div>
+
+  <div class="tab-content" *ngIf="activeTab === 'Audit'">
+    <div class="tab-header-context">
+      <div>
+        <h2>Physical Stock Audit</h2>
+        <p class="tab-subtitle">Reconcile physical on-shelf stock counts with digital system inventory</p>
+      </div>
+      <div class="context-location-badge">
+        <div class="loc-label">Auditing Center</div>
+        <div class="loc-name">{{ activeCenterDetails?.display_name || activeCenterDetails?.center_name || 'Selected Center' }}</div>
+      </div>
+    </div>
+    
+    <div class="list-card">
+      <div class="table-toolbar">
+        <div class="search-bar-wrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" class="search-input-compact" placeholder="Search product or barcode..." [(ngModel)]="auditSearchTerm" (ngModelChange)="onAuditSearch()">
+        </div>
+        <button class="btn btn-primary-gradient btn-sm" *ngIf="can('audit', 'update')" (click)="processAudit()" [disabled]="isSaving">
+          <span *ngIf="isSaving">SUBMITTING...</span>
+          <span *ngIf="!isSaving">SUBMIT AUDIT</span>
+        </button>
+      </div>
+
+      <div class="table-scroll-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>Brand</th>
+              <th>Category</th>
+              <th>Lot #</th>
+              <th>Price</th>
+              <th>Digital Stock</th>
+              <th>Physical Count (Audit)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let product of auditPaginatedProducts; trackBy: trackById">
+              <td><strong>{{ product.name }}</strong></td>
+              <td>{{ product.brand || 'Generic' }}</td>
+              <td><span class="status-badge badge-category">{{ product.category }}</span></td>
+              <td>{{ product.lots && product.lots.length > 0 ? product.lots[0].lot_number : '1' }}</td>
+              <td>{{ product.price !== null ? (product.price | currency:'INR':'symbol':'1.0-2') : '-' }}</td>
+              <td>
+                <span class="stock-pill stock-ok">{{ product.current_stock }}</span>
+              </td>
+              <td>
+                <input type="number" min="0" class="form-control" style="width: 80px;" [(ngModel)]="auditQuantities[product.id]" placeholder="Count">
+              </td>
+            </tr>
+            <tr *ngIf="auditPaginatedProducts.length === 0">
+              <td colspan="7" class="empty-state">No products found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-controls">
+        <button class="btn btn-outline btn-sm" (click)="prevAuditPage()" [disabled]="auditCurrentPage === 1">Previous</button>
+        <span class="text-secondary">Page <strong style="color: #0f172a;">{{ auditCurrentPage }}</strong> of <strong style="color: #0f172a;">{{ auditTotalPages }}</strong></span>
+        <button class="btn btn-outline btn-sm" (click)="nextAuditPage()" [disabled]="auditCurrentPage === auditTotalPages">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       6. STOCK HISTORY TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'Stock History'">
+    <div class="tab-header-context">
+      <div>
+        <h2>Historical Stock Snapshots</h2>
+        <p class="tab-subtitle">Review end-of-day historical inventory stock balances</p>
+      </div>
+      <div class="context-location-badge">
+        <div class="loc-label">Location</div>
+        <div class="loc-name">{{ activeCenterDetails?.display_name || activeCenterDetails?.center_name || 'Selected Center' }}</div>
+      </div>
+    </div>
+    
+    <div class="master-split-layout">
+      <!-- Left: Dates List -->
+      <div class="master-left" style="flex: 0 0 240px;">
+        <div class="list-card">
+          <div class="table-toolbar">
+            <div class="toolbar-title-wrap">
+              <span class="toolbar-icon">📅</span>
+              <h4>Snapshot Dates</h4>
+            </div>
+          </div>
+          <div class="table-scroll-container" style="max-height: calc(calc(100vh / var(--ui-zoom)) - 350px); overflow-y: auto;">
+            <table class="data-table">
+              <tbody>
+                <tr *ngFor="let dateStr of stockHistoryDates; trackBy: trackById" (mousedown)="$event.button === 0 && (viewStockHistoryForDate(dateStr))" [class.active-row]="selectedHistoryDate === dateStr" style="cursor: pointer;">
+                  <td>
+                    <span>{{ formatDisplayDate(dateStr) }}</span>
+                  </td>
+                  <td class="text-right text-secondary">➔</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Data View -->
+      <div class="master-right" style="flex: 1;">
+        <div class="list-card" *ngIf="selectedHistoryDate">
+          <div class="table-toolbar">
+            <div class="toolbar-title-wrap">
+              <span class="toolbar-icon">📊</span>
+              <h4>Records for {{ formatDisplayDate(selectedHistoryDate) }}</h4>
+            </div>
+            <button class="btn btn-emerald-pill btn-sm" (click)="downloadStockHistoryExcel(selectedHistoryDate)">
+              Download CSV
+            </button>
+          </div>
+
+          <div *ngIf="isLoadingHistory" class="empty-state">
+            Loading historical snapshot records...
+          </div>
+
+          <div class="table-scroll-container" *ngIf="!isLoadingHistory" style="max-height: calc(calc(100vh / var(--ui-zoom)) - 350px); overflow-y: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Type</th>
+                  <th class="text-right">Stock</th>
+                  <th class="text-right">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of selectedHistoryRecords; trackBy: trackByIndex">
+                  <td>
+                    <strong>{{ item.name }}</strong>
+                    <span class="text-secondary" style="margin-left: 4px; font-size: 10px;">({{ item.brand || 'Generic' }})</span>
+                  </td>
+                  <td><span class="status-badge badge-category">{{ item.category }}</span></td>
+                  <td class="text-right"><strong>{{ item.historical_stock }}</strong></td>
+                  <td class="text-right amount-bold">{{ ((item.price * item.historical_stock) || 0) | currency:'INR':'symbol':'1.0-2' }}</td>
+                </tr>
+                <tr *ngIf="selectedHistoryRecords.length === 0">
+                  <td colspan="4" class="empty-state">No historical records found for this date.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="empty-state list-card" *ngIf="!selectedHistoryDate" style="padding: 30px;">
+          Select a snapshot date from the left to view historical balances.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       7. PO HISTORY TAB
+       ============================================================ -->
+  <div class="tab-content" *ngIf="activeTab === 'PO History'">
+    <div class="tab-header-context">
+      <div>
+        <h2>Confirmed Purchase Receipts</h2>
+        <p class="tab-subtitle">Delivered purchase orders received into stock</p>
+      </div>
+      <div class="context-location-badge">
+        <div class="loc-label">Location</div>
+        <div class="loc-name">{{ activeCenterDetails?.display_name || activeCenterDetails?.center_name || 'Selected Center' }}</div>
+      </div>
+    </div>
+    
+    <div class="list-card">
+      <div class="table-scroll-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>PO #</th>
+              <th>Date Created</th>
+              <th>Invoice No</th>
+              <th>Vendor</th>
+              <th>Center</th>
+              <th>Items</th>
+              <th>Amount (Tax Incl)</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let po of deliveredPurchaseOrders; trackBy: trackById" style="cursor: pointer;" (mousedown)="$event.button === 0 && (setTab('Purchase Orders')); $event.button === 0 && (selectPO(po))">
+              <td><strong>#{{ po.id }}</strong></td>
+              <td>{{ po.created_at | date:'d-MMM-yyyy HH:mm' }}</td>
+              <td>{{ po.invoice_number || '-' }}</td>
+              <td>{{ po.vendor_details?.name || 'Vendor ID: ' + po.vendor }}</td>
+              <td>{{ activeCenterDetails?.display_name || activeCenterDetails?.center_name || 'Selected Center' }}</td>
+              <td><span class="status-badge badge-category">{{ po.items?.length || 0 }} items</span></td>
+              <td class="amount-bold">{{ po.total_amount | currency:'INR':'symbol':'1.0-2' }}</td>
+              <td>
+                <button class="btn btn-blue-pill btn-sm">View Details</button>
+              </td>
+            </tr>
+            <tr *ngIf="deliveredPurchaseOrders.length === 0">
+              <td colspan="8" class="empty-state">No confirmed receipts found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>

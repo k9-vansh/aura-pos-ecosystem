@@ -1,0 +1,133 @@
+<div class="landing-col">
+  <div class="landing-header-new">
+    <div class="header-icon icon-invoice">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+    </div>
+    Open Invoices
+  </div>
+  <div class="landing-list">
+    <div *ngIf="globalInvoices.length === 0" class="empty-state">
+      <i class="fa fa-inbox"></i>
+      <span>No open invoices right now</span>
+    </div>
+    <div *ngFor="let inv of globalInvoices" class="landing-item" (mousedown)="$event.button === 0 && onInvoiceClick.emit(inv)">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+        <div style="font-weight: 700; font-size: 13px; color: var(--text-primary, #1e293b);">
+          {{ inv.client?.first_name || 'Walk-in' }} {{ inv.client?.last_name || '' }}
+        </div>
+        <div style="font-size: 12px; font-weight: 700; color: #10b981;">Rs. {{ inv.total_amount }}</div>
+      </div>
+      <div style="font-size: 11px; color: #64748b; display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+        <div><i class="fa fa-hashtag" style="opacity: 0.5"></i> {{ inv.id }}</div>
+        <button (mousedown)="$event.stopPropagation(); $event.button === 0 && onDeleteInvoice.emit(inv)" style="background: #fee2e2; color: #ef4444; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 600;" title="Delete draft invoice">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="landing-col">
+  <div class="landing-header-new">
+    <div class="header-icon icon-appt">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M9 16l2 2 4-4"></path></svg>
+    </div>
+    Appointments
+  </div>
+  <div class="landing-list">
+    <div *ngIf="appointments.length === 0" class="empty-state">
+      <i class="fa fa-calendar-times"></i>
+      <span>No appointments today</span>
+    </div>
+    <div *ngFor="let appt of appointments" class="landing-item" 
+         [ngStyle]="{'opacity': (appt.invoice_status === 'paid' || appt.invoice_status === 'partial') ? '0.7' : '1'}">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+        <div style="font-weight: 700; font-size: 13px; color: var(--text-primary, #1e293b);">{{ appt.client_name }}</div>
+        
+        <div *ngIf="appt.invoice_status === 'paid' || appt.invoice_status === 'partial'" style="background: #dcfce7; color: #16a34a; padding: 1px 6px; border-radius: 10px; font-size: 9.5px; font-weight: 700; text-transform: uppercase;">
+          Billed
+        </div>
+        <div *ngIf="appt.invoice_status === 'draft'" style="background: #fef9c3; color: #ca8a04; padding: 1px 6px; border-radius: 10px; font-size: 9.5px; font-weight: 700; text-transform: uppercase;">
+          Draft
+        </div>
+        <div *ngIf="!appt.invoice_status" style="background: #f1f5f9; color: #64748b; padding: 1px 6px; border-radius: 10px; font-size: 9.5px; font-weight: 700; text-transform: uppercase;">
+          Unbilled
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #64748b; display: flex; gap: 8px; margin-bottom: 6px;">
+        <span><i class="fa fa-clock" style="color: #cbd5e1; margin-right:3px;"></i> {{ appt.start_time }}</span>
+      </div>
+      <div *ngIf="appt.services && appt.services.length > 0" style="background: #f1f5f9; padding: 6px 8px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px;">
+        <div *ngFor="let svc of appt.services" style="font-size: 11px; color: #475569; display: flex; justify-content: space-between; align-items: center;">
+           <span style="font-weight: 500;">{{ svc.service_name }}</span>
+           <span style="font-size: 10px; color: #94a3b8;"><i class="fa fa-user-circle"></i> {{ svc.staff_name || 'Any Staff' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="landing-col">
+  <div class="landing-header-new">
+    <div class="header-icon icon-staff">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    </div>
+    Staff Activity
+  </div>
+  <div class="landing-list">
+    <div *ngIf="staffActivity.length === 0" class="empty-state">
+      <i class="fa fa-user-clock"></i>
+      <span>No staff activity today</span>
+    </div>
+    <div *ngFor="let stat of staffActivity" class="landing-item" style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; font-size: 12px;">
+          {{ stat.staff_name.charAt(0) }}
+        </div>
+        <div style="font-weight: 600; font-size: 13px; color: #1e293b;">{{ stat.staff_name }}</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-weight: 700; color: #10b981; font-size: 12px;">Rs. {{ stat.amount || 0 }}</div>
+        <div style="font-size: 10px; color: #94a3b8;">{{ stat.count || 0 }} items</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="landing-col">
+  <div class="landing-header-new">
+    <div class="header-icon icon-live">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+    </div>
+    Live Activity Feed
+  </div>
+  <div class="landing-list">
+    <div *ngIf="activityFeed.length === 0" class="empty-state">
+      <i class="fa fa-clipboard-list"></i>
+      <span>No activities recorded yet</span>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; position: relative; gap: 6px;">
+      <!-- Timeline connecting line -->
+      <div *ngIf="activityFeed.length > 0" style="position: absolute; left: 13px; top: 8px; bottom: 8px; width: 2px; background: #e2e8f0; z-index: 1;"></div>
+      
+      <div *ngFor="let act of activityFeed" style="display: flex; gap: 8px; position: relative; z-index: 2; padding: 2px 0;">
+        <div style="width: 26px; height: 26px; border-radius: 50%; background: #ffffff; border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #10b981; font-size: 11px; flex-shrink: 0; box-shadow: 0 0 0 2px #ffffff;">
+          {{ act.staff_name.charAt(0) }}
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px;">
+            <div style="font-weight: 600; font-size: 12px; color: var(--text-primary); line-height: 1.3;">
+              {{ act.staff_name }} <span style="font-weight: 400; color: #64748b;">sold</span> {{ act.service_name }}
+            </div>
+            <div style="font-size: 11.5px; font-weight: 700; color: #10b981; margin-left: 6px; flex-shrink: 0;">Rs. {{ act.price }}</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #94a3b8;">
+            <div><i class="fa fa-user-circle" style="margin-right:3px;"></i>{{ act.client_name || 'Walk-in' }}</div>
+            <div><i class="fa fa-clock" style="margin-right:3px;"></i>{{ act.time }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,688 @@
+/* ==========================================================================
+   Overview (home) - soft glass cards, dot-matrix numerals, gradient cards.
+   Everything fits on one screen. Display only: every number comes from the
+   same data as before. The previous stylesheet is kept in
+   ./_original-2026-10-14/.
+   ========================================================================== */
+
+:host {
+  display: block;
+  width: 100%;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--ov-ink);
+  background: transparent;           /* the app's own background shows through */
+  font-size: 14px;
+  position: relative;
+
+  --ov-ink: #1b1c20;
+  --ov-muted: #8b8e96;
+  --ov-card: rgba(255, 255, 255, 0.78);
+  --ov-card-solid: #f6f6f8;
+  --ov-line: rgba(255, 255, 255, 0.9);
+  --ov-shadow: 0 10px 30px rgba(24, 28, 40, 0.07), 0 2px 6px rgba(24, 28, 40, 0.04);
+  --ov-lime: #d3f236;
+  --ov-dot: #1d1f25;
+  --ov-pill: #ffffff;
+  --ov-pill-ink: #1b1c20;
+}
+
+:host-context([data-theme="dark"]) {
+  --ov-ink: #eef1f6;
+  --ov-muted: #8f98a8;
+  --ov-card: rgba(30, 36, 48, 0.72);
+  --ov-card-solid: #1a2030;
+  --ov-line: rgba(255, 255, 255, 0.07);
+  --ov-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --ov-dot: #dfe5f0;
+  --ov-pill: #252d3d;
+  --ov-pill-ink: #eef1f6;
+}
+
+/* One screen: header, strip, hero row, workspaces. On a short window the rows
+   shrink to their minimums and the page scrolls instead. */
+.home-wrapper {
+  display: grid;
+  /* The rows share the window height; the caps below keep them from ballooning
+     on a big monitor, and the floors let a small laptop scroll a little. */
+  grid-template-rows: auto minmax(250px, 1.5fr) minmax(130px, 1fr);
+  gap: 18px;
+  align-content: start;
+  height: max(620px, calc(100vh / var(--ui-zoom) - 150px));
+  padding: 4px 6px 18px;
+}
+.ov-main { max-height: 430px; }
+.ov-modules { max-height: 250px; }
+
+/* ---- dot-matrix numerals: a bold face seen through a grid of dots ------- */
+.dots {
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: transparent;
+  background-image: radial-gradient(circle at center, var(--ov-dot) 0 52%, transparent 58%);
+  background-size: 4px 4px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+/* the unit (k, L, %) is small, so it is drawn solid to stay readable */
+.dots small {
+  font-size: 0.4em;
+  font-weight: 800;
+  margin-left: 5px;
+  letter-spacing: 0;
+  background: none;
+  -webkit-text-fill-color: var(--ov-dot);
+  color: var(--ov-dot);
+}
+.dots-light { --ov-dot: #ffffff; }
+
+/* ======================= header ======================= */
+.ov-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.ov-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--ov-muted);
+  margin-bottom: 10px;
+}
+.ov-head-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ov-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--ov-card);
+  border: 1px solid var(--ov-line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ov-muted);
+}
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  animation: ovPulse 1.8s infinite;
+}
+@keyframes ovPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  70% { box-shadow: 0 0 0 9px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.ov-stats { display: flex; gap: 38px; flex-wrap: wrap; }
+.ov-stat { display: flex; flex-direction: column; gap: 8px; min-width: 76px; }
+.ov-num { font-size: 42px; }
+.ov-tag {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ov-muted);
+  background: var(--ov-card);
+  border: 1px solid var(--ov-line);
+}
+.ov-tag-lime { background: var(--ov-lime); color: #20260a; border-color: transparent; }
+
+/* ======================= month strip ======================= */
+.ov-strip {
+  position: relative;
+  border-radius: 34px;
+  background: var(--ov-card);
+  border: 1px solid var(--ov-line);
+  box-shadow: var(--ov-shadow);
+  backdrop-filter: blur(18px);
+}
+.ov-strip-chart { position: absolute; inset: 10px 30px 24px; }
+.ov-strip-chart canvas { width: 100% !important; height: 100% !important; }
+.ov-strip-pill {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -62%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px 8px 14px;
+  border-radius: 999px;
+  background: var(--ov-pill);
+  box-shadow: 0 8px 24px rgba(24, 28, 40, 0.14);
+  pointer-events: none;
+}
+.ov-strip-pill i { color: #16a34a; font-size: 14px; }
+.ov-strip-pill b { display: block; font-size: 14px; font-weight: 700; line-height: 1.1; color: var(--ov-pill-ink); }
+.ov-strip-pill span { display: block; font-size: 10.5px; color: var(--ov-muted); margin-top: 2px; }
+.ov-strip-end {
+  position: absolute;
+  bottom: 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ov-muted);
+  right: 30px;
+}
+.ov-strip-start { left: 30px; right: auto; }
+
+/* ======================= hero row ======================= */
+.ov-main {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr 0.85fr;
+  gap: 16px;
+  min-height: 0;
+}
+
+.ov-glass {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  padding: 18px 22px 16px;
+  border-radius: 32px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--ov-shadow);
+  isolation: isolate;
+}
+.ov-glass-green  { background: linear-gradient(172deg, #f2c984 0%, #cfdc78 34%, #6fbf55 66%, #2f9a3e 100%); }
+.ov-glass-sunset { background: linear-gradient(172deg, #aebdd6 0%, #c9c1bd 28%, #f59a2c 62%, #bdc7d8 100%); }
+.ov-glass-blobs { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.ov-glass-blobs i { position: absolute; border-radius: 50%; filter: blur(34px); opacity: 0.9; }
+.ov-glass-green .ov-glass-blobs i:nth-child(1)  { width: 60%; height: 46%; left: -12%; bottom: -10%; background: #1f9a3a; }
+.ov-glass-green .ov-glass-blobs i:nth-child(2)  { width: 52%; height: 38%; right: -10%; top: -6%;    background: #f0a64a; }
+.ov-glass-green .ov-glass-blobs i:nth-child(3)  { width: 40%; height: 30%; left: 28%; top: 30%;      background: #f6e27a; }
+.ov-glass-sunset .ov-glass-blobs i:nth-child(1) { width: 62%; height: 48%; left: 18%; top: 22%;      background: #ff8a00; }
+.ov-glass-sunset .ov-glass-blobs i:nth-child(2) { width: 46%; height: 34%; left: -12%; top: -8%;     background: #9fb2d3; }
+.ov-glass-sunset .ov-glass-blobs i:nth-child(3) { width: 46%; height: 34%; right: -10%; bottom: -8%; background: #aeb9cf; }
+
+.ov-glass-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.ov-icon-btn {
+  position: absolute;
+  right: 0; top: -5px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  backdrop-filter: blur(6px);
+  transition: background 0.15s;
+}
+.ov-icon-btn:hover { background: rgba(255, 255, 255, 0.5); }
+
+.ov-glass-body { text-align: center; }
+.ov-big { font-size: clamp(64px, 11vh, 104px); display: inline-block; filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.12)); }
+.ov-glass-status { margin-top: 8px; font-size: 14px; font-weight: 600; color: #fff; }
+.ov-glass-sub { margin-top: 2px; font-size: 12.5px; font-weight: 500; color: rgba(255, 255, 255, 0.82); }
+.ov-check {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.ov-check input { accent-color: #1b1c20; width: 14px; height: 14px; margin: 0; }
+
+.ov-edit { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.ov-target-input {
+  width: 70%;
+  padding: 10px 16px;
+  border-radius: 18px;
+  border: 0;
+  outline: none;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1b1c20;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+.ov-edit-btns { display: flex; gap: 10px; }
+.ov-btn {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.85);
+  color: #1b1c20;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ov-btn-dark { background: #1b1c20; color: #fff; }
+
+/* the dotted ruler under each hero card */
+.ov-ruler { display: flex; align-items: flex-end; justify-content: space-between; height: 22px; padding: 0 2px; }
+.ov-ruler i { display: block; width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, 0.38); }
+/* !important: a global dark-theme rule recolours any element with class "on" */
+.ov-ruler i.on { background: #fff !important; box-shadow: 0 0 8px rgba(255, 255, 255, 0.9); }
+.ov-ruler-ticks i { width: 1.5px; height: 9px; border-radius: 1px; background: rgba(255, 255, 255, 0.55); }
+.ov-ruler-ticks i.tall { height: 20px; background: #fff; }
+
+/* ---- right-hand stack ---- */
+.ov-side { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; min-width: 0; min-height: 0; }
+.ov-card {
+  position: relative;
+  border-radius: 28px;
+  background: var(--ov-card);
+  border: 1px solid var(--ov-line);
+  box-shadow: var(--ov-shadow);
+  backdrop-filter: blur(18px);
+  padding: 16px 18px 14px;
+  min-width: 0;
+  min-height: 0;
+}
+.ov-card-title { font-size: 12.5px; font-weight: 600; color: var(--ov-muted); margin-bottom: 8px; }
+
+.ov-account { display: flex; flex-direction: column; }
+.ov-account-who { font-size: 13.5px; line-height: 1.35; }
+.ov-account-who strong { font-weight: 700; }
+.ov-account-btns { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+.ov-pill {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  background: var(--ov-card-solid);
+  color: var(--ov-ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.ov-pill:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(24, 28, 40, 0.1); }
+
+.ov-orb-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(160deg, #ffb3c4 0%, #ff5f8d 70%, #ff3f7a 100%);
+  border: 0;
+  color: #fff;
+  overflow: hidden;
+}
+.ov-orb { position: relative; flex: 1; width: 100%; display: grid; place-items: center; min-height: 0; }
+.ov-orb i { position: absolute; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.65); }
+.ov-orb i:nth-child(1) { width: 78px; height: 78px; animation: ovRing 3.2s ease-in-out infinite; }
+.ov-orb i:nth-child(2) { width: 52px; height: 52px; border-color: rgba(255, 255, 255, 0.85); animation: ovRing 3.2s 0.4s ease-in-out infinite; }
+.ov-orb i:nth-child(3) { width: 22px; height: 22px; background: #fff !important; border: 0; box-shadow: 0 0 20px rgba(255, 255, 255, 0.95); }
+@keyframes ovRing {
+  0%, 100% { transform: scale(0.94); opacity: 0.75; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+.ov-orb-label { font-size: 12.5px; font-weight: 600; letter-spacing: 0.3px; }
+
+.ov-collect { display: flex; flex-direction: column; justify-content: space-between; }
+.ov-collect-body { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ov-collect-amt { font-size: 36px; }
+.ov-collect-sub { margin-top: 6px; font-size: 11.5px; color: var(--ov-muted); }
+.ov-vial {
+  position: relative;
+  width: 34px; height: 62px;
+  flex: none;
+  border-radius: 17px 17px 14px 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(230, 232, 238, 0.9));
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.06), 0 6px 14px rgba(24, 28, 40, 0.12);
+  overflow: hidden;
+}
+.ov-vial-fill {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #ffb25a, #ff7a1a);
+  transition: height 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+.ov-collect-track { height: 5px; border-radius: 999px; background: rgba(0, 0, 0, 0.08); overflow: hidden; }
+.ov-collect-track i { display: block; height: 100%; border-radius: 999px; background: var(--ov-lime); box-shadow: 0 0 10px rgba(180, 220, 30, 0.7); transition: width 1s ease; }
+.ov-collect-legend { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--ov-muted); }
+
+
+/* ---- period select ---- */
+.ov-select {
+  appearance: none;
+  padding: 7px 30px 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--ov-line);
+  background: var(--ov-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b8e96' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+  color: var(--ov-ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ---- actual / target / projection inside the target card ---- */
+.ov-trio { margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.ov-trio span { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: rgba(255, 255, 255, 0.75); }
+.ov-trio b { display: block; margin-top: 2px; font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; }
+
+/* ---- sales mix ---- */
+.ov-mix { display: flex; flex-direction: column; padding: 18px 22px 14px; }
+.ov-mix .ov-card-title { color: var(--ov-ink); font-size: 15px; margin-bottom: 0; }
+.ov-mix-sub { font-size: 11.5px; color: var(--ov-muted); margin: 2px 0 8px; }
+.ov-mix-rows { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.ov-mix-row {
+  display: grid;
+  grid-template-columns: 92px 1fr 78px 38px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.ov-mix-row:last-child { border-bottom: 0; }
+.ov-mix-name { font-weight: 500; }
+.ov-mix-bar { height: 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.07); overflow: hidden; }
+.ov-mix-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3aa34a, #d3f236); transition: width 0.8s ease; }
+.ov-mix-val { text-align: right; color: var(--ov-muted); font-variant-numeric: tabular-nums; }
+.ov-mix-pct { text-align: right; font-weight: 700; }
+.ov-mix-link { margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--ov-muted); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; align-self: flex-start; }
+.ov-mix-link:hover { color: var(--ov-ink); }
+
+/* ======================= workspaces: gradient glass tiles ======================= */
+.ov-modules { display: flex; flex-direction: column; min-height: 0; }
+.ov-modules-head { margin-bottom: 10px; }
+.ov-modules-head h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+
+.ov-module-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+.ov-module {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 118px;
+  padding: 16px 18px 15px;
+  border-radius: 28px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(165deg,
+      color-mix(in srgb, var(--c) 80%, #fff) 0%,
+      var(--c) 50%,
+      color-mix(in srgb, var(--c) 66%, #000) 130%);
+  box-shadow: var(--ov-shadow);
+  animation: ovRise 0.5s both ease-out;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+/* soft light and shade blobs, like the hero cards */
+.ov-module::before,
+.ov-module::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(26px);
+  pointer-events: none;
+}
+.ov-module::before { width: 60%; height: 60%; left: -14%; top: -30%; background: rgba(255, 255, 255, 0.38); }
+.ov-module::after  { width: 62%; height: 62%; right: -16%; bottom: -30%; background: color-mix(in srgb, var(--c) 55%, #000); opacity: 0.55; }
+.ov-module:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(24, 28, 40, 0.16); }
+@keyframes ovRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.ov-module-top { display: flex; align-items: center; justify-content: space-between; }
+.ov-module-orb {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.26);
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+.ov-module-orb svg { width: 20px; height: 20px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3)); }
+.ov-module-go {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 10px;
+  transition: background 0.2s, transform 0.2s;
+}
+.ov-module:hover .ov-module-go { background: rgba(255, 255, 255, 0.5); transform: translate(2px, -2px); }
+.ov-module-title { font-size: 16px; font-weight: 600; letter-spacing: -0.1px; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.18); }
+.ov-module-desc {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.18);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ======================= short windows (small laptops) ======================= */
+@media (max-height: 800px) {
+  .home-wrapper { height: max(540px, calc(100vh / var(--ui-zoom) - 140px)); gap: 12px; grid-template-rows: auto minmax(210px, 1.5fr) minmax(104px, 1fr); }
+  .ov-eyebrow { margin-bottom: 6px; }
+  .ov-num { font-size: 32px; }
+  .ov-stats { gap: 28px; }
+  .ov-big { font-size: clamp(52px, 9vh, 80px); }
+  .ov-strip-chart { inset: 6px 24px 20px; }
+  .ov-strip-pill { padding: 5px 16px 5px 12px; }
+  .ov-glass { padding: 14px 18px 12px; }
+  .ov-trio { margin-top: 6px; }
+  .ov-mix { padding: 12px 18px 10px; }
+  .ov-mix-sub { margin-bottom: 2px; }
+  .ov-mix-row { padding: 1px 0; font-size: 12px; }
+  .ov-modules-head { margin-bottom: 6px; }
+  .ov-module { padding: 12px 14px 12px; min-height: 0; }
+  .ov-module-orb { width: 32px; height: 32px; }
+  .ov-module-title { font-size: 14.5px; }
+  .ov-module-desc { font-size: 11px; -webkit-line-clamp: 1; }
+  .ov-card { padding: 12px 16px 10px; overflow: hidden; }
+  .ov-card-title { margin-bottom: 4px; }
+  .ov-account-btns { flex-direction: row; }
+  .ov-account-btns .ov-pill { flex: 1; padding: 6px 8px; font-size: 11px; }
+  .ov-vial, .ov-collect-sub { display: none; }
+  .ov-collect-amt { font-size: 30px; }
+  .ov-orb i:nth-child(1) { width: 62px; height: 62px; }
+  .ov-orb i:nth-child(2) { width: 42px; height: 42px; }
+}
+
+/* ======================= responsive ======================= */
+@media (max-width: 980px) {
+  .home-wrapper { height: auto; grid-template-rows: auto auto auto; }
+  .ov-main, .ov-modules { max-height: none; }
+  .ov-main { grid-template-columns: 1fr 1fr; }
+  .ov-mix { grid-column: 1 / -1; }
+  .ov-glass { min-height: 260px; }
+  .ov-side { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+}
+@media (max-width: 640px) {
+  .ov-main, .ov-side { grid-template-columns: 1fr; }
+  .ov-mix-row { grid-template-columns: 80px 1fr 64px 34px; }
+  .ov-big { font-size: 64px; }
+  .ov-stats { gap: 24px; }
+  .ov-num { font-size: 36px; }
+  .ov-strip-pill { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ov-module, .pulse-dot, .ov-orb i { animation: none; }
+}
+
+/* ======================= workspace tiles, second pass: same mesh look as the hero cards ======================= */
+.ov-module {
+  border-radius: 30px;
+  padding: 16px 18px 15px;
+  background:
+    radial-gradient(70% 90% at 88% 6%,  color-mix(in srgb, var(--c) 45%, #ffd98a) 0%, transparent 62%),
+    radial-gradient(75% 85% at 6% 100%, color-mix(in srgb, var(--c) 60%, #04290f) 0%, transparent 66%),
+    radial-gradient(60% 70% at 50% 45%, color-mix(in srgb, var(--c) 70%, #fff) 0%, transparent 70%),
+    linear-gradient(170deg, color-mix(in srgb, var(--c) 78%, #fff) 0%, var(--c) 60%, color-mix(in srgb, var(--c) 70%, #000) 125%);
+}
+.ov-module::before { background: rgba(255, 255, 255, 0.22); }
+.ov-module::after  { opacity: 0.35; }
+.ov-module-orb { width: 40px; height: 40px; background: rgba(255, 255, 255, 0.3); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55), 0 6px 14px rgba(0, 0, 0, 0.12); }
+.ov-module-orb svg { width: 21px; height: 21px; }
+.ov-module-title { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+.ov-module-desc { font-size: 11.5px; line-height: 1.35; -webkit-line-clamp: 2; color: rgba(255, 255, 255, 0.92); }
+
+@media (max-height: 800px) {
+  .home-wrapper { grid-template-rows: auto minmax(210px, 1.4fr) minmax(128px, 1fr); }
+  .ov-module { padding: 13px 15px 12px; }
+  .ov-module-orb { width: 34px; height: 34px; }
+  .ov-module-title { font-size: 15px; }
+  .ov-module-desc { font-size: 11px; -webkit-line-clamp: 2; }
+}
+
+/* ======================= revenue gauge card ======================= */
+.ov-gauge { display: flex; flex-direction: column; padding: 16px 20px 14px; overflow: hidden; }
+.ov-gauge-head { display: flex; align-items: center; justify-content: space-between; }
+.ov-gauge .ov-card-title { color: var(--ov-ink); font-size: 14px; margin: 0; }
+.ov-icon-btn-light { position: static; background: rgba(0, 0, 0, 0.06); color: var(--ov-muted); }
+.ov-icon-btn-light:hover { background: rgba(0, 0, 0, 0.12); }
+.ov-gauge-dial { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 6px 0 0; }
+.ov-gauge-dial svg { width: min(100%, 230px); max-height: 100%; overflow: visible; }
+.ov-gauge-track { stroke: rgba(0, 0, 0, 0.08); }
+.ov-gauge-arc { transition: d 0.9s ease; }
+.ov-gauge-pct { position: absolute; left: 50%; bottom: 26%; transform: translateX(-50%); font-size: 30px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+.ov-gauge-pct small { font-size: 0.5em; margin-left: 2px; color: var(--ov-muted); }
+.ov-gauge-end { position: absolute; bottom: 20%; font-size: 11px; font-weight: 600; color: var(--ov-muted); }
+.ov-gauge-end-l { left: calc(50% - min(50%, 115px) + 2px); }
+.ov-gauge-end-r { right: calc(50% - min(50%, 115px) + 2px); }
+.ov-gauge-status { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--ov-muted); }
+.ov-gauge-edit { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; }
+.ov-gauge-edit label { font-size: 12px; color: var(--ov-muted); font-weight: 600; }
+.ov-target-input-light { background: var(--ov-card-solid); color: var(--ov-ink); width: 80%; }
+.ov-btn-light { background: var(--ov-card-solid); }
+.ov-gauge-stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid rgba(0, 0, 0, 0.07); margin-top: 8px; }
+.ov-gauge-stats > div { padding: 8px 4px 2px 10px; }
+.ov-gauge-stats > div:nth-child(odd) { border-right: 1px solid rgba(0, 0, 0, 0.07); padding-left: 0; }
+.ov-gauge-stats > div:nth-child(n+3) { border-top: 1px solid rgba(0, 0, 0, 0.07); }
+.ov-gauge-stats span { display: block; font-size: 11px; color: var(--ov-muted); font-weight: 600; }
+.ov-gauge-stats b { display: block; font-size: 16px; font-weight: 700; margin-top: 1px; white-space: nowrap; }
+.ov-gauge-stats b.accent { color: #0b6e8a; }
+
+/* ---- change-password dialog ---- */
+.ov-modal-back { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 18, 28, 0.45); backdrop-filter: blur(4px); display: grid; place-items: center; }
+.ov-modal { width: min(380px, 92vw); padding: 24px 26px 20px; border-radius: 28px; background: var(--ov-card-solid); color: var(--ov-ink); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; gap: 12px; }
+.ov-modal h3 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+.ov-modal label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--ov-muted); }
+.ov-modal input { padding: 10px 14px; border-radius: 14px; border: 1px solid rgba(0, 0, 0, 0.1); background: rgba(255, 255, 255, 0.6); color: var(--ov-ink); font-family: inherit; font-size: 14px; outline: none; }
+.ov-modal input:focus { border-color: #3aa34a; box-shadow: 0 0 0 3px rgba(58, 163, 74, 0.18); }
+.ov-modal-err { font-size: 12.5px; color: #b91c1c; font-weight: 600; }
+.ov-modal-ok { font-size: 13.5px; margin: 4px 0 0; }
+.ov-modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.ov-modal .ov-btn-light { background: rgba(0, 0, 0, 0.06); }
+.ov-modal .ov-btn:disabled { opacity: 0.6; cursor: default; }
+
+
+/* ==========================================================================
+   Workspace cards, plain and restrained: the sidebar's own icon, large and
+   centred in the card, fading out softly; title and description underneath.
+   ========================================================================== */
+.ov-module { justify-content: flex-end; min-height: 150px; }
+.ov-module-go { position: absolute; top: 14px; right: 14px; z-index: 2; }
+.ov-module-art {
+  position: absolute; left: 0; right: 0; top: 6%; height: 58%;
+  display: grid; place-items: center; pointer-events: none; color: var(--c);
+}
+.ov-module-art::before {
+  content: ''; position: absolute; width: 110px; height: 110px; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 26%, transparent), transparent);
+}
+.ov-module-art svg {
+  position: relative; width: 62px; height: 62px; opacity: 0.78;
+  -webkit-mask-image: radial-gradient(circle at 50% 38%, #000 38%, rgba(0, 0, 0, 0.14) 100%);
+  mask-image: radial-gradient(circle at 50% 38%, #000 38%, rgba(0, 0, 0, 0.14) 100%);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.ov-module:hover .ov-module-art svg { transform: translateY(-3px) scale(1.05); opacity: 1; }
+.ov-module-orb { display: none !important; }
+.ov-module-text { position: relative; z-index: 1; }
+:host-context([data-theme="dark"]) .ov-module-art, :host-context([data-theme="colorful"]) .ov-module-art { color: #ffffff; }
+:host-context([data-theme="dark"]) .ov-module-art::before, :host-context([data-theme="colorful"]) .ov-module-art::before { background: radial-gradient(closest-side, rgba(255, 255, 255, 0.22), transparent); }
+
+
+/* ==========================================================================
+   Workspace cards, version 2: one colour, centred, quiet.
+   A recessed round well holds the sidebar icon; a large faint copy of the
+   same icon fades out behind it; the text is centred underneath.
+   ========================================================================== */
+.ov-module { align-items: center; justify-content: flex-end; text-align: center; min-height: 158px; padding: 16px 14px 14px; }
+.ov-module-art { top: 0; height: 66%; color: #3a9ba5; }
+.ov-module-art::before { display: none; }
+.ov-module-mark {
+  position: absolute; width: 132px; height: 132px; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  opacity: 0.12; color: currentColor;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 68%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 68%);
+}
+.ov-module-well {
+  position: relative; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%;
+  color: currentColor;
+  background: #e9eef4;
+  box-shadow: inset 5px 5px 10px rgba(163, 177, 198, 0.65), inset -5px -5px 10px rgba(255, 255, 255, 0.95);
+  transition: transform 0.25s ease;
+}
+.ov-module-well svg { width: 28px; height: 28px; opacity: 1; -webkit-mask-image: none; mask-image: none; transform: none; }
+.ov-module:hover .ov-module-well { transform: translateY(-2px); }
+.ov-module:hover .ov-module-art svg { transform: none; }
+.ov-module-text { text-align: center; }
+.ov-module-title { font-size: 15px; font-weight: 600; }
+.ov-module-desc { font-size: 11.5px; }
+.ov-module-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* dark / colorful: the well is a frosted disc, the icon white */
+:host-context([data-theme="dark"]) .ov-module-art, :host-context([data-theme="colorful"]) .ov-module-art { color: #ffffff; }
+:host-context([data-theme="dark"]) .ov-module-well, :host-context([data-theme="colorful"]) .ov-module-well {
+  background: rgba(255, 255, 255, 0.2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+
+/* ---- gauge: nothing spills out of the dial, even at 100% or more ---- */
+.ov-gauge-dial { padding-bottom: 14px; overflow: hidden; }
+.ov-gauge-dial svg { overflow: hidden; }
+.ov-gauge-pct { bottom: 34%; }
+.ov-gauge-end { bottom: 14px; }
+.ov-gauge-end-l { left: calc(50% - min(50%, 115px) + 16px); }
+.ov-gauge-end-r { right: calc(50% - min(50%, 115px) + 12px); }
+.ov-gauge-status { bottom: 0; }
+.ov-gauge-stats { margin-top: 14px; }
+
+/* ---- workspace cards: the faint background icon sits centred behind the well (a later rule had moved it) ---- */
+.ov-module-art .ov-module-mark {
+  position: absolute; width: 140px; height: 140px; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); opacity: 0.1; z-index: 0;
+}
+.ov-module-art .ov-module-well { z-index: 1; }
+
+
+/* ---- "Still to collect": the bar shows in every theme, and the note stays visible ---- */
+.ov-collect-track { background: rgba(128, 128, 128, 0.22) !important; height: 6px; }
+.ov-collect-track i { background: #d3f236 !important; box-shadow: 0 0 10px rgba(190, 225, 40, 0.65) !important; display: block; }
+@media (max-height: 800px) { .ov-collect-sub { display: block !important; } }

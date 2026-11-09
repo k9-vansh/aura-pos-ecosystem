@@ -1,0 +1,478 @@
+<div class="bills-page" style="display: flex; flex-direction: column; height: calc(calc(100vh / var(--ui-zoom)) - 180px); overflow: hidden;">
+  <div class="bills-header" style="width: 100%; display: flex; align-items: center; margin-bottom: 16px;">
+    
+    <!-- Left Side: KPIs and Pagination -->
+    <div style="display: flex; gap: 1rem; align-items: center; margin-right: auto; overflow: hidden; flex: 1;">
+      
+      <!-- Compact Total -->
+      <div class="kpi-card-dark" style="display: flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 6px; background: #0f172a; color: white; white-space: nowrap;">
+        <div style="font-size: 10px; font-weight: 600; color: #94a3b8;">TOTAL LOCATIONS</div>
+        <div style="font-size: 14px; font-weight: 700;">{{ centers.length }}</div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-controls" style="display: flex; gap: 0.25rem; align-items: center;" *ngIf="centers.length > 0">
+          <button class="pill-btn outline-btn" style="padding: 2px 8px; font-size: 11px; min-height: 24px;" (click)="prevPage()" [disabled]="currentPage === 1">Prev</button>
+          <span style="font-size: 11px; font-weight: 500; white-space: nowrap;">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="pill-btn outline-btn" style="padding: 2px 8px; font-size: 11px; min-height: 24px;" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
+      </div>
+    </div>
+    <!-- Right Side: Buttons -->
+    <div class="bills-controls" style="margin-bottom: 0; display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+      <button class="pill-btn" style="background: #fff; color: #374151; border: 1px solid #e2e8f0;" *ngIf="isOwner || (permissions.admin?.centers?.create && permissions.admin?.centers?.actions?.bulk_import)" (click)="openImportModal()">
+        <i class="fa fa-file-excel-o" style="color: #16a34a; margin-right: 6px;"></i> Import Excel
+      </button>
+      <button class="pill-btn black-btn" *ngIf="isOwner || permissions.admin?.centers?.create" (click)="openModal()">
+        + Add New Center
+      </button>
+    </div>
+  </div>
+
+  <div class="bills-list" style="flex: 1; overflow-y: auto; overflow-x: auto; width: 100%;">
+
+      <div class="date-divider" *ngIf="centers.length > 0">ALL CENTERS</div>
+
+      <table class="modern-bills-table" *ngIf="centers.length > 0">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Display Name</th>
+            <th>Region (Location)</th>
+            <th>Branch</th>
+            <th>Phone</th>
+            <th>Owner</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let center of paginatedItems; trackBy: trackById" (click)="openDetail(center)" style="cursor: pointer;">
+            <td>
+              <div class="table-client">
+                <div class="table-avatar">{{ (center.center_name || 'C').charAt(0).toUpperCase() }}</div>
+                <span class="font-semibold">{{ center.center_name }}</span>
+              </div>
+            </td>
+            <td class="text-secondary">{{ center.display_name }}</td>
+            <td>
+              <span class="status-badge badge-paid">
+                {{ center.region || 'No Region' }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" style="background:#e0e7ff; color:#3730a3;">
+                {{ center.sap_branch_name || 'No Branch' }}
+              </span>
+            </td>
+            <td class="text-secondary">{{ center.phone || '-' }}</td>
+            <td class="font-bold">{{ center.owner_name || '-' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="center.is_active ? 'badge-paid' : 'badge-unpaid'">
+                 {{ center.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 8px;">
+                <button class="icon-action-btn" title="Toggle Status" *ngIf="isOwner || permissions.admin?.centers?.update" (click)="$event.stopPropagation(); toggleCenterStatus(center)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                </button>
+                <button class="icon-action-btn" title="Edit Center" *ngIf="isOwner || permissions.admin?.centers?.update" (click)="$event.stopPropagation(); editCenter(center)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="no-bills-msg" *ngIf="centers.length === 0">
+        No centers found. Click "+ Add New Center" to create one.
+      </div>
+    </div>
+</div>
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="showModal">
+    <div class="center-modal">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ isEditing ? 'Edit Center' : 'Add New Center' }}</h2>
+        <button (click)="closeModal()" class="modal-close">&times;</button>
+      </div>
+
+      <form (ngSubmit)="onSubmit()" ngNativeValidate>
+        <h4 class="section-heading" style="margin-top: 0;">Center Details</h4>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Center Name *</label>
+            <input type="text" [(ngModel)]="newCenter.center_name" name="center_name" required class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Display Name</label>
+            <input type="text" [(ngModel)]="newCenter.display_name" name="display_name" class="form-input">
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Address</label>
+            <input type="text" [(ngModel)]="newCenter.address" name="address" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">PIN Code</label>
+            <input type="text" [(ngModel)]="newCenter.pin_code" name="pin_code" maxlength="6" inputmode="numeric" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">GST Number</label>
+            <input type="text" [(ngModel)]="newCenter.gst_number" name="gst_number" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Branch Code</label>
+            <input type="text" [(ngModel)]="newCenter.branch_code" name="branch_code" maxlength="5"
+              placeholder="Assigned automatically, e.g. DL01" class="form-input" style="text-transform: uppercase;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pan Number</label>
+            <input type="text" [(ngModel)]="newCenter.pan_number" name="pan_number" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" [(ngModel)]="newCenter.phone" name="phone" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Landline 1</label>
+            <input type="text" [(ngModel)]="newCenter.landline_1" name="landline_1" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Landline 2</label>
+            <input type="text" [(ngModel)]="newCenter.landline_2" name="landline_2" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Center Email</label>
+            <input type="email" [(ngModel)]="newCenter.center_email" name="center_email" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Region</label>
+            <input type="text" [(ngModel)]="newCenter.region" name="region" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Branch (SAP)</label>
+            <select [(ngModel)]="newCenter.sap_branch_name" name="sap_branch_name" class="form-input">
+              <option value="">-- No Branch --</option>
+              <option *ngFor="let b of sapBranches; trackBy: trackById" [value]="b.BPLName">
+                {{ b.BPLName }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monthly Target</label>
+            <input type="number" min="0" oninput="validity.valid||(value='');" min="0" oninput="validity.valid||(value='');" [(ngModel)]="newCenter.monthly_target" name="monthly_target" class="form-input">
+          </div>
+        </div>
+
+        <h4 class="section-heading">Owners</h4>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Owner 1</label>
+            <div class="multi-input-grid">
+              <input type="text" [(ngModel)]="newCenter.owner_name" name="owner_name" placeholder="Full Name"
+                class="form-input">
+              <input type="text" [(ngModel)]="newCenter.owner_phone" name="owner_phone" placeholder="Mobile"
+                class="form-input">
+              <input type="email" [(ngModel)]="newCenter.owner_email_1" name="owner_email_1" placeholder="Email"
+                class="form-input">
+            </div>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Owner 2</label>
+            <div class="multi-input-grid">
+              <input type="text" [(ngModel)]="newCenter.owner_name_2" name="owner_name_2" placeholder="Full Name"
+                class="form-input">
+              <input type="text" [(ngModel)]="newCenter.owner_phone_2" name="owner_phone_2" placeholder="Mobile"
+                class="form-input">
+              <input type="email" [(ngModel)]="newCenter.owner_email_2" name="owner_email_2" placeholder="Email"
+                class="form-input">
+            </div>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Owner 3</label>
+            <div class="multi-input-grid">
+              <input type="text" [(ngModel)]="newCenter.owner_name_3" name="owner_name_3" placeholder="Full Name"
+                class="form-input">
+              <input type="text" [(ngModel)]="newCenter.owner_phone_3" name="owner_phone_3" placeholder="Mobile"
+                class="form-input">
+              <input type="email" [(ngModel)]="newCenter.owner_email_3" name="owner_email_3" placeholder="Email"
+                class="form-input">
+            </div>
+          </div>
+        </div>
+
+        <h4 class="section-heading">Accountants</h4>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Accountant 1</label>
+            <div class="multi-input-grid">
+              <input type="text" [(ngModel)]="newCenter.accountant_name_1" name="accountant_name_1"
+                placeholder="Full Name" class="form-input">
+              <input type="text" [(ngModel)]="newCenter.accountant_phone_1" name="accountant_phone_1"
+                placeholder="Mobile" class="form-input">
+              <input type="email" [(ngModel)]="newCenter.accountant_email_1" name="accountant_email_1"
+                placeholder="Email" class="form-input">
+            </div>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Accountant 2</label>
+            <div class="multi-input-grid">
+              <input type="text" [(ngModel)]="newCenter.accountant_name_2" name="accountant_name_2"
+                placeholder="Full Name" class="form-input">
+              <input type="text" [(ngModel)]="newCenter.accountant_phone_2" name="accountant_phone_2"
+                placeholder="Mobile" class="form-input">
+              <input type="email" [(ngModel)]="newCenter.accountant_email_2" name="accountant_email_2"
+                placeholder="Email" class="form-input">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="submit" class="btn-submit" [disabled]="isSaving">
+            <span *ngIf="isSaving">Saving...</span>
+            <span *ngIf="!isSaving">{{ isEditing ? 'Save Changes' : 'Create Center' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" *ngIf="showDetailModal">
+    <div class="center-modal detail-modal">
+
+      <div class="modal-header">
+        <h2 class="modal-title">{{ detailCenter.center_name }}</h2>
+        <button (click)="closeDetail()" class="modal-close">&times;</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+
+        <!-- Target -->
+        <div class="detail-card" style="text-align: center;">
+          <div class="section-heading" style="margin-top:0;">Monthly Target</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">Update this salon's monthly
+            target.</div>
+          <select [(ngModel)]="selectedMonth" (change)="onMonthSelect()" class="form-input"
+            style="width: 150px; text-align: center; margin-bottom: 0.5rem; margin-left: auto; margin-right: auto; display: block;">
+            <option *ngFor="let m of monthOptions; trackBy: trackById" [value]="m">{{m}}</option>
+          </select>
+          <input type="number" min="0" oninput="validity.valid||(value='');" min="0" oninput="validity.valid||(value='');" [(ngModel)]="currentTargetInput" class="form-input"
+            style="width: 150px; text-align: center; margin-bottom: 1rem; margin-left: auto; margin-right: auto; display: block;">
+          <button (click)="updateTarget()" class="btn btn-primary"
+            style="padding: 6px 16px; font-size: 0.75rem;">Update</button>
+        </div>
+
+        <!-- SMS -->
+        <div class="detail-card" style="text-align: center;">
+          <div class="section-heading" style="margin-top:0;">Closing SMS</div>
+          <div style="display: flex; justify-content: center; gap: 8px;">
+            <input type="text" [(ngModel)]="newSmsNumber" placeholder="Mobile (10 digits)" class="form-input"
+              style="width: 150px;">
+            <button (click)="addSms()" class="btn btn-primary"
+              style="padding: 6px 16px; font-size: 0.75rem;">Add</button>
+          </div>
+          <div
+            style="margin-top: 1rem; border: 1px solid var(--border-color); border-radius: 8px; min-height: 80px; max-width: 250px; margin-left: auto; margin-right: auto; background: var(--surface); overflow: hidden;">
+            <div *ngFor="let num of detailCenter.closing_sms_recipients; let i = index; trackBy: trackById"
+              style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+              <span>{{num}}</span>
+              <button (click)="removeSms(i)"
+                style="background: none; border: none; cursor: pointer; color: var(--text-tertiary); font-size: 1.25rem; padding: 0;">&times;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+        <!-- Credit Limit -->
+        <div class="detail-card" style="text-align: center;">
+          <div class="section-heading" style="margin-top:0;">Credit Limit / Client</div>
+          <div style="display: flex; justify-content: center; gap: 8px;">
+            <input type="number" min="0" oninput="validity.valid||(value='');" min="0" oninput="validity.valid||(value='');" [(ngModel)]="detailCenter.credit_limit" class="form-input"
+              style="width: 100px; text-align: center;">
+            <button (click)="updateCreditLimit()" class="btn btn-primary"
+              style="padding: 6px 16px; font-size: 0.75rem;">Update</button>
+          </div>
+        </div>
+
+        <!-- GST Setting -->
+        <div class="detail-card" style="text-align: center;">
+          <div class="section-heading" style="margin-top:0;">GST Setting</div>
+          <div style="font-weight: 700; cursor: pointer; font-size: 0.95rem; color: var(--primary-color);"
+            (click)="toggleGst()">
+            {{ detailCenter.gst_enabled ? 'Enabled' : 'Disabled' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Details View -->
+      <div class="detail-card">
+        <h4 class="section-heading" style="margin-top:0;">Center Details</h4>
+
+        <div style="margin-bottom: 1rem; font-size: 0.85rem;">
+          Launched on <span style="font-weight: 600; color: var(--primary-color);">{{ detailCenter.launched_on || 'Not
+            Set' }}</span>
+        </div>
+
+        <div
+          style="display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem 1rem; font-size: 0.8rem; align-items: center;">
+          <div style="text-align: right; color: var(--text-secondary); font-weight: 600;">Display Name:</div>
+          <div style="background: var(--input-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">{{
+            detailCenter.display_name }}</div>
+
+          <div style="text-align: right; color: var(--text-secondary); font-weight: 600;">Address:</div>
+          <div style="background: var(--input-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">{{ detailCenter.address
+            }}</div>
+
+          <div style="text-align: right; color: var(--text-secondary); font-weight: 600;">Region:</div>
+          <div style="background: var(--input-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">{{ detailCenter.region
+            }}</div>
+
+          <div style="text-align: right; color: var(--text-secondary); font-weight: 600;">GST Number:</div>
+          <div style="background: var(--input-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">{{
+            detailCenter.gst_number }}</div>
+
+          <div style="text-align: right; color: var(--text-secondary); font-weight: 600;">Pan Number:</div>
+          <div style="background: var(--input-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">{{ detailCenter.pan_number }}</div>
+
+          <div style="text-align: right; color: var(--text-secondary); font-weight: 600;">Phone:</div>
+          <div style="background: var(--input-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">{{ detailCenter.phone }}
+          </div>
+
+          <div style="text-align: right; color: var(--text-secondary); font-weight: 600;">Owner Name:</div>
+          <div style="background: var(--input-bg); padding: 0.4rem 0.6rem; border-radius: 6px;">{{
+            detailCenter.owner_name }}</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+<!-- ══════════════════════════════════════════════
+     EXCEL BULK IMPORT MODAL
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showImportModal" (click)="closeImportModal()" style="display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); position:fixed; inset:0; z-index:3000; backdrop-filter:blur(4px);">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="background:#fff; border-radius:16px; padding:0; width:680px; max-width:calc(95vw / var(--ui-zoom)); max-height:calc(88vh / var(--ui-zoom)); overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.18); display:flex; flex-direction:column;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#16a34a,#15803d); padding:24px 28px; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:20px; font-weight:800;"><i class="fa fa-file-excel-o" style="margin-right:10px;"></i>Bulk Import Centres from Excel</h3>
+        <p style="margin:4px 0 0; font-size:13px; opacity:0.85;">Upload an .xlsx file. Missing columns are left blank. Existing centres (matched by name) are updated.</p>
+      </div>
+      <button (click)="closeImportModal()" style="background:rgba(255,255,255,0.2); border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; color:#fff; font-size:20px; display:flex; align-items:center; justify-content:center;">&times;</button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:24px 28px; overflow-y:auto; flex:1;">
+
+      <!-- Expected Columns Info -->
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px 16px; margin-bottom:20px;">
+        <div style="font-size:12px; font-weight:700; color:#15803d; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;"><i class="fa fa-info-circle"></i> Supported Column Headers (case-insensitive):</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          <code *ngFor="let col of ['Center Name*', 'Display Name', 'Address', 'Region', 'Phone', 'Landline 1', 'Landline 2', 'Center Email', 'GST Number', 'PAN Number', 'Monthly Target', 'Owner Name', 'Owner Phone', 'Owner Email', 'Owner Name 2', 'Owner Name 3', 'Accountant Name', 'Accountant Phone', 'Accountant Email', 'Launched On']; trackBy: trackById" style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:5px; font-size:11px;">{{ col }}</code>
+        </div>
+        <p style="margin:8px 0 0; font-size:11px; color:#15803d;">* Required. Columns not in the list are ignored. Dates in DD-MM-YYYY or YYYY-MM-DD format.</p>
+      </div>
+
+      <!-- File Upload Area -->
+      <div style="border:2px dashed #d1fae5; border-radius:12px; padding:28px; text-align:center; background:#f9fafb; margin-bottom:20px; position:relative; cursor:pointer;" onclick="document.getElementById('excelFileInput').click()">
+        <i class="fa fa-cloud-upload" style="font-size:32px; color:#16a34a; margin-bottom:10px; display:block;"></i>
+        <div *ngIf="!importFile">
+          <p style="margin:0; font-size:15px; font-weight:600; color:#374151;">Click to select an Excel file (.xlsx)</p>
+          <p style="margin:4px 0 0; font-size:12px; color:#6b7280;">Or drag & drop here</p>
+        </div>
+        <div *ngIf="importFile" style="color:#15803d;">
+          <i class="fa fa-file-excel-o" style="font-size:24px; margin-bottom:6px; display:block;"></i>
+          <p style="margin:0; font-weight:700; font-size:15px;">{{ importFile.name }}</p>
+          <p style="margin:4px 0 0; font-size:12px; color:#6b7280;">{{ (importFile.size / 1024).toFixed(1) }} KB — Ready to import</p>
+        </div>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" (change)="onImportFileSelected($event)" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <button (click)="runImport()" [disabled]="!importFile || isImporting" style="flex:1; padding:12px; background:#16a34a; color:#fff; border:none; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; opacity: (isImporting ? 0.7 : 1);">
+          <span *ngIf="!isImporting"><i class="fa fa-upload" style="margin-right:8px;"></i>Import Now</span>
+          <span *ngIf="isImporting"><i class="fa fa-spinner fa-spin" style="margin-right:8px;"></i>Importing...</span>
+        </button>
+        <button (click)="downloadTemplate()" style="padding:12px 20px; background:#fff; color:#374151; border:1px solid #e2e8f0; border-radius:10px; font-weight:600; font-size:13px; cursor:pointer;">
+          <i class="fa fa-download" style="margin-right:6px; color:#16a34a;"></i>Download Template
+        </button>
+      </div>
+
+      <!-- Import Results -->
+      <div *ngIf="importResult">
+
+        <!-- Error from API -->
+        <div *ngIf="importResult.error" style="background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:16px;">
+          <div style="font-weight:700; color:#b91c1c; margin-bottom:6px;"><i class="fa fa-exclamation-circle"></i> Error</div>
+          <p style="margin:0; color:#7f1d1d; font-size:13px;">{{ importResult.error }}</p>
+          <p *ngIf="importResult.hint" style="margin:6px 0 0; color:#991b1b; font-size:12px;">{{ importResult.hint }}</p>
+          <div *ngIf="importResult.found_headers?.length > 0" style="margin-top:8px;">
+            <p style="font-size:11px; font-weight:600; color:#7f1d1d; margin:0 0 4px;">Headers found in your file:</p>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+              <code *ngFor="let h of importResult.found_headers; trackBy: trackById" style="background:#fee2e2; color:#991b1b; padding:2px 6px; border-radius:4px; font-size:11px;">{{ h }}</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success Summary -->
+        <div *ngIf="importResult.success">
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;">
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px; text-align:center;">
+              <div style="font-size:26px; font-weight:800; color:#16a34a;">{{ importResult.summary.created }}</div>
+              <div style="font-size:11px; color:#15803d; font-weight:600; margin-top:2px;">CREATED</div>
+            </div>
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px; text-align:center;">
+              <div style="font-size:26px; font-weight:800; color:#2563eb;">{{ importResult.summary.updated }}</div>
+              <div style="font-size:11px; color:#1d4ed8; font-weight:600; margin-top:2px;">UPDATED</div>
+            </div>
+            <div style="background:#fffbeb; border:1px solid #fed7aa; border-radius:10px; padding:14px; text-align:center;">
+              <div style="font-size:26px; font-weight:800; color:#d97706;">{{ importResult.summary.skipped }}</div>
+              <div style="font-size:11px; color:#b45309; font-weight:600; margin-top:2px;">SKIPPED</div>
+            </div>
+            <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:14px; text-align:center;">
+              <div style="font-size:26px; font-weight:800; color:#dc2626;">{{ importResult.summary.errors }}</div>
+              <div style="font-size:11px; color:#b91c1c; font-weight:600; margin-top:2px;">ERRORS</div>
+            </div>
+          </div>
+
+          <!-- Created list -->
+          <div *ngIf="importResult.created?.length > 0" style="margin-bottom:12px;">
+            <div style="font-size:12px; font-weight:700; color:#15803d; margin-bottom:6px;"><i class="fa fa-check-circle"></i> Created ({{ importResult.created.length }})</div>
+            <div style="max-height:120px; overflow-y:auto; background:#f0fdf4; border-radius:8px; padding:8px 12px;">
+              <div *ngFor="let r of importResult.created; trackBy: trackById" style="font-size:12px; color:#15803d; padding:2px 0;">
+                Row {{ r.row }}: <strong>{{ r.center_name }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Updated list -->
+          <div *ngIf="importResult.updated?.length > 0" style="margin-bottom:12px;">
+            <div style="font-size:12px; font-weight:700; color:#1d4ed8; margin-bottom:6px;"><i class="fa fa-refresh"></i> Updated ({{ importResult.updated.length }})</div>
+            <div style="max-height:100px; overflow-y:auto; background:#eff6ff; border-radius:8px; padding:8px 12px;">
+              <div *ngFor="let r of importResult.updated; trackBy: trackById" style="font-size:12px; color:#1d4ed8; padding:2px 0;">
+                Row {{ r.row }}: <strong>{{ r.center_name }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Errors list -->
+          <div *ngIf="importResult.errors?.length > 0">
+            <div style="font-size:12px; font-weight:700; color:#b91c1c; margin-bottom:6px;"><i class="fa fa-exclamation-triangle"></i> Row Errors ({{ importResult.errors.length }})</div>
+            <div style="max-height:100px; overflow-y:auto; background:#fef2f2; border-radius:8px; padding:8px 12px;">
+              <div *ngFor="let r of importResult.errors; trackBy: trackById" style="font-size:12px; color:#b91c1c; padding:2px 0;">
+                Row {{ r.row }} ({{ r.center_name }}): {{ r.error }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

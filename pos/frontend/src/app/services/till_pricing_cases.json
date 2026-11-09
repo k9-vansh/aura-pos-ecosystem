@@ -1,0 +1,397 @@
+[
+  {
+    "label": "single line, 18% GST",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "500.00",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "500.00",
+      "discount": "0.00",
+      "cgst": "45.00",
+      "sgst": "45.00",
+      "rounding": "0.00",
+      "total": "590.00"
+    }
+  },
+  {
+    "label": "odd paise tax, halves must still sum",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "55.61",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "55.61",
+      "discount": "0.00",
+      "cgst": "5.00",
+      "sgst": "5.01",
+      "rounding": "0.38",
+      "total": "66.00"
+    }
+  },
+  {
+    "label": "three lines, each tax rounded before summing",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "333.33",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "100.50",
+        "discount": "0",
+        "tax_percentage": "5.00"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 3,
+        "unit_price": "55.61",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "600.66",
+      "discount": "0.00",
+      "cgst": "47.53",
+      "sgst": "47.53",
+      "rounding": "0.28",
+      "total": "696.00"
+    }
+  },
+  {
+    "label": "invoice discount apportioned across lines",
+    "gst_enabled": true,
+    "invoice_discount": "137",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "333.33",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "999.00",
+        "discount": "0",
+        "tax_percentage": "12.00"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 2,
+        "unit_price": "100.50",
+        "discount": "0",
+        "tax_percentage": "5.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "1533.33",
+      "discount": "137.00",
+      "cgst": "86.48",
+      "sgst": "86.48",
+      "rounding": "-0.29",
+      "total": "1569.00"
+    }
+  },
+  {
+    "label": "line discounts and an invoice discount together",
+    "gst_enabled": true,
+    "invoice_discount": "50",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 2,
+        "unit_price": "500.00",
+        "discount": "75.50",
+        "tax_percentage": "18.00"
+      },
+      {
+        "ct": "inventory.product",
+        "qty": 1,
+        "unit_price": "349.00",
+        "discount": "19.99",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "1203.32",
+      "discount": "50.00",
+      "cgst": "103.80",
+      "sgst": "103.80",
+      "rounding": "0.08",
+      "total": "1361.00"
+    }
+  },
+  {
+    "label": "a zero-tax line alongside taxed lines",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "250.00",
+        "discount": "0",
+        "tax_percentage": "0.00"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "55.61",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "305.61",
+      "discount": "0.00",
+      "cgst": "5.00",
+      "sgst": "5.01",
+      "rounding": "0.38",
+      "total": "316.00"
+    }
+  },
+  {
+    "label": "a package redemption carries no value and no tax",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "500.00",
+        "discount": "0",
+        "tax_percentage": "18.00",
+        "is_redemption": true,
+        "description": "🎁 [Redeem] Haircut"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "100.50",
+        "discount": "0",
+        "tax_percentage": "5.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "100.50",
+      "discount": "0.00",
+      "cgst": "2.51",
+      "sgst": "2.52",
+      "rounding": "0.47",
+      "total": "106.00"
+    }
+  },
+  {
+    "label": "an invoice discount larger than the subtotal is capped",
+    "gst_enabled": true,
+    "invoice_discount": "99999",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "500.00",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "500.00",
+      "discount": "500.00",
+      "cgst": "0.00",
+      "sgst": "0.00",
+      "rounding": "0.00",
+      "total": "0.00"
+    }
+  },
+  {
+    "label": "a non-GST branch charges no tax at all",
+    "gst_enabled": false,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "500.00",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 2,
+        "unit_price": "333.33",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "1166.66",
+      "discount": "0.00",
+      "cgst": "0.00",
+      "sgst": "0.00",
+      "rounding": "0.34",
+      "total": "1167.00"
+    }
+  },
+  {
+    "label": "rounding boundary",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "100.50",
+        "discount": "0",
+        "tax_percentage": "5.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "100.50",
+      "discount": "0.00",
+      "cgst": "2.51",
+      "sgst": "2.52",
+      "rounding": "0.47",
+      "total": "106.00"
+    }
+  },
+  {
+    "label": "a membership at 18% GST, priced from its pre-tax price",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "marketing.membership",
+        "qty": 1,
+        "unit_price": "1000.00",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "1000.00",
+      "discount": "0.00",
+      "cgst": "90.00",
+      "sgst": "90.00",
+      "rounding": "0.00",
+      "total": "1180.00"
+    }
+  },
+  {
+    "label": "a discounted membership - till and server must agree",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "marketing.membership",
+        "qty": 1,
+        "unit_price": "1000.00",
+        "discount": "100.00",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "900.00",
+      "discount": "0.00",
+      "cgst": "81.00",
+      "sgst": "81.00",
+      "rounding": "0.00",
+      "total": "1062.00"
+    }
+  },
+  {
+    "label": "a complimentary membership at 100% discount",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "marketing.membership",
+        "qty": 1,
+        "unit_price": "1000.00",
+        "discount": "1000.00",
+        "tax_percentage": "18.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "0.00",
+      "discount": "0.00",
+      "cgst": "0.00",
+      "sgst": "0.00",
+      "rounding": "0.00",
+      "total": "0.00"
+    }
+  },
+  {
+    "label": "a value card alongside a service",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "marketing.valuecard",
+        "qty": 1,
+        "unit_price": "2000.00",
+        "discount": "0",
+        "tax_percentage": "18.00"
+      },
+      {
+        "ct": "services.servicemaster",
+        "qty": 1,
+        "unit_price": "100.50",
+        "discount": "0",
+        "tax_percentage": "5.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "2100.50",
+      "discount": "0.00",
+      "cgst": "182.51",
+      "sgst": "182.52",
+      "rounding": "0.47",
+      "total": "2466.00"
+    }
+  },
+  {
+    "label": "quantity greater than one with a line discount",
+    "gst_enabled": true,
+    "invoice_discount": "0",
+    "lines": [
+      {
+        "ct": "services.servicemaster",
+        "qty": 4,
+        "unit_price": "999.00",
+        "discount": "333.33",
+        "tax_percentage": "12.00"
+      }
+    ],
+    "expected": {
+      "subtotal": "3662.67",
+      "discount": "0.00",
+      "cgst": "219.76",
+      "sgst": "219.76",
+      "rounding": "-0.19",
+      "total": "4102.00"
+    }
+  }
+]

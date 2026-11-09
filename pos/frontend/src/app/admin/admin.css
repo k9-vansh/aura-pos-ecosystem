@@ -1,0 +1,961 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===================================================================
+   APP SHELL — Fixed expanded sidebar, transparent topbar
+   Reference: Always-visible labels, full-width pill active state
+   =================================================================== */
+.app-layout {
+  display: flex;
+  height: calc(100vh / var(--ui-zoom));
+  background: var(--bg);
+  overflow: hidden;
+  padding: 12px;
+  gap: 0;
+  box-sizing: border-box;
+}
+
+/* ===================================================================
+   SIDEBAR — Floating, icon-only default, expands on hover
+   =================================================================== */
+.main-sidebar {
+  width: 76px;
+  min-width: 76px;
+  background: var(--surface);
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow:
+    var(--shadow-md),
+    6px 0 24px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  z-index: 100;
+  margin-left: 8px;
+  margin-right: 16px;
+  align-self: stretch;
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1), min-width 220ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 220ms ease;
+}
+
+.main-sidebar:hover {
+  width: 260px;
+  min-width: 260px;
+  box-shadow:
+    var(--shadow-lg),
+    12px 0 40px rgba(0, 0, 0, 0.1),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Sidebar Logo */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 72px;
+  flex-shrink: 0;
+  padding: 0 16px;
+}
+
+.logo-mark {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  background: var(--bg-inverse);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px;
+  gap: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  white-space: nowrap;
+  min-height: 46px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.nav-item svg {
+  flex-shrink: 0;
+  min-width: 20px;
+}
+
+.nav-item:hover {
+  background: var(--bg-2);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--black);
+  color: var(--white);
+}
+
+/* Nav label — hidden by default, shown on sidebar hover */
+.nav-label {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: inherit;
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 200ms ease;
+  width: 140px;
+  /* fixed width so it doesn't animate width, just fades in */
+}
+
+.main-sidebar:hover .nav-label {
+  opacity: 1;
+}
+
+/* Nav badge — hidden until hover */
+.nav-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.main-sidebar:hover .nav-badge {
+  opacity: 1;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 8px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 4px 12px 4px;
+  opacity: 0.6;
+}
+
+/* ===================================================================
+   MAIN CONTENT
+   =================================================================== */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--bg);
+}
+
+/* ===================================================================
+   TOP BAR — Transparent, title sits on gray background
+   =================================================================== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px 8px 24px;
+  flex-shrink: 0;
+  background: transparent;
+  gap: 8px;
+}
+
+.topbar-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+}
+
+.page-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 2px 0 0 0;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.topbar-center {
+  flex: 0 0 auto;
+}
+
+/* Search bar with white background */
+.topbar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  width: 100%;
+  max-width: 260px;
+  box-shadow: var(--shadow-xs);
+  transition: all 150ms ease;
+}
+
+.topbar-search:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-search svg {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.topbar-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  width: 100%;
+}
+
+.topbar-search input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Icon buttons — white card */
+.topbar-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 150ms ease;
+  position: relative;
+  box-shadow: var(--shadow-xs);
+}
+
+.topbar-icon-btn:hover {
+  background: var(--bg-2);
+  color: var(--text-primary);
+}
+
+
+/* User chip */
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: all 150ms ease;
+}
+
+.topbar-user:hover {
+  background: var(--bg-2);
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-inverse);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.user-role {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+
+/* ===================================================================
+   ADMIN SUB-NAV TABS
+   =================================================================== */
+
+
+
+
+.admin-subnav::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-subnav::-webkit-scrollbar {
+  display: none;
+}
+
+.subnav-tab {
+  pointer-events: auto;
+  padding: 16px 16px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  margin-bottom: -1px;
+}
+
+.subnav-tab:hover {
+  color: #374151;
+  background: transparent;
+}
+
+.subnav-tab.active {
+  color: #e11d48;
+  border-bottom-color: #e11d48;
+  background: transparent;
+  font-weight: 600;
+}
+
+
+/* ===================================================================
+   CONTENT AREA (scrollable)
+   =================================================================== */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* A little more room on the right and at the bottom, so the soft shadows and rounded
+     corners of the last card and the last row are not clipped by this scrolling box. */
+  padding: 12px 22px 24px 12px;
+  position: relative; /* important for absolute positioning of child headers */
+  /* Scrolling past the top or bottom here must not drag the whole page with it. */
+  overscroll-behavior: contain;
+}
+
+
+
+/* ===================================================================
+   CHAT WIDGET (Premium Cinematic Theme)
+   =================================================================== */
+.chat-widget {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 360px;
+  height: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: 900;
+  overflow: hidden;
+  animation: slideUp3D 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-inverse);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.chat-thread {
+  padding: 12px;
+  gap: 12px;
+  background: var(--surface);
+}
+
+.chat-user-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-user-item:hover {
+  background: var(--bg-2);
+  transform: translateX(4px);
+  box-shadow: -4px 0 0 var(--black);
+}
+
+.chat-avatar {
+  width: 46px;
+  height: 46px;
+  background: var(--bg-2);
+  color: var(--text-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+}
+
+.chat-user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.chat-message {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.chat-message.outgoing {
+  justify-content: flex-end;
+}
+
+.chat-message.incoming {
+  justify-content: flex-start;
+}
+
+.msg-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+}
+
+.msg-bubble:hover {
+  transform: scale(1.02);
+}
+
+.outgoing .msg-bubble {
+  background: var(--black);
+  color: var(--white);
+  border-bottom-right-radius: 4px;
+  box-shadow: var(--shadow-xs);
+}
+
+.incoming .msg-bubble {
+  background: var(--bg-2);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--border);
+}
+
+.msg-text {
+  margin-bottom: 2px;
+}
+
+.msg-time {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  align-self: flex-end;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.outgoing .msg-time {
+  color: var(--text-tertiary);
+  opacity: 0.8;
+}
+
+.incoming .msg-time {
+  color: var(--text-tertiary);
+}
+
+.chat-img-attachment {
+  max-width: 220px;
+  border-radius: 12px;
+  display: block;
+  margin-bottom: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: inset 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.chat-input-box {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: var(--bg-2);
+  color: var(--text-primary);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.chat-input-box:focus {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02), 0 0 0 2px var(--border-strong);
+}
+
+.chat-send-btn,
+.chat-attach-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  padding: 0;
+}
+
+.chat-send-btn {
+  background: var(--black);
+  color: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-send-btn:hover {
+  transform: scale(1.1);
+  background: var(--border-strong);
+}
+
+.chat-send-btn:active {
+  transform: scale(0.95);
+}
+
+.chat-attach-btn {
+  background: var(--bg-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+}
+
+.chat-attach-btn:hover {
+  transform: scale(1.05);
+  color: var(--text-primary);
+}
+
+.chat-back-btn,
+.chat-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 150ms ease;
+}
+
+.chat-back-btn:hover,
+.chat-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.chat-attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  position: absolute;
+  bottom: 76px;
+  left: 16px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+
+.chat-notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--red);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+  animation: pulseBadge 2s infinite;
+}
+
+@keyframes slideUp3D {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95) perspective(1000px) rotateX(-5deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) perspective(1000px) rotateX(0);
+  }
+}
+
+@keyframes pulseBadge {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 6px 12px rgba(239, 68, 68, 0.6);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===================================================================
+   MOBILE RESPONSIVENESS
+   =================================================================== */
+@media (max-width: 614px) {
+  .app-layout {
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .main-sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    flex-direction: row;
+    margin: 0;
+    border-radius: 0;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    order: 2;
+    /* Move to bottom */
+  }
+
+  .main-sidebar:hover {
+    width: 100%;
+    min-width: 100%;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .sidebar-logo,
+  .sidebar-divider {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px;
+    align-items: center;
+  }
+
+  .nav-item {
+    min-height: auto;
+    padding: 10px;
+    justify-content: center;
+    width: auto;
+  }
+
+  .nav-item svg {
+    margin: 0;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .sidebar-footer {
+    flex-direction: row;
+    padding: 8px;
+    border-top: none;
+    align-items: center;
+  }
+
+  .main-content {
+    order: 1;
+    /* Main content above sidebar */
+  }
+
+  .topbar {
+    padding: 12px;
+  }
+
+  .content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  position: relative; /* important for absolute positioning of child headers */
+}
+
+
+
+  .chat-widget {
+    right: 0;
+    bottom: 64px;
+    /* above the bottom bar */
+    width: 100%;
+    max-width: 100%;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+}
+
+/* Global override for admin child components to push their controls into the navbar */
+::ng-deep .bills-header {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end !important;
+  margin: 0 0 24px 0 !important;
+  padding: 0 !important;
+}
+
+/* Hide the redundant 'Services Master' etc. titles because they overlap the tabs and are already implied by the active tab */
+::ng-deep .bills-page-title {
+  display: none !important;
+}
+
+/* The controls inside bills-header should have no margin */
+::ng-deep .bills-controls {
+  margin: 0 0 0 auto !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap !important;
+}
+
+/* Make sure child page wrapper doesn't have extra top padding */
+::ng-deep .bills-page {
+  padding-top: 0 !important;
+}
+
+/* ===================================================================
+   DARK MODE OVERRIDES — PREMIUM MATTE
+   =================================================================== */
+
+:host-context([data-theme="dark"]) .admin-layout,
+:host-context([data-theme="dark"]) .content-area,
+:host-context([data-theme="dark"]) .topbar {
+  background: transparent !important;
+}
+
+:host-context([data-theme="dark"]) .nav-tabs {
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+:host-context([data-theme="dark"]) .tab-link {
+  color: #94a3b8 !important;
+}
+
+:host-context([data-theme="dark"]) .tab-link:hover {
+  color: #e2e8f0 !important;
+}
+
+:host-context([data-theme="dark"]) .tab-link.active {
+  color: #f43f5e !important;
+  border-bottom-color: #f43f5e !important;
+}
+
+:host-context([data-theme="dark"]) input.form-control,
+:host-context([data-theme="dark"]) select.form-control,
+:host-context([data-theme="dark"]) .search-bar input {
+  background: #0a0a0a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+
+:host-context([data-theme="dark"]) .btn-light,
+:host-context([data-theme="dark"]) .btn-outline {
+  background: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+
+:host-context([data-theme="dark"]) .btn-light:hover {
+  background: #222222 !important;
+}
+
+:host-context([data-theme="dark"]) .control-pill-group {
+  background: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:host-context([data-theme="dark"]) .date-pill {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:host-context([data-theme="dark"]) .date-pill input {
+  color: #ffffff !important;
+}
+
+:host-context([data-theme="dark"]) .black-btn {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+
+/* ===================================================================
+   Compact floating sidebar: only as tall as its icons, not the page
+   =================================================================== */
+@media (min-width: 615px) {
+  .main-sidebar {
+    align-self: center;
+    width: 64px;
+    min-width: 64px;
+    max-height: 100%;
+    border-radius: 28px;
+  }
+  .main-sidebar:hover { width: 232px; min-width: 232px; }
+  .sidebar-nav { flex: 0 1 auto; padding: 10px 8px 6px; gap: 3px; }
+  .nav-item { min-height: 40px; padding: 9px 12px; border-radius: 11px; gap: 12px; }
+  .nav-label { font-size: 12.5px; }
+  .sidebar-divider { margin: 4px 8px 6px; }
+  .sidebar-footer { padding: 4px 8px 10px; gap: 3px; }
+}
+
+/* ==== dark theme: generated pass (light surfaces that had no dark rule) ==== */
+@media screen {
+:host-context([data-theme="dark"]) .subnav-tab {
+  color: #a8b3c5 !important;
+}
+:host-context([data-theme="dark"]) .subnav-tab:hover {
+  color: #f1f5f9 !important;
+}
+}

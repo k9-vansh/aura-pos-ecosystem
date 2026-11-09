@@ -1,0 +1,312 @@
+<style>
+  .pay-card {
+    background: #fff;
+    padding: 0;
+    width: 480px;
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    border-radius: 22px;
+    overflow: hidden;
+  }
+
+  .pay-method-btn {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    background: #f8fafc;
+    color: #0f172a;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+  .pay-method-btn:hover { background: #fff; border-color: #cbd5e1; }
+  .pay-method-btn.open { background: #fff; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12); }
+
+  /* The choices open in the flow of the page (no floating box to clip or to push the dialog about). */
+  .pay-options {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+  }
+  .pay-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 11px;
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: all 0.15s ease;
+  }
+  .pay-option:hover { border-color: #93c5fd; background: #f8fbff; }
+  .pay-option.picked { border-color: #3b82f6; background: #eff6ff; }
+  .pay-option-name { font-size: 14px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 7px; }
+  .pay-option-sub { font-size: 11px; font-weight: 600; color: #64748b; margin-top: 1px; }
+  .pay-option.picked .pay-option-name { color: #1d4ed8; }
+
+  .pay-amount-wrap { position: relative; display: block; cursor: text; }
+  .pay-amount-wrap .rs { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-weight: 700; font-size: 14px; pointer-events: none; }
+  .payment-input {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px 10px 32px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    box-sizing: border-box;
+    background: #f8fafc;
+    color: #0f172a;
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  .payment-input.plain { padding-left: 14px; font-size: 14px; font-weight: 600; }
+  .payment-input:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12); }
+
+  .pay-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px 42px; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .pay-row.single { grid-template-columns: minmax(0, 1fr) 150px; }
+  /* column names above the first row */
+  .pay-heads { display: grid; grid-template-columns: minmax(0, 1fr) 150px 42px; gap: 10px; margin: 0 0 6px; }
+  .pay-heads.single { grid-template-columns: minmax(0, 1fr) 150px; }
+  .pay-head { font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.3px; padding-left: 2px; }
+  .pay-cash-note { font-size: 13px; font-weight: 700; text-align: right; padding-right: 2px; }
+  /* the cash-received row shares the columns of the payment rows above it */
+  .pay-cash { display: grid; grid-template-columns: minmax(0, 1fr) 150px 42px; gap: 10px; align-items: center; }
+  .pay-cash.single { grid-template-columns: minmax(0, 1fr) 150px; }
+  .pay-left { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+  .pay-chev { font-size: 11px; color: #94a3b8; transition: transform 0.25s ease; }
+  .pay-del {
+    background: #fef2f2; color: #ef4444; border: none; width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .pay-del:hover { background: #fee2e2; }
+
+  .pay-sub { margin: -2px 0 10px 0; }
+  .pay-hint { font-size: 11.5px; font-weight: 600; color: #64748b; margin: -4px 0 10px 2px; }
+  .pay-warn { color: #ef4444; font-size: 12px; font-weight: 600; margin: -2px 0 12px 0; padding: 0 6px; display: flex; align-items: center; gap: 6px; }
+
+  .gift-box { margin: -2px 0 12px 0; padding: 12px; border: 1.5px dashed #c4b5fd; border-radius: 14px; background: #faf5ff; }
+  .gift-line { display: flex; gap: 10px; }
+  .gift-input { text-transform: uppercase; letter-spacing: 1px; font-family: ui-monospace, Consolas, monospace; flex: 1; }
+  .gift-check {
+    border: none; border-radius: 12px; padding: 0 20px; min-height: 42px; font-size: 14px; font-weight: 800; cursor: pointer;
+    background: #7c3aed; color: #fff; font-family: inherit; transition: all 0.2s; white-space: nowrap;
+  }
+  .gift-check:hover:not(:disabled) { background: #6d28d9; }
+  .gift-check:disabled { opacity: 0.6; cursor: default; }
+  .gift-check.done { background: #16a34a; }
+  .gift-ok { margin-top: 8px; font-size: 13px; font-weight: 700; color: #15803d; display: flex; align-items: center; gap: 6px; }
+  .gift-bad { margin-top: 8px; font-size: 13px; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 6px; }
+
+  @media (max-width: 560px) {
+    .pay-row, .pay-row.single { grid-template-columns: minmax(0, 1fr) 120px 38px; }
+    .pay-row.single { grid-template-columns: minmax(0, 1fr) 120px; }
+    .pay-cash { grid-template-columns: minmax(0, 1fr) 120px 38px; }
+    .pay-cash.single { grid-template-columns: minmax(0, 1fr) 120px; }
+    .pay-heads { grid-template-columns: minmax(0, 1fr) 120px 38px; }
+    .pay-heads.single { grid-template-columns: minmax(0, 1fr) 120px; }
+    .pay-options { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="modal-overlay" *ngIf="show"
+  (mousedown)="pressOverlay($event)"
+  (click)="overlayPressed && $event.target === $event.currentTarget && close.emit(); overlayPressed = false"
+  style="display:flex;justify-content:center;align-items:center;background:rgba(15, 23, 42, 0.6);position:fixed;inset:0;z-index:2000;backdrop-filter:blur(4px);padding: 20px;">
+
+  <div class="pay-card" role="dialog" aria-modal="true" aria-label="Checkout and payment" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div style="padding:12px 18px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:#fff;flex-shrink:0;">
+      <h2 style="margin:0;font-size:17px;font-weight:800;color:#0f172a;letter-spacing:-0.3px;">Checkout &amp; Payment</h2>
+      <button type="button" aria-label="Close" (click)="close.emit()" style="background:#f1f5f9;border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='#e2e8f0';this.style.color='#0f172a'" onmouseout="this.style.background='#f1f5f9';this.style.color='#64748b'">&times;</button>
+    </div>
+
+    <!-- Scrollable body -->
+    <div style="padding:14px 18px;flex:1;overflow-y:auto;">
+
+      <!-- Total: one line, the amount at the right -->
+      <div style="background:#f8fafc;padding:10px 14px;border-radius:12px;margin-bottom:12px;border:1px solid #e2e8f0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:12px;color:#64748b;text-transform:uppercase;font-weight:800;letter-spacing:0.9px;">{{ cardSettled > 0 ? 'Payable now' : 'Total bill' }}</div>
+          <div style="font-size:26px;font-weight:900;color:#0f172a;letter-spacing:-0.5px;line-height:1.1;">₹{{ finalTotalAmount | number:'1.2-2' }}</div>
+        </div>
+        <div *ngIf="cardSettled > 0" style="font-size:12px;color:#6d28d9;font-weight:700;margin-top:2px;">+ ₹{{ cardSettled | number:'1.2-2' }} covered by the value card</div>
+      </div>
+
+      <!-- Tips are no longer taken on bills (owner decision #39). -->
+
+      <!-- Split Payments label -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <h4 style="margin:0;font-size:11px;color:#0f172a;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;">Split payments</h4>
+        <div style="flex:1;height:1px;background:#e2e8f0;border-radius:1px;"></div>
+      </div>
+
+      <!-- Column names -->
+      <div class="pay-heads" [class.single]="checkoutPayments.length <= 1">
+        <div class="pay-head">Payment method</div>
+        <div class="pay-head">Amount</div>
+      </div>
+
+      <!-- Payment rows -->
+      <ng-container *ngFor="let p of checkoutPayments; let i = index">
+        <div class="pay-row" [class.single]="checkoutPayments.length <= 1">
+
+          <!-- Method -->
+          <button type="button" (click)="p['open']=!p['open']" class="pay-method-btn" [class.open]="p['open']"
+            aria-haspopup="listbox" [attr.aria-expanded]="!!p['open']" aria-label="Payment method">
+            <span>{{ getMethodLabel(p['method']) }}</span>
+            <span class="pay-chev" [style.transform]="p['open'] ? 'rotate(180deg)' : 'rotate(0deg)'">▼</span>
+          </button>
+
+          <!-- Amount input -->
+          <label class="pay-amount-wrap">
+            <span class="rs">₹</span>
+            <input #amt type="number" min="0" step="0.01" inputmode="decimal" aria-label="Amount to pay by this method"
+              [(ngModel)]="p['amount']" (ngModelChange)="p['touched'] = true; onAmountChange.emit(); syncAmount(amt, p)"
+              (focus)="$any($event.target).select()" (mouseup)="$event.preventDefault()" class="payment-input">
+          </label>
+
+          <!-- Remove button -->
+          <button *ngIf="checkoutPayments.length > 1" (click)="onRemovePaymentRow.emit(i)" class="pay-del" title="Remove this payment">
+            <i class="fa fa-trash" style="font-size: 13px;"></i>
+          </button>
+
+          <!-- The ways to pay, opened under the row -->
+          <div *ngIf="p['open']" class="pay-options">
+            <button type="button" *ngFor="let opt of getPaymentOptions(i)"
+              (mousedown)="$event.button === 0 && (selectMethod(p, opt.value)); $event.button === 0 && (p['open']=false); $event.button === 0 && (onMethodChange.emit())"
+              class="pay-option" [class.picked]="p['method']===opt.value">
+              <span>
+                <span class="pay-option-name"><i *ngIf="opt.icon" class="fa" [ngClass]="opt.icon" style="font-size:13px;color:#7c3aed;"></i>{{ opt.label }}</span>
+                <span *ngIf="opt.sub" class="pay-option-sub" style="display:block;">{{ opt.sub }}</span>
+              </span>
+              <i *ngIf="p['method']===opt.value" class="fa fa-check" style="font-size: 13px; color:#2563eb;"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Cash received -> change (#38); a reference for online money -->
+        <div *ngIf="p['method']==='Cash'" class="pay-sub pay-cash" [class.single]="checkoutPayments.length <= 1">
+          <label class="pay-amount-wrap">
+            <span class="rs" style="font-size:12px;">₹</span>
+            <input type="number" min="0" step="0.01" inputmode="decimal" aria-label="Cash received from the client"
+              [(ngModel)]="p['tendered']" (focus)="$any($event.target).select()" (mouseup)="$event.preventDefault()" placeholder="Cash received (optional)" class="payment-input" style="font-weight:600;font-size:14px;">
+          </label>
+          <div class="pay-cash-note"
+            [style.color]="p['tendered'] === undefined || p['tendered'] === null || p['tendered'] === '' ? '#94a3b8' : (changeFor(p) >= 0 ? '#059669' : '#dc2626')">
+            <ng-container *ngIf="p['tendered'] !== undefined && p['tendered'] !== null && p['tendered'] !== ''; else noCash">
+              {{ changeFor(p) >= 0 ? 'Change due ₹' + (changeFor(p) | number:'1.2-2') : 'Short by ₹' + (-changeFor(p) | number:'1.2-2') }}
+            </ng-container>
+            <ng-template #noCash>Change due ₹0.00</ng-template>
+          </div>
+        </div>
+        <div *ngIf="needsReference(p)" class="pay-sub" style="position:relative;">
+          <input type="text" maxlength="64" [(ngModel)]="p['reference']" class="payment-input plain"
+            [placeholder]="p['method']==='Cheque' ? 'Cheque number' : p['method']==='Card' ? 'Card slip no. / last 4 digits' : 'UPI transaction ID'">
+        </div>
+
+        <!-- A brand's coupon: its code, checked before the sale -->
+        <div *ngIf="p['method']==='Gift Card'" class="gift-box">
+          <div class="gift-line">
+            <input type="text" maxlength="64" autocomplete="off" spellcheck="false" [(ngModel)]="p['reference']"
+              (ngModelChange)="onGiftCodeInput(p)" (keydown.enter)="checkGift(p)"
+              class="payment-input plain gift-input" placeholder="Enter the coupon code">
+            <button type="button" class="gift-check" [class.done]="p['giftStatus']==='ok'"
+              [disabled]="p['giftStatus']==='checking'" (click)="checkGift(p)">
+              {{ p['giftStatus']==='checking' ? 'Checking…' : (p['giftStatus']==='ok' ? 'Valid ✓' : 'Check') }}
+            </button>
+          </div>
+          <div *ngIf="p['giftStatus']==='ok' && !giftOver(p)" class="gift-ok">
+            <i class="fa fa-check-circle"></i>
+            <span>{{ p['giftBrand'] ? p['giftBrand'] + ' · ' : '' }}{{ p['giftMessage'] }}</span>
+          </div>
+          <div *ngIf="p['giftStatus']==='bad'" class="gift-bad">
+            <i class="fa fa-exclamation-circle"></i><span>{{ p['giftMessage'] }}</span>
+          </div>
+          <div *ngIf="giftOver(p)" class="gift-bad">
+            <i class="fa fa-exclamation-circle"></i><span>This coupon pays at most ₹{{ p['giftApplies'] | number:'1.2-2' }} on this bill. Lower the amount.</span>
+          </div>
+          <div *ngIf="!p['giftStatus']" style="margin-top:8px;font-size:12px;color:#7c3aed;font-weight:600;">
+            Type the code and press Check. A coupon works once, and only if it is valid today at this branch.
+          </div>
+        </div>
+
+        <!-- Balance warnings -->
+        <div *ngIf="p['method']==='Advance' && +p['amount'] > clientAdvanceBalance" class="pay-warn">
+          <i class="fa fa-exclamation-circle"></i> More than the Advance balance (available: ₹{{clientAdvanceBalance | number:'1.0-2'}}). Lower the amount.
+        </div>
+        <div *ngIf="p['method']==='Cashback Wallet' && +p['amount'] > clientCashbackBalance" class="pay-warn">
+          <i class="fa fa-exclamation-circle"></i> More than the Cashback balance (available: ₹{{clientCashbackBalance | number:'1.0-2'}}). Lower the amount.
+        </div>
+        <div *ngIf="(p['method']==='Advance' && +p['amount'] <= clientAdvanceBalance) || (p['method']==='Cashback Wallet' && +p['amount'] <= clientCashbackBalance)" class="pay-hint">
+          Available ₹{{ (p['method']==='Advance' ? clientAdvanceBalance : clientCashbackBalance) | number:'1.0-2' }}. More than that moves to the next method by itself.
+        </div>
+      </ng-container>
+
+      <!-- Add another -->
+      <button (click)="onAddPaymentRow.emit()"
+        style="width:100%;background:#f8fafc;color:#3b82f6;border:1.5px dashed #cbd5e1;padding:9px;border-radius:12px;font-weight:700;cursor:pointer;margin-top:2px;font-size:13px;font-family:inherit;transition:all 0.2s;"
+        onmouseover="this.style.borderColor='#3b82f6';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#f8fafc'">
+        + Add Another Payment Method
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:12px 18px 14px;border-top:1px solid #f1f5f9;background:#fff;flex-shrink:0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <!-- "Fully paid" only when it is true: a wallet row over its balance is not paid, whatever the sum says. -->
+        <div style="font-size:14px;color:#64748b;font-weight:700;" [style.color]="walletShort ? '#b45309' : '#64748b'">
+          {{ walletShort ? 'Check the payments above' : checkoutRemaining === 0 ? 'Fully paid' : 'Remaining to pay' }}
+          <i *ngIf="checkoutRemaining === 0 && !walletShort" class="fa fa-check-circle" style="color:#10b981;margin-left:4px;"></i>
+          <i *ngIf="walletShort" class="fa fa-exclamation-triangle" style="color:#f59e0b;margin-left:4px;"></i>
+        </div>
+        <div style="font-size:22px;font-weight:900;letter-spacing:-0.5px;"
+          [ngStyle]="{'color': walletShort ? '#f59e0b' : checkoutRemaining>0 ? '#ef4444' : checkoutRemaining<0 ? '#f59e0b' : '#10b981'}">
+          ₹{{ (checkoutRemaining>0 ? checkoutRemaining : 0) | number:'1.2-2' }}
+        </div>
+      </div>
+      <div *ngIf="checkoutRemaining < 0"
+        style="background:#fffbeb;color:#b45309;padding:14px;border-radius:12px;margin-bottom:14px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;">
+        <i class="fa fa-info-circle" style="font-size:16px;"></i>
+        <div>Payments exceed the bill by <strong>₹{{ (checkoutRemaining * -1) | number:'1.2-2' }}</strong>. Enter the bill amount, and put the cash handed over in “Cash received” — the change is shown there.</div>
+      </div>
+      <div *ngIf="giftIssue" style="background:#faf5ff;color:#6d28d9;padding:12px 14px;border-radius:12px;margin-bottom:14px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;">
+        <i class="fa fa-gift" style="font-size:15px;"></i><div>{{ giftIssue }}</div>
+      </div>
+      <button (click)="confirm.emit()" [disabled]="!canCompleteSale || isSaving"
+        style="width:100%;padding:13px;border-radius:13px;font-size:15px;font-weight:800;background:linear-gradient(135deg, #3b82f6, #2563eb);color:white;border:none;cursor:pointer;opacity:1;font-family:inherit;box-shadow:0 6px 12px -3px rgba(37,99,235,0.3);letter-spacing:0.5px;text-transform:uppercase;transition:all 0.2s;"
+        [style.opacity]="(!canCompleteSale || isSaving) ? '0.5' : '1'"
+        [style.transform]="(!canCompleteSale || isSaving) ? 'none' : 'translateY(-1px)'"
+        onmouseover="if(!this.disabled) this.style.boxShadow='0 10px 15px -3px rgba(37,99,235,0.4)'"
+        onmouseout="if(!this.disabled) this.style.boxShadow='0 6px 12px -3px rgba(37,99,235,0.3)'">
+        <span *ngIf="!isSaving">Complete Sale · ₹{{ finalTotalAmount | number:'1.2-2' }}</span>
+        <span *ngIf="isSaving">Processing...</span>
+      </button>
+    </div>
+
+  </div>
+</div>

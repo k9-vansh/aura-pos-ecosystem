@@ -1,0 +1,17 @@
+0000000000000000000000000000000000000000 7598320b6569f8969210302e5b9c11e7a0f0e261 Your Name <you@example.com> 1791780803 +0530	branch: Created from HEAD
+7598320b6569f8969210302e5b9c11e7a0f0e261 a1b5d92af934fda7d0abde1ff8e5394025d50515 Your Name <you@example.com> 1791780806 +0530	commit: Snapshot before the POS rebuild (Phase 0)
+a1b5d92af934fda7d0abde1ff8e5394025d50515 24499bb13c1c17dd12edb58a0166b346175719ae Your Name <you@example.com> 1791791680 +0530	commit: Phases 0 and 1: MySQL platform, job runner, role-based access, Admin Settings
+24499bb13c1c17dd12edb58a0166b346175719ae f29499c21a0621e7b00a457df29dc149fd20bca5 Your Name <you@example.com> 1791794232 +0530	commit: Phase 2: SAP pipeline - outbox, SAP Sync monitor, SAP mapping, posting fixes
+f29499c21a0621e7b00a457df29dc149fd20bca5 62680af0db40f6794ae96c234bc4b460d46739ed Your Name <you@example.com> 1791808244 +0530	commit: Phase 3 (part 1): bill integrity, same-day cancel, GST inside MRP
+62680af0db40f6794ae96c234bc4b460d46739ed aaa766d66740e10d78dc9bb8b0e5ec2bcdcfff78 Your Name <you@example.com> 1791810487 +0530	commit: Phase 3 (part 2): invoice numbers, staff split, stock guards, clash rules
+aaa766d66740e10d78dc9bb8b0e5ec2bcdcfff78 8ead66d0a2611e9cdc04cdc0574cd057b709f2cc Your Name <you@example.com> 1791810515 +0530	commit: Blueprint: Phase 3 status
+8ead66d0a2611e9cdc04cdc0574cd057b709f2cc 5da6dc5df94ce9d6e12ab903048f4ba17df9b260 Your Name <you@example.com> 1791819132 +0530	commit: Phases 4 + 8: global clients, merge tool, branch hours, appointment statuses
+5da6dc5df94ce9d6e12ab903048f4ba17df9b260 28476d29a70be761798851bfde589611de711d00 Your Name <you@example.com> 1791821354 +0530	commit: Icons: serve Font Awesome Free 6.7.2 locally (X19)
+28476d29a70be761798851bfde589611de711d00 3e61154329aae20a065baf1bc99c4a00dcaddc2d Your Name <you@example.com> 1791829394 +0530	commit: Phase 6: billing engine and valid tax receipt
+3e61154329aae20a065baf1bc99c4a00dcaddc2d 2f8ef55b5a1855290ab8c363b62943a2ec58fbe5 Your Name <you@example.com> 1791843107 +0530	commit: Phases 5 + 10: approvals, notifications, integrations, marketing
+2f8ef55b5a1855290ab8c363b62943a2ec58fbe5 be58bb9b4ffc68382d3fca0e4948d99dbcdf34cc Your Name <you@example.com> 1791845508 +0530	commit: Phases 7 + 9 (part 1): decimal stock, batches/FEFO, transfer dispatch/receive, stock approvals, server-computed closing
+be58bb9b4ffc68382d3fca0e4948d99dbcdf34cc da79d96ade71a101fb8438dd0169e131da159f2f Your Name <you@example.com> 1791865261 +0530	commit: Phases 7 + 9 leftovers: shifts X/Z, petty-cash categories, GSTR-1 sections, SAP reconciliation, designation rules, SAP master sync job, low-stock count
+da79d96ade71a101fb8438dd0169e131da159f2f 68a03fbe608a8e2e9c2eae1659acd14ea61c18da Your Name <you@example.com> 1792580015 +0530	commit: Backend: SAP inventory fixes, connections check, permissions, incentives, QA fixes
+68a03fbe608a8e2e9c2eae1659acd14ea61c18da 5a5b222a15cbf8c5d39fed9f89d3f919b302e6aa Your Name <you@example.com> 1792580016 +0530	commit: Frontend: roles screen, dashboard tabs, login, sounds, chat, finance reports, QA fixes
+5a5b222a15cbf8c5d39fed9f89d3f919b302e6aa f859533c506e2711669d8b65f0efccde73e3290c Your Name <you@example.com> 1792580016 +0530	commit: Docs: connections check, permissions audit, modification plan
+f859533c506e2711669d8b65f0efccde73e3290c 3722ef297e78dc94cbfebecf04e540d7fad607fc Your Name <you@example.com> 1792580505 +0530	commit: Cancelling a bill no longer gives a service's consumables back to stock

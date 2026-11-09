@@ -1,0 +1,158 @@
+<div class="home-wrapper">
+
+  <!-- ==========================================
+       GLANCE SECTION
+       ========================================== -->
+  <div class="section-header" style="display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <app-location-selector
+        [centers]="centers"
+        [hasGlobalAccess]="hasGlobalAccess"
+        [multi]="true"
+        [(selectedCenterId)]="selectedFilterLocation"
+        (selectionChange)="onLocationChange()">
+      </app-location-selector>
+      
+      <div style="height: 24px; width: 1px; background: #e2e8f0;"></div>
+      
+      <h3 class="section-title" style="margin: 0;">This month at a glance</h3>
+      <span class="section-badge">Live data</span>
+    </div>
+  </div>
+
+  <!-- Premium 3-Card Glance Grid (Full Width) -->
+  <div class="glance-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 24px;">
+    
+    <!-- Card 1: Revenue Trend -->
+    <div class="glance-card-revenue">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Revenue Trend</div>
+          <div style="font-size: 12px; color: #94a3b8; font-weight: 500;">Showing daily data</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -1px; line-height: 1;">₹{{ (monthlyRevenue | number:'1.0-2') || '0' }}</div>
+          <div style="font-size: 11px; font-weight: 700; color: #10b981; margin-top: 6px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 50px;">
+             <span class="pulse-dot"></span> Live Tracking
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="width: 100%; height: 120px; position: relative; margin-top: 12px;">
+        <canvas id="homeRevenueChart" style="width: 100%; height: 100%;"></canvas>
+      </div>
+    </div>
+
+    <!-- Card 2: Monthly Target -->
+    <div class="glance-card-target">
+      <div style="text-align: center; width: 100%;">
+        <div style="font-size: 13px; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          Monthly Target 
+          <div class="edit-target-btn" (click)="isEditingTarget = true; tempMonthlyTarget = monthlyTarget" *ngIf="!isEditingTarget">
+            <i class="fa fa-pencil"></i>
+          </div>
+        </div>
+        <div style="font-size: 11px; font-weight: 500; color: #94a3b8; margin-top: 2px;">Collection vs goal</div>
+      </div>
+      
+      <!-- Edit Mode -->
+      <div *ngIf="isEditingTarget" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; margin: auto 0;">
+        <input type="number" min="0" oninput="validity.valid||(value='');" min="0" oninput="validity.valid||(value='');" [(ngModel)]="tempMonthlyTarget" class="form-control target-input" placeholder="Target">
+        <div style="display: flex; gap: 8px;">
+          <button (click)="saveMonthlyTarget()" class="btn-save-target">Save</button>
+          <button (click)="isEditingTarget = false" class="btn-cancel-target">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Normal Gauge Mode -->
+      <div class="gauge-container" *ngIf="!isEditingTarget" style="margin: auto 0; width: 100%; max-width: 140px; position: relative;">
+        <svg viewBox="0 0 100 50" style="width: 100%; overflow: visible;">
+          <!-- Track -->
+          <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#f1f5f9" stroke-width="9" stroke-linecap="round"/>
+          <!-- Progress with glow -->
+          <path [attr.d]="getGaugePath()" fill="none" stroke="url(#gaugeGrad)" stroke-width="9" stroke-linecap="round" style="transition: stroke-dasharray 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);"/>
+          <circle [attr.cx]="getGaugeCircle().x" [attr.cy]="getGaugeCircle().y" r="6" fill="#be123c" style="transition: cx 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), cy 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);"/>
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#fb7185" />
+              <stop offset="100%" stop-color="#e11d48" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #94a3b8; margin-top: 12px;">
+          <span>₹0</span>
+          <span style="color: #0f172a; padding: 2px 10px; background: #f8fafc; border-radius: 20px; font-size: 10px; text-transform: uppercase;">Target</span>
+          <span>{{ (monthlyTarget | number:'1.0-2') }}</span>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-top: 10px; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+        <div style="text-align: left;">
+          <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Collected</div>
+          <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">₹{{ (monthlyRevenue | number:'1.0-2') || '0' }}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Achieved</div>
+          <div style="font-size: 16px; font-weight: 800; color: #10b981; margin-top: 2px;">{{ monthlyTarget > 0 ? (((monthlyRevenue / monthlyTarget) * 100) | number:'1.0-1') : '0' }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Today's Collection -->
+    <div class="glance-card-today">
+      <div class="glance-today-bg"></div>
+      <div class="glance-today-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg>
+      </div>
+      
+      <div style="font-size: 11px; font-weight: 800; color: #e2e8f0; text-transform: uppercase; letter-spacing: 1.5px; z-index: 1;">Today's Collection</div>
+      
+      <div class="glance-today-amount">
+        ₹{{ (todayCollection | number:'1.0-2') || '0' }}
+      </div>
+      
+      <label class="glance-today-checkbox">
+        <input type="checkbox" [(ngModel)]="includeTaxes" (change)="updateTodayCollection()">
+        Include taxes
+      </label>
+      
+      <div style="font-size: 11px; color: #94a3b8; line-height: 1.5; font-weight: 500; z-index: 1;">Create invoices, job cards and<br>check client information.</div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       BOTTOM LAYOUT
+       ========================================== -->
+  <div class="bottom-layout">
+    <div class="modules-col">
+      <div class="module-grid">
+        <!-- Dynamic Module Cards -->
+        <div class="module-card animated-card" *ngFor="let mod of visibleModules; let i = index" (click)="navigate(mod.route)" [ngStyle]="{'animation-delay': (i * 0.05) + 's'}">
+          <div class="module-card-header">
+            <div class="module-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [innerHTML]="mod.icon"></svg>
+            </div>
+            <div class="module-title">{{ mod.title }}</div>
+            <div class="module-arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </div>
+          </div>
+          <div class="module-desc">
+            {{ mod.subtitle }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subscription-col">
+      <!-- User / Subscription Info Card -->
+      <div class="user-settings-card animated-card" style="animation-delay: 0.2s;">
+        <div class="user-logged-in">Logged in as <strong>{{ username }}</strong></div>
+        <div class="user-btn-row">
+          <button class="btn-outline">Change<br>Password</button>
+          <button class="btn-outline">Reset PIN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

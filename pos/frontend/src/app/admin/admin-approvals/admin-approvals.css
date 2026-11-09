@@ -1,0 +1,71 @@
+.tile-sub { font-size: 12px; color: var(--text-secondary, #64748b); font-weight: 400; }
+
+.rule-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.rule-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.rule-title { font-size: 14px; font-weight: 700; color: var(--text-primary, #0f172a); }
+.rule-help { font-size: 12.5px; color: var(--text-secondary, #64748b); margin-top: 3px; max-width: 640px; line-height: 1.45; }
+
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.switch.disabled { cursor: default; opacity: .7; }
+.switch input { width: 16px; height: 16px; accent-color: #0f172a; }
+
+.approvers { margin-top: 14px; border-top: 1px solid var(--border, #e2e8f0); padding-top: 12px; }
+.approvers-label { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-secondary, #64748b); margin-bottom: 6px; }
+.approver-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; font-size: 13px; }
+.approver-name { font-weight: 600; min-width: 180px; }
+.approver-scope { color: var(--text-secondary, #64748b); flex: 1; }
+.approver-none { font-size: 12.5px; color: #92400e; background: #fffbeb; border-radius: 8px; padding: 8px 10px; }
+.approver-add { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.approver-add select, .filters select {
+  padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; font-family: inherit;
+  background: var(--surface, #fff);
+}
+
+.rule-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+.rule-note { font-size: 12px; color: var(--text-secondary, #64748b); }
+
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.ap-pending { background: #fef3c7; color: #92400e; }
+.ap-approved, .ap-used { background: #dcfce7; color: #166534; }
+.ap-rejected, .ap-expired, .ap-cancelled { background: #fee2e2; color: #b91c1c; }
+
+/* ==== dark theme: generated pass (light surfaces that had no dark rule) ==== */
+@media screen {
+:host-context([data-theme="dark"]) .rule-card {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14)) !important;
+}
+:host-context([data-theme="dark"]) .approvers {
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.14)) !important;
+}
+:host-context([data-theme="dark"]) .approver-none {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #fbbf24 !important;
+}
+:host-context([data-theme="dark"]) .approver-add select,
+:host-context([data-theme="dark"]) .filters select {
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+:host-context([data-theme="dark"]) .ap-pending {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #fbbf24 !important;
+}
+:host-context([data-theme="dark"]) .ap-approved,
+:host-context([data-theme="dark"]) .ap-used {
+  background: rgba(34, 197, 94, 0.16) !important;
+  color: #4ade80 !important;
+}
+:host-context([data-theme="dark"]) .ap-rejected,
+:host-context([data-theme="dark"]) .ap-expired,
+:host-context([data-theme="dark"]) .ap-cancelled {
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: #f87171 !important;
+}
+}

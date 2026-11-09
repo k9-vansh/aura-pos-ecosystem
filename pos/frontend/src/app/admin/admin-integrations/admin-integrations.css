@@ -1,0 +1,28 @@
+.field-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 11.5px; font-weight: 600; color: var(--text-secondary, #64748b); }
+.field input, .test-row input {
+  padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; font-family: inherit;
+  background: var(--surface, #fff);
+}
+.field-help { font-size: 11.5px; color: var(--text-tertiary, #94a3b8); line-height: 1.35; }
+.test-row { display: flex; gap: 8px; align-items: center; }
+.test-row input { min-width: 260px; }
+.test-result { margin-top: 10px; font-size: 12px; color: #166534; }
+.test-result.bad { color: #b91c1c; }
+
+.chan-row { display: flex; gap: 18px; margin-top: 12px; font-size: 13px; }
+.chan-row label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.who { margin-top: 12px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; margin: 0 14px 6px 0; cursor: pointer; }
+.plain-list { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--text-secondary, #64748b); line-height: 1.7; }
+.sync-tile.static { cursor: default; min-width: 150px; }
+@media (max-width: 576px) { .test-row { flex-direction: column; align-items: stretch; } .test-row input { min-width: 0; } }
+
+/* ==== dark theme: generated pass (light surfaces that had no dark rule) ==== */
+@media screen {
+:host-context([data-theme="dark"]) .field input,
+:host-context([data-theme="dark"]) .test-row input {
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+}

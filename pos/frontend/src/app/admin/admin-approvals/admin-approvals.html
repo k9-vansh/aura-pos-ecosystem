@@ -1,0 +1,123 @@
+<div class="sync-page">
+  <div class="sync-tiles">
+    <button class="sync-tile" [class.active]="tab === 'rules'" (click)="setTab('rules')">
+      <span class="tile-label">Rules</span>
+      <span class="tile-sub">What needs approval, and who approves</span>
+    </button>
+    <button class="sync-tile" [class.active]="tab === 'history'" (click)="setTab('history')">
+      <span class="tile-label">History</span>
+      <span class="tile-sub">Every request and its decision</span>
+    </button>
+  </div>
+
+  <div class="sync-error" *ngIf="loadError">{{ loadError }}</div>
+
+  <!-- ─── Rules ─── -->
+  <ng-container *ngIf="tab === 'rules'">
+    <div class="loading-overlay" *ngIf="isLoading">Loading...</div>
+
+    <div class="sync-error" *ngIf="!isLoading && uncontrolledTillKinds.length">
+      Not controlled: {{ uncontrolledTillKinds.join(' and ') }} is switched off, so anyone who bills can
+      sell below the list price or give any discount without approval.
+    </div>
+
+    <div class="rule-card" *ngFor="let p of policies; trackBy: trackById">
+      <div class="rule-head">
+        <div>
+          <div class="rule-title">{{ p.label }}</div>
+          <div class="rule-help">{{ p.help }}</div>
+        </div>
+        <label class="switch" [class.disabled]="!canEdit">
+          <input type="checkbox" [(ngModel)]="p.enabled" [disabled]="!canEdit">
+          <span class="switch-text">{{ p.enabled ? 'On' : 'Off' }}</span>
+        </label>
+      </div>
+
+      <div class="approvers">
+        <div class="approvers-label">Approvers</div>
+        <div class="approver-row" *ngFor="let a of p.approvers; trackBy: trackByIndex">
+          <span class="approver-name">{{ userName(a.user_id) }}</span>
+          <span class="approver-scope">{{ centerName(a.center_id) }}</span>
+          <button class="pill-btn ghost" *ngIf="canEdit" (click)="removeApprover(p, a)">Remove</button>
+        </div>
+        <div class="approver-none" *ngIf="!p.approvers.length">
+          No approver chosen: until one is, only the owner can approve.
+        </div>
+
+        <div class="approver-add" *ngIf="canEdit">
+          <select [(ngModel)]="draft[p.kind].user_id">
+            <option [ngValue]="null">Choose a person...</option>
+            <option *ngFor="let u of users" [ngValue]="u.id">{{ u.full_name || u.email }}</option>
+          </select>
+          <select [(ngModel)]="draft[p.kind].center_id">
+            <option value="all">All branches</option>
+            <option *ngFor="let c of centers" [ngValue]="c.id">{{ c.name }}</option>
+          </select>
+          <button class="pill-btn ghost" [disabled]="!draft[p.kind].user_id" (click)="addApprover(p)">Add</button>
+        </div>
+      </div>
+
+      <div class="rule-foot">
+        <span class="rule-note">Free limits are set in Settings &rsaquo; Approvals.</span>
+        <button class="pill-btn" *ngIf="canEdit" [disabled]="savingKind === p.kind" (click)="save(p)">
+          {{ savingKind === p.kind ? 'Saving...' : 'Save' }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ─── History ─── -->
+  <ng-container *ngIf="tab === 'history'">
+    <div class="sync-bar">
+      <div class="filters">
+        <select [(ngModel)]="statusFilter" (change)="filterChanged()">
+          <option value="">Any status</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="used">Used on a bill</option>
+          <option value="rejected">Rejected</option>
+          <option value="expired">Lapsed</option>
+          <option value="cancelled">Withdrawn</option>
+        </select>
+        <select [(ngModel)]="kindFilter" (change)="filterChanged()">
+          <option value="">Any kind</option>
+          <option *ngFor="let p of policies" [value]="p.kind">{{ p.label }}</option>
+        </select>
+      </div>
+      <span class="sync-meta">{{ count }} request(s)</span>
+    </div>
+
+    <div class="loading-overlay" *ngIf="isLoading">Loading...</div>
+
+    <table class="modern-bills-table" *ngIf="rows.length > 0">
+      <thead>
+        <tr>
+          <th>Asked</th><th>Branch</th><th>By</th><th>What</th><th>Status</th><th>Decided by</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of rows; trackBy: trackById">
+          <td class="text-secondary">{{ r.created_at | date:'dd-MM-yyyy, HH:mm' }}</td>
+          <td>{{ r.center_name }}</td>
+          <td>{{ r.requested_by_name }}</td>
+          <td>{{ r.summary }}<div class="sync-sub" *ngIf="r.reason">Reason: {{ r.reason }}</div></td>
+          <td><span class="status-badge" [ngClass]="'ap-' + r.status">{{ r.status === 'used' ? 'Used on a bill' : r.status }}</span></td>
+          <td class="text-secondary">
+            <ng-container *ngIf="r.decided_by_name">{{ r.decided_by_name }}
+              <div class="sync-sub">{{ r.decided_at | date:'dd-MM, HH:mm' }} · {{ r.decided_via === 'link' ? 'by link' : 'in the POS' }}</div>
+            </ng-container>
+            <ng-container *ngIf="!r.decided_by_name">-</ng-container>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="sync-empty" *ngIf="!isLoading && !loadError && rows.length === 0">No requests yet.</div>
+
+    <div class="sync-pager" *ngIf="pages > 1">
+      <button class="pill-btn ghost" [disabled]="page <= 1" (click)="goTo(page - 1)">Previous</button>
+      <span>Page {{ page }} of {{ pages }}</span>
+      <button class="pill-btn ghost" [disabled]="page >= pages" (click)="goTo(page + 1)">Next</button>
+    </div>
+  </ng-container>
+</div>

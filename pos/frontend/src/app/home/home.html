@@ -1,0 +1,210 @@
+<div class="home-wrapper">
+
+  <!-- ==========================================
+       HEADER: greeting, branch picker, live badge
+       ========================================== -->
+  <header class="ov-head">
+    <div class="ov-head-left">
+      <div class="ov-eyebrow">{{ todayLabel }}</div>
+      <div class="ov-head-tools">
+        <app-location-selector
+          [centers]="centers"
+          [hasGlobalAccess]="hasGlobalAccess"
+          [multi]="true"
+          [(selectedCenterId)]="selectedFilterLocation"
+          (selectionChange)="onLocationChange()">
+        </app-location-selector>
+        <select class="ov-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()" aria-label="Period">
+          <option *ngFor="let p of periods" [value]="p.v">{{ p.l }}</option>
+        </select>
+        <span class="ov-live"><span class="pulse-dot"></span> Live data</span>
+      </div>
+    </div>
+
+    <!-- The four numbers that matter, in dot-matrix type -->
+    <div class="ov-stats" *ngIf="!noAccess">
+      <div class="ov-stat">
+        <div class="ov-num dots">{{ revenueParts.v }}<small>{{ revenueParts.u }}</small></div>
+        <span class="ov-tag ov-tag-lime">Revenue</span>
+      </div>
+      <div class="ov-stat">
+        <div class="ov-num dots">{{ achievedPct }}<small>%</small></div>
+        <span class="ov-tag">Of target</span>
+      </div>
+      <div class="ov-stat">
+        <div class="ov-num dots">{{ billsCount }}</div>
+        <span class="ov-tag">Bills</span>
+      </div>
+      <div class="ov-stat">
+        <div class="ov-num dots">{{ clientsCount }}</div>
+        <span class="ov-tag">Clients</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       MAIN GRID: two glass cards + side stack
+       ========================================== -->
+  <section class="ov-main">
+
+    <!-- Revenue gauge: actual against target, with the projection -->
+    <article class="ov-card" *ngIf="noAccess">
+      <div class="ov-card-title">No access yet</div>
+      <p>Your role has not been given any workspace. Ask an owner to assign you a role.</p>
+    </article>
+
+    <article class="ov-card ov-gauge" *ngIf="!noAccess">
+      <div class="ov-gauge-head">
+        <div class="ov-card-title">Revenue · {{ periodLabel }}</div>
+        <button class="ov-icon-btn ov-icon-btn-light" (click)="isEditingTarget = true; tempMonthlyTarget = monthlyTarget" *ngIf="!isEditingTarget" title="Change the monthly target">
+          <i class="fa fa-pencil"></i>
+        </button>
+      </div>
+
+      <div class="ov-gauge-dial" *ngIf="!isEditingTarget">
+        <svg viewBox="-6 -2 112 62" aria-hidden="true">
+          <defs>
+            <linearGradient id="ovGaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#2f9a3e"/>
+              <stop offset="100%" stop-color="#b7e02a"/>
+            </linearGradient>
+          </defs>
+          <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" class="ov-gauge-track" stroke-width="9" stroke-linecap="round"/>
+          <path [attr.d]="getGaugePath()" fill="none" stroke="url(#ovGaugeGrad)" stroke-width="9" stroke-linecap="round" class="ov-gauge-arc"/>
+        </svg>
+        <div class="ov-gauge-pct">{{ achievedPct }}<small>%</small></div>
+        <span class="ov-gauge-end ov-gauge-end-l">0</span>
+        <span class="ov-gauge-end ov-gauge-end-r">100</span>
+        <div class="ov-gauge-status">{{ paceStatus }}</div>
+      </div>
+
+      <div class="ov-gauge-edit" *ngIf="isEditingTarget">
+        <label>Monthly target (₹)</label>
+        <input type="number" min="0" oninput="validity.valid||(value='');" [(ngModel)]="tempMonthlyTarget" class="ov-target-input ov-target-input-light" placeholder="Target">
+        <div class="ov-edit-btns">
+          <button (click)="saveMonthlyTarget()" class="ov-btn ov-btn-dark">Save</button>
+          <button (click)="isEditingTarget = false" class="ov-btn ov-btn-light">Cancel</button>
+        </div>
+      </div>
+
+      <div class="ov-gauge-stats">
+        <div><span>Actual</span><b class="accent">₹{{ inr(monthlyRevenue) }}</b></div>
+        <div><span>Projection</span><b>{{ projection === null ? '–' : '₹' + inr(projection) }}</b></div>
+        <div><span>Achieved</span><b>{{ achievedPct }}%</b></div>
+        <div><span>Target</span><b>₹{{ inr(periodTarget) }}</b></div>
+      </div>
+    </article>
+
+    <!-- Sales mix: where the period's money came from -->
+    <article class="ov-card ov-mix" *ngIf="!noAccess">
+      <div class="ov-mix-head">
+        <div>
+          <div class="ov-card-title">Sales mix</div>
+          <div class="ov-mix-sub">Share of revenue · {{ periodLabel }}</div>
+        </div>
+      </div>
+      <div class="ov-mix-rows">
+        <div class="ov-mix-row" *ngFor="let r of salesMix">
+          <span class="ov-mix-name">{{ r.label }}</span>
+          <span class="ov-mix-bar"><i [style.width.%]="r.pct"></i></span>
+          <span class="ov-mix-val">{{ inr(r.value) }}</span>
+          <b class="ov-mix-pct">{{ r.pct }}%</b>
+        </div>
+      </div>
+      <a class="ov-mix-link" (click)="navigate('/admin/dashboard')">Open full analytics <i class="fa-solid fa-arrow-right"></i></a>
+    </article>
+
+    <!-- Today's collection -->
+    <article class="ov-glass ov-glass-sunset" *ngIf="!noAccess">
+      <div class="ov-glass-blobs"><i></i><i></i><i></i></div>
+      <div class="ov-glass-head"><span>Today's collection</span></div>
+
+      <div class="ov-glass-body">
+        <div class="ov-big dots dots-light">₹{{ todayParts.v }}<small>{{ todayParts.u }}</small></div>
+        <div class="ov-glass-sub">₹{{ (todayCollection | number:'1.0-2') || '0' }}</div>
+        <label class="ov-check">
+          <input type="checkbox" [(ngModel)]="includeTaxes" (change)="updateTodayCollection()">
+          <span>Include taxes</span>
+        </label>
+      </div>
+
+      <div class="ov-ruler ov-ruler-ticks" aria-hidden="true">
+        <i *ngFor="let t of tickMarks" [class.tall]="t"></i>
+      </div>
+    </article>
+
+    <!-- Right stack -->
+    <aside class="ov-side">
+      <div class="ov-card ov-collect" *ngIf="summaryData?.money_in as mi">
+        <div class="ov-card-title">{{ mi.to_collect > 0 ? 'Still to collect' : 'All collected' }}</div>
+        <div class="ov-collect-body">
+          <div>
+            <div class="ov-collect-amt dots">₹{{ toCollectParts.v }}<small>{{ toCollectParts.u }}</small></div>
+            <div class="ov-collect-sub">{{ mi.to_collect > 0 ? 'on open bills' : 'Nothing left to collect' }}</div>
+          </div>
+          <div class="ov-vial"><div class="ov-vial-fill" [style.height.%]="collectedPct"></div></div>
+        </div>
+        <div class="ov-collect-track"><i [style.width.%]="collectedPct"></i></div>
+        <div class="ov-collect-legend">
+          <span>Received ₹{{ inr(mi.real_money_received) }}</span>
+          <span>{{ collectedPct }}% of billed</span>
+        </div>
+      </div>
+
+      <div class="ov-card ov-account">
+        <div class="ov-card-title">Your account</div>
+        <div class="ov-account-who">Logged in as <strong>{{ username }}</strong></div>
+        <div class="ov-account-btns">
+          <button class="ov-pill" (click)="openPassword()">Change password</button>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ==========================================
+       WORKSPACES
+       ========================================== -->
+  <section class="ov-modules">
+    <div class="ov-modules-head"><h2>Workspaces</h2></div>
+
+    <div class="ov-module-grid">
+      <article class="ov-module" *ngFor="let mod of visibleModules; let i = index"
+               (click)="navigate(mod.route)"
+               [style.--c]="mod.color" [style.animation-delay]="(i * 0.05) + 's'">
+        <span class="ov-module-go" aria-hidden="true"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+        <div class="ov-module-art" aria-hidden="true">
+          <svg class="ov-module-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round" [innerHTML]="mod.icon"></svg>
+          <span class="ov-module-well">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" [innerHTML]="mod.icon"></svg>
+          </span>
+        </div>
+        <div class="ov-module-text">
+          <div class="ov-module-title">{{ mod.title }}</div>
+          <div class="ov-module-desc">{{ mod.subtitle }}</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+
+  <!-- Change password -->
+  <div class="ov-modal-back" *ngIf="showPassword" (click)="closePassword()">
+    <div class="ov-modal" (click)="$event.stopPropagation()" role="dialog" aria-label="Change password">
+      <h3>Change password</h3>
+      <ng-container *ngIf="!pwDone">
+        <label>Current password<input type="password" [(ngModel)]="pw.current" autocomplete="current-password"></label>
+        <label>New password<input type="password" [(ngModel)]="pw.next" autocomplete="new-password"></label>
+        <label>Confirm new password<input type="password" [(ngModel)]="pw.confirm" autocomplete="new-password" (keyup.enter)="submitPassword()"></label>
+        <div class="ov-modal-err" *ngIf="pwError">{{ pwError }}</div>
+        <div class="ov-modal-btns">
+          <button class="ov-btn ov-btn-light" (click)="closePassword()">Cancel</button>
+          <button class="ov-btn ov-btn-dark" (click)="submitPassword()" [disabled]="pwSaving">{{ pwSaving ? 'Saving…' : 'Change password' }}</button>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="pwDone">
+        <p class="ov-modal-ok">Password changed. Your other devices have been signed out.</p>
+        <div class="ov-modal-btns"><button class="ov-btn ov-btn-dark" (click)="closePassword()">Done</button></div>
+      </ng-container>
+    </div>
+  </div>
+</div>

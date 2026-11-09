@@ -1,0 +1,44 @@
+# systemd unit for the POS backend.
+#
+# Nothing supervised the old process: one unhandled error took the whole POS
+# down until somebody noticed and ran the command again by hand.
+#
+#   sudo cp deploy/pos-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now pos-backend
+#   sudo systemctl status pos-backend
+#
+# CHANGE ME: WorkingDirectory, the two venv paths, and User/Group.
+
+[Unit]
+Description=Salon POS backend (gunicorn + uvicorn workers)
+After=network.target mysql.service redis-server.service
+Wants=mysql.service redis-server.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+
+# CHANGE ME
+WorkingDirectory=/srv/pos/backend
+Environment="PATH=/srv/pos/venv/bin"
+ExecStart=/srv/pos/venv/bin/gunicorn -c deploy/gunicorn.conf.py pos_backend.asgi:application
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+
+# Bring it back if it dies, but stop flapping if it cannot start at all -
+# otherwise a bad .env becomes a restart loop that fills the disk with logs.
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=120
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

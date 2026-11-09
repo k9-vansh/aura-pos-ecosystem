@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AURA SALON &amp; SPA</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="favicon.png?v=5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Outfit:wght@400;500;600;700;800;900&amp;family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,600;1,700&amp;display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.webmanifest">
+  <!-- Font Awesome Free 6.7.2, served locally (icons; v4-shims keeps the older "fa fa-x" names working) -->
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="vendor/fontawesome/css/v4-shims.min.css">
+</head>
+<body>
+  <div class="boot-splash" id="bootSplash" aria-hidden="true">
+    <div class="boot-line">
+      <img src="assets/images/full.png" alt="Aura Salon &amp; Spa" class="splash-logo">
+      <span class="boot-rule"></span>
+    </div>
+  </div>
+
+  <script>
+    setTimeout(() => {
+      const splash = document.getElementById('bootSplash');
+      if (splash) {
+        splash.classList.add('is-leaving');
+        setTimeout(() => splash.classList.add('is-gone'), 1100);
+      }
+    }, 3700);
+  </script>
+
+  <app-root></app-root>
+  <noscript>Please enable JavaScript to continue using this application.</noscript>
+</body>
+</html>

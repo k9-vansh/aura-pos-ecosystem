@@ -1,0 +1,475 @@
+<div class="clients-wrapper">
+  <!-- Sub-header -->
+  <div class="page-subheader-row" style="margin-bottom: 16px;">
+    <div class="subheader-left">
+      <div style="display: flex; align-items: center; gap: 8px;">
+      </div>
+      <span class="cl-count-badge" *ngIf="clients.length > 0">{{ clients.length }} clients</span>
+    </div>
+    <div class="subheader-right" style="display: flex; gap: 8px;">
+      <input type="file" #fileInput (change)="uploadClients($event)" style="display: none;" accept=".csv, .xlsx" />
+      <button class="btn btn-secondary" style="display: flex; align-items: center; gap: 6px;"
+        *ngIf="canClientAction('bulk_upload')" (click)="downloadTemplate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg> Template
+      </button>
+      <button class="btn btn-secondary" style="display: flex; align-items: center; gap: 6px;"
+        *ngIf="canClientAction('bulk_upload')" (click)="fileInput.click()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg> Bulk Upload
+      </button>
+      <button class="btn btn-secondary" style="display: flex; align-items: center; gap: 6px;"
+        *ngIf="canClientAction('merge')" (click)="toggleDuplicates()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg> Duplicates
+      </button>
+      <button class="btn btn-primary" style="display: flex; align-items: center; gap: 6px;"
+        *ngIf="isOwner || permissions.admin?.clients?.create" (click)="newClient()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg> New Client
+      </button>
+    </div>
+  </div>
+
+  <!-- Duplicate clients (same phone) waiting to be merged -->
+  <div *ngIf="showDuplicates" class="cl-detail-card" style="margin-bottom: 16px; padding: 16px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <strong>Clients sharing a phone number</strong>
+      <button class="btn btn-secondary" (click)="showDuplicates = false">Close</button>
+    </div>
+    <div *ngIf="duplicatesLoading" class="cl-empty">Loading...</div>
+    <div *ngIf="!duplicatesLoading && duplicates.length === 0" class="cl-empty">No duplicates found</div>
+    <div *ngFor="let g of duplicates" style="border-top: 1px solid #e5e7eb; padding: 10px 0;">
+      <div style="font-size: 13px; margin-bottom: 6px;">
+        <b>{{ g.phone }}</b> — kept: #{{ g.keeps_number?.id }} {{ g.keeps_number?.first_name }} {{ g.keeps_number?.last_name }}
+      </div>
+      <div *ngFor="let d of g.duplicates" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; padding: 4px 0;">
+        <span>#{{ d.id }} {{ d.first_name }} {{ d.last_name }}</span>
+        <button class="btn btn-secondary" [disabled]="mergingId === d.id || !g.keeps_number"
+          (click)="mergeDuplicate(g.keeps_number, d)">
+          {{ mergingId === d.id ? 'Merging...' : 'Merge into #' + g.keeps_number?.id }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cl-main">
+    <!-- LEFT: Client List -->
+    <div class="cl-list-panel">
+      <div class="cl-search-row">
+        <i class="fa fa-search cl-search-icon"></i>
+        <input type="text" class="cl-search-input" [(ngModel)]="searchPhone" placeholder="Search by phone or name"
+          (keyup.enter)="searchClient()" />
+        <button class="cl-search-btn" (click)="searchClient()">Go</button>
+      </div>
+      <div class="cl-list">
+        <div *ngFor="let c of clients; trackBy: trackById" class="cl-list-item" [class.active]="client && client.id === c.id"
+          (mousedown)="$event.button === 0 && (selectClient(c))">
+          <div class="cl-avatar">{{ (c.first_name || c.phone || '?')[0].toUpperCase() }}</div>
+          <div class="cl-list-info">
+            <div class="cl-list-name">
+              {{c.first_name || 'Unknown'}}
+              <span *ngIf="c.is_blacklisted" style="color: #ef4444; font-size: 10px; margin-left: 4px;"
+                title="Blacklisted">⚠️</span>
+              <span *ngIf="c.sap_sync_status" title="Synced to SAP" style="cursor: help; margin-left: 4px; font-size: 10px;">🟢</span>
+              <span *ngIf="c.sap_sync_status === false" [title]="c.sap_sync_message || 'Failed to sync to SAP'" style="cursor: help; margin-left: 4px; font-size: 10px;">🔴</span>
+            </div>
+            <div class="cl-list-meta">{{c.phone}}<span *ngIf="c.center_detail" class="cl-center-tag"> ·
+                {{c.center_detail.display_name || c.center_detail.name}}</span></div>
+          </div>
+          <div class="cl-perk-dots">
+            <span *ngIf="c.active_memberships?.length" class="cl-dot membership" title="Membership"></span>
+            <span *ngIf="c.active_packages?.length" class="cl-dot package" title="Package"></span>
+            <span *ngIf="c.active_value_cards?.length" class="cl-dot card" title="Value Card"></span>
+          </div>
+        </div>
+        <div *ngIf="clients.length === 0" class="cl-empty">No clients found</div>
+      </div>
+      <div class="cl-pagination" *ngIf="totalPages > 1"
+        style="display: flex; justify-content: space-between; padding: 12px; border-top: 1px solid #e5e7eb; background: #fafafa; font-size: 12px; align-items: center;">
+        <button (click)="prevPage()" [disabled]="currentPage === 1"
+          style="padding: 4px 10px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; color: #333;"
+          [style.opacity]="currentPage === 1 ? '0.5' : '1'">Prev</button>
+        <span style="color: #666;">Page {{currentPage}} of {{totalPages}}</span>
+        <button (click)="nextPage()" [disabled]="currentPage === totalPages"
+          style="padding: 4px 10px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; color: #333;"
+          [style.opacity]="currentPage === totalPages ? '0.5' : '1'">Next</button>
+      </div>
+    </div>
+
+    <!-- CENTER: Client Detail -->
+    <div class="cl-detail-panel">
+      <div *ngIf="!client" class="cl-placeholder">
+        <div class="cl-placeholder-icon">&#128100;</div>
+        <p>Select a client or create a new one</p>
+      </div>
+      <div *ngIf="client" class="cl-detail-card">
+        <!-- Header -->
+        <div class="cl-detail-header" *ngIf="client.id" style="align-items: center; padding: 16px 24px; display: flex; gap: 16px; min-height: 72px;">
+          <div class="cl-avatar-lg" style="margin: 0; width: 40px; height: 40px; font-size: 18px; line-height: 40px; background: #e2e8f0; color: #1e293b; border-radius: 50%; text-align: center;">{{ (client.first_name || client.phone || '?')[0].toUpperCase() }}</div>
+          <div class="cl-detail-hero" style="margin: 0; display: flex; flex-direction: column; justify-content: center;">
+            <div class="cl-detail-stats" style="margin: 0; display: flex; align-items: center; gap: 12px; font-size: 13px;">
+              <span *ngIf="client.is_blacklisted" style="background-color: #ef4444; color: white; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">BLACKLISTED</span>
+              <span class="cl-stat">LTV: <strong>Rs. {{ client.ltv | number:'1.0-2' }}</strong></span>
+              <span class="cl-stat" *ngIf="client.last_visit">Last visit: <strong>{{ client.last_visit | date:'dd MMM yyyy' }}</strong></span>
+            </div>
+          </div>
+        </div>
+        <!-- Tabs -->
+        <div class="cl-tabs">
+          <button class="cl-tab" [class.active]="activeTab === 'profile'" (click)="activeTab = 'profile'">
+            <i class="fa fa-user"></i> Profile
+          </button>
+          <button class="cl-tab" [class.active]="activeTab === 'perks'" (click)="activeTab = 'perks'">
+            <i class="fa fa-star"></i> Perks &amp; Balances
+            <span *ngIf="getTotalPerks() > 0" class="cl-tab-badge">{{ getTotalPerks() }}</span>
+          </button>
+          <button class="cl-tab" [class.active]="activeTab === 'notes'" (click)="activeTab = 'notes'">
+            <i class="fa fa-sticky-note-o"></i> Notes
+          </button>
+        </div>
+
+        <!-- TAB: Profile -->
+        <div *ngIf="activeTab === 'profile'" class="cl-tab-body">
+          <div class="cl-form-grid">
+            <div class="cl-fg"><label>Full Name</label><input type="text" [(ngModel)]="client.first_name" /></div>
+            <div class="cl-fg"><label>Phone</label><input type="text" [(ngModel)]="client.phone" /></div>
+            <div class="cl-fg"><label>Email</label><input type="email" [(ngModel)]="client.email" /></div>
+            <div class="cl-fg"><label>Birthday</label><input type="date" [(ngModel)]="client.birthday" /></div>
+            <div class="cl-fg">
+              <label>Gender</label>
+              <select [(ngModel)]="client.gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </div>
+            <div class="cl-fg">
+              <label>Center</label>
+              <select [(ngModel)]="client.center">
+                <option [ngValue]="null">None</option>
+                <option *ngFor="let c of centers; trackBy: trackById" [ngValue]="c.id">{{c.display_name || c.center_name}}</option>
+              </select>
+            </div>
+            <div class="cl-fg"><label>GST Number</label><input type="text" [(ngModel)]="client.gst_number" /></div>
+            <div class="cl-fg"><label>Billing Address</label><input type="text" [(ngModel)]="client.address" /></div>
+            <div class="cl-fg"><label>PIN Code</label><input type="text" maxlength="6" inputmode="numeric" [(ngModel)]="client.pin_code" /></div>
+            <div class="cl-fg">
+              <label>DND Status</label>
+              <select [(ngModel)]="client.dnd_status">
+                <option>NOT ON DND</option>
+                <option>ON DND</option>
+              </select>
+            </div>
+
+            <div class="cl-fg">
+              <label>Messages allowed</label>
+              <div style="display: flex; align-items: center; gap: 16px; height: 38px;">
+                <label style="display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 400;">
+                  <input type="checkbox" [(ngModel)]="client.whatsapp_consent" /> WhatsApp
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 400;">
+                  <input type="checkbox" [(ngModel)]="client.sms_consent" /> SMS
+                </label>
+              </div>
+            </div>
+
+            <div class="cl-fg">
+              <label>Blacklisted?</label>
+              <div style="display: flex; align-items: center; height: 38px;">
+                <input type="checkbox" [(ngModel)]="client.is_blacklisted" [disabled]="!canClientAction('blacklist')"
+                  style="width: 20px; height: 20px; cursor: pointer;" />
+                <span style="margin-left: 8px; color: #ef4444; font-weight: 600;"
+                  *ngIf="client.is_blacklisted">Blacklisted</span>
+              </div>
+            </div>
+            <div class="cl-fg" *ngIf="client.is_blacklisted" style="grid-column: 1 / -1;">
+              <label style="color: #ef4444; font-weight: 600;">Blacklist Reason</label>
+              <input type="text" [(ngModel)]="client.blacklist_reason" [disabled]="!canClientAction('blacklist')"
+                style="border-color: #ef4444; background: #fef2f2;" placeholder="Why is this client blacklisted?" />
+            </div>
+          </div>
+          <div class="cl-form-actions">
+            <button class="cl-save-btn" *ngIf="isOwner || permissions.admin?.clients?.update" (click)="saveClient()"
+              [disabled]="isSaving">
+              <i class="fa fa-check"></i>
+              <span *ngIf="isSaving">Saving...</span>
+              <span *ngIf="!isSaving">{{ client?.id ? 'Update Client' : 'Add Client' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB: Perks & Balances -->
+        <div *ngIf="activeTab === 'perks'" class="cl-tab-body">
+          <!-- Wallet -->
+          <div class="cl-perk-section">
+            <div class="cl-perk-section-title">&#128176; Wallets</div>
+            <div style="display: flex; gap: 12px; flex-direction: column;">
+              <div class="cl-balance-card" [class.zero]="advanceBalance <= 0">
+                <div class="cl-balance-label">Advance Balance</div>
+                <div class="cl-balance-amount">Rs. {{ advanceBalance | number:'1.0-2' }}</div>
+                <div class="cl-balance-note">Prepaid store credits</div>
+              </div>
+              <div class="cl-balance-card" [class.zero]="client.cashback_balance <= 0"
+                style="border-left: 4px solid #f59e0b; background: #fffbeb;">
+                <div class="cl-balance-label" style="color: #d97706;">Cashback Wallet</div>
+                <div class="cl-balance-amount" style="color: #b45309;">Rs. {{ client.cashback_balance | number:'1.0-2'
+                  }}</div>
+                <div class="cl-balance-note" style="color: #d97706; opacity: 0.8;">Earned from promotions</div>
+              </div>
+            </div>
+          </div>
+          <!-- Memberships -->
+          <div class="cl-perk-section">
+            <div class="cl-perk-section-title">&#128081; Memberships</div>
+            <div *ngIf="!client.active_memberships?.length" class="cl-perk-empty">No active memberships</div>
+            <div *ngFor="let m of client.active_memberships; trackBy: trackById" class="cl-perk-card membership-card">
+              <div class="cl-perk-top">
+                <span class="cl-perk-name">{{ m.membership_detail?.name }}</span>
+                <span class="cl-perk-badge-pill gold">{{ m.membership_detail?.discount_percent }}% OFF</span>
+              </div>
+              <div class="cl-perk-meta"
+                style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px;">
+                <span>Expires: {{ m.expiry_date | date:'dd MMM yyyy' }}</span>
+                <button class="cl-perk-btn"
+                  style="background:#f59e0b; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;"
+                  (click)="openCarryOver('membership', m)">Renew</button>
+              </div>
+            </div>
+          </div>
+          <!-- Packages -->
+          <div class="cl-perk-section">
+            <div class="cl-perk-section-title">&#128230; Packages</div>
+            <div *ngIf="!client.active_packages?.length" class="cl-perk-empty">No active packages</div>
+            <div *ngFor="let p of client.active_packages; trackBy: trackById" class="cl-perk-card package-card">
+              <div class="cl-perk-top">
+                <span class="cl-perk-name">{{ p.package_detail?.name || 'Custom Package' }}</span>
+                <span class="cl-perk-badge-pill purple" [class.expired]="isExpired(p.expiry_date)">
+                  {{ isExpired(p.expiry_date) ? 'Expired' : 'Active' }}
+                </span>
+              </div>
+              <div class="cl-perk-meta"
+                style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px;">
+                <span>Expires: {{ p.expiry_date | date:'dd MMM yyyy' }}</span>
+                <button class="cl-perk-btn"
+                  style="background:#8b5cf6; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;"
+                  (click)="openCarryOver('package', p)">Carry Over</button>
+              </div>
+              <div class="cl-pkg-services" *ngIf="p.services_remaining">
+                <div *ngFor="let svcId of getPackageServiceKeys(p); trackBy: trackById" class="cl-pkg-svc-row">
+                  <span class="cl-pkg-svc-name">Service #{{ svcId }}</span>
+                  <div class="cl-pkg-svc-count" [class.exhausted]="p.services_remaining[svcId] <= 0">
+                    <span class="cl-pkg-svc-num">{{ p.services_remaining[svcId] }}</span>
+                    <span class="cl-pkg-svc-label">left</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Value Cards -->
+          <div class="cl-perk-section">
+            <div class="cl-perk-section-title">&#128179; Value Cards</div>
+            <div *ngIf="!client.active_value_cards?.length" class="cl-perk-empty">No active value cards</div>
+            <div *ngFor="let v of client.active_value_cards; trackBy: trackById" class="cl-perk-card card-perk-card">
+              <div class="cl-perk-top">
+                <span class="cl-perk-name">{{ v.value_card_detail?.title }}</span>
+                <span class="cl-perk-badge-pill green">Rs. {{ v.balance | number:'1.0-2' }}</span>
+              </div>
+              <div class="cl-perk-meta"
+                style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px;">
+                <span>Expires: {{ v.expiry_date | date:'dd MMM yyyy' }}</span>
+                <button class="cl-perk-btn"
+                  style="background:#10b981; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;"
+                  (click)="openCarryOver('value_card', v)">Carry Over</button>
+              </div>
+              <div class="cl-perk-prog-bar">
+                <div class="cl-perk-prog-fill green" [style.width]="getCardProgress(v) + '%'"></div>
+              </div>
+              <div class="cl-perk-meta" style="margin-top:4px; font-size:11px;">
+                Rs. {{ v.balance | number:'1.0-2' }} / Rs. {{ v.value_card_detail?.value | number:'1.0-2' }} remaining
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Notes -->
+        <div *ngIf="activeTab === 'notes'" class="cl-tab-body">
+          <textarea class="cl-notes-area" [(ngModel)]="client.notes"
+            placeholder="Add notes about this client..."></textarea>
+          <div class="cl-form-actions">
+            <button class="cl-save-btn" (click)="saveClient()" [disabled]="isSaving">
+              <i class="fa fa-save"></i>
+              <span *ngIf="isSaving">Saving...</span>
+              <span *ngIf="!isSaving">Save Notes</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Activity Timeline -->
+    <div class="cl-activity-panel">
+      <div class="cl-stats-row" *ngIf="client">
+        <div class="cl-mini-stat">
+          <div class="cl-mini-stat-val">{{ invoices.length }}</div>
+          <div class="cl-mini-stat-label">Invoices</div>
+        </div>
+        <div class="cl-mini-stat">
+          <div class="cl-mini-stat-val">Rs. {{ getTotalSpend() | number:'1.0-2' }}</div>
+          <div class="cl-mini-stat-label">Total Spend</div>
+        </div>
+        <div class="cl-mini-stat">
+          <div class="cl-mini-stat-val">{{ advances.length }}</div>
+          <div class="cl-mini-stat-label">Advances</div>
+        </div>
+      </div>
+
+      <div class="cl-timeline-filter" *ngIf="client">
+        <button class="cl-tl-btn" [class.active]="timelineFilter === 'all'"
+          (click)="timelineFilter = 'all'">All</button>
+        <button class="cl-tl-btn" [class.active]="timelineFilter === 'invoices'"
+          (click)="timelineFilter = 'invoices'">Invoices</button>
+        <button class="cl-tl-btn" [class.active]="timelineFilter === 'advances'"
+          (click)="timelineFilter = 'advances'">Advances</button>
+        <button class="cl-tl-btn" [class.active]="timelineFilter === 'services'"
+          (click)="timelineFilter = 'services'">Services</button>
+      </div>
+
+      <div *ngIf="!client" class="cl-act-placeholder">
+        <i class="fa fa-history" style="font-size:28px; opacity:0.3; margin-bottom:10px; display:block;"></i>
+        Select a client to view activity
+      </div>
+
+      <div class="cl-timeline" *ngIf="client">
+        <!-- Invoices -->
+        <ng-container *ngIf="timelineFilter === 'all' || timelineFilter === 'invoices'">
+          <div *ngFor="let inv of invoices; trackBy: trackById" class="cl-tl-item invoice">
+            <div class="cl-tl-icon inv"><i class="fa fa-file-text-o"></i></div>
+            <div class="cl-tl-content">
+              <div class="cl-tl-top">
+                <span class="cl-tl-title">Invoice #{{ inv.id }}</span>
+                <span class="cl-tl-badge" [class.badge-paid]="inv.status === 'paid'"
+                  [class.badge-partial]="inv.status === 'partial'" [class.badge-draft]="inv.status === 'draft'"
+                  [class.badge-cancelled]="inv.status === 'cancelled'"
+                  [class.badge-refunded]="inv.status === 'refunded'">{{ inv.status | titlecase }}</span>
+              </div>
+              <div class="cl-tl-meta">{{ inv.created_at | date:'dd MMM yyyy, h:mm a' }}</div>
+              <div class="cl-tl-items" *ngIf="inv.items?.length">
+                <span *ngFor="let it of inv.items; let last=last; trackBy: trackById">{{ it.description }}{{last ? '' : ' · '}}</span>
+              </div>
+              <div class="cl-tl-amount">Rs. {{ inv.total_amount | number:'1.0-2' }}</div>
+            </div>
+          </div>
+        </ng-container>
+        <!-- Advances -->
+        <ng-container *ngIf="timelineFilter === 'all' || timelineFilter === 'advances'">
+          <div *ngFor="let adv of advances; trackBy: trackById" class="cl-tl-item advance">
+            <div class="cl-tl-icon adv"><i class="fa fa-money"></i></div>
+            <div class="cl-tl-content">
+              <div class="cl-tl-top">
+                <span class="cl-tl-title">Advance Payment</span>
+                <span class="cl-tl-badge badge-paid">Advance</span>
+              </div>
+              <div class="cl-tl-meta">{{ adv.created_at | date:'dd MMM yyyy, h:mm a' }}</div>
+              <div class="cl-tl-items" *ngIf="adv.notes">{{ adv.notes }}</div>
+              <div class="cl-tl-amount" style="color:#10b981;">+Rs. {{ adv.amount | number:'1.0-2' }}</div>
+            </div>
+          </div>
+        </ng-container>
+        <!-- Service Logs -->
+        <ng-container *ngIf="timelineFilter === 'all' || timelineFilter === 'services'">
+          <div *ngFor="let log of serviceLogs; trackBy: trackById" class="cl-tl-item service">
+            <div class="cl-tl-icon svc"><i class="fa fa-scissors"></i></div>
+            <div class="cl-tl-content">
+              <div class="cl-tl-top">
+                <span class="cl-tl-title">{{ log.service_name }}</span>
+                <span class="cl-tl-badge badge-blue">{{ log.service_type || 'Service' }}</span>
+              </div>
+              <div class="cl-tl-meta">{{ log.date | date:'dd MMM yyyy' }} · {{ log.staff_name || 'Staff' }}</div>
+              <div class="cl-tl-amount">Rs. {{ log.price | number:'1.0-2' }}</div>
+
+            </div>
+          </div>
+        </ng-container>
+        <div *ngIf="getTimelineEmpty()" class="cl-act-placeholder">
+          <i class="fa fa-clock-o" style="font-size:28px; opacity:0.3; margin-bottom:10px; display:block;"></i>
+          No activity found
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CARRY OVER / RENEW MODAL -->
+<div class="cl-modal-backdrop" *ngIf="showCarryOverModal">
+  <div class="cl-modal" style="width: 400px;">
+    <div class="cl-modal-header">
+      <div class="cl-modal-title">
+        {{ carryOverType === 'membership' ? 'Renew Membership' : 'Carry Over Balance' }}
+      </div>
+      <button class="cl-modal-close" (click)="showCarryOverModal = false">&times;</button>
+    </div>
+    <div class="cl-modal-body">
+      <div style="font-size: 13px; color: #475569; margin-bottom: 16px;">
+        <span *ngIf="carryOverType === 'membership'">
+          Extend the expiry date for <b>{{ carryOverSource?.membership_detail?.name }}</b>.
+        </span>
+        <span *ngIf="carryOverType === 'package'">
+          Merge the remaining services of <b>{{ carryOverSource?.package_detail?.name || 'Custom Package' }}</b> into
+          another active package.
+        </span>
+        <span *ngIf="carryOverType === 'value_card'">
+          Merge the remaining Rs. {{ carryOverSource?.balance }} from <b>{{ carryOverSource?.value_card_detail?.title
+            }}</b> into another active value card.
+        </span>
+      </div>
+
+      <div *ngIf="carryOverType === 'membership'" class="cl-form-group">
+        <label>New Expiry Date</label>
+        <input type="date" class="cl-input" [(ngModel)]="carryOverNewExpiry">
+      </div>
+
+      <div *ngIf="carryOverType === 'package'" class="cl-form-group">
+        <label>Target Package</label>
+        <select class="cl-input" [(ngModel)]="carryOverTargetId">
+          <option [ngValue]="null">Select a package to merge into...</option>
+          <ng-container *ngFor="let p of client?.active_packages; trackBy: trackById">
+            <option *ngIf="p.id !== carryOverSource?.id" [ngValue]="p.id">
+              {{ p.package_detail?.name || 'Custom Package' }} (ID: {{p.id}})
+            </option>
+          </ng-container>
+        </select>
+      </div>
+
+      <div *ngIf="carryOverType === 'value_card'" class="cl-form-group">
+        <label>Target Value Card</label>
+        <select class="cl-input" [(ngModel)]="carryOverTargetId">
+          <option [ngValue]="null">Select a card to merge into...</option>
+          <ng-container *ngFor="let v of client?.active_value_cards; trackBy: trackById">
+            <option *ngIf="v.id !== carryOverSource?.id" [ngValue]="v.id">
+              {{ v.value_card_detail?.title }} (Bal: Rs. {{v.balance}})
+            </option>
+          </ng-container>
+        </select>
+      </div>
+    </div>
+    <div class="cl-modal-footer">
+      <button class="cl-btn-secondary" (click)="showCarryOverModal = false">Cancel</button>
+      <button class="cl-btn-primary" (click)="submitCarryOver()">Confirm</button>
+    </div>
+  </div>
+</div>

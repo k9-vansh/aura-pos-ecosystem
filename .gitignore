@@ -1,0 +1,31 @@
+# Node / NPM
+node_modules/
+.npm/
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+venv/
+.venv/
+env/
+.env
+
+# Build caches
+.angular/
+.vite/
+dist/
+dist_ecosystem/
+scratch/*.png
+scratch/*.jpg
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db

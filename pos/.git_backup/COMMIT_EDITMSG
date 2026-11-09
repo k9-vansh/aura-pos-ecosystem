@@ -1,0 +1,9 @@
+Cancelling a bill no longer gives a service's consumables back to stock
+
+Owner ruling 2026-10-21: what a haircut or facial used cannot come back once the
+service is done, even if the bill is cancelled. The POS used to restore the
+ingredients while the SAP credit memo did not, so the two stocks drifted apart
+(Gel 50 in the POS vs 48 in SAP). Retail products on a cancelled bill still go
+back to stock. The SAP/POS stock reconcile test now asserts the two agree.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>

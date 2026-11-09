@@ -1,0 +1,422 @@
+<div class="an" *ngIf="loading"><div class="an-loading">Loading {{ tab === 'value-cards' ? 'value cards' : tab }}…</div></div>
+<div class="an" *ngIf="error && !loading"><div class="an-error">{{ error }}</div></div>
+
+<div class="an" [ngClass]="'tab-' + tab" *ngIf="data && !loading">
+
+  <h2 class="an-heading" *ngIf="heading">{{ heading }}</h2>
+  <div class="an-note" *ngIf="showNote">
+    Figures come from settled bills in the selected centres, {{ dmy(data.period.start) }} to {{ dmy(data.period.end) }}, today included.
+    Money paid out of value cards and advances is counted when the card or advance is sold, not again when it is spent.
+  </div>
+
+  <!-- ===================== REVENUES ===================== -->
+  <ng-container *ngIf="tab === 'revenues'">
+    <div class="an-warn" *ngIf="data.data_warning">
+      ⚠ The totals stored on {{ data.data_warning.bills }} bills in this period ({{ inr(data.data_warning.invoice_totals) }}) do not match the sum of their
+      lines ({{ inr(data.data_warning.line_totals) }}). Every figure here follows the lines, as Finance does; check the bills if this is not expected.
+    </div>
+    <div class="an-kpis seven">
+      <div class="k k-target">
+        <div class="k-l">Monthly target</div>
+        <div class="k-v">{{ data.kpis.target > 0 ? compact(data.kpis.target) : '—' }}</div>
+        <div class="bar target" *ngIf="data.kpis.target > 0">
+          <span [style.width.%]="data.kpis.target_pct > 100 ? 100 : data.kpis.target_pct"></span>
+          <i [style.left.%]="data.kpis.month_gone_pct" title="Where the month is"></i>
+        </div>
+        <div class="k-s" *ngIf="data.kpis.target > 0 && !data.kpis.month_done">
+          <b class="neg">{{ compact(data.kpis.collection_excl_tax) }} in ({{ data.kpis.target_pct }}%)</b> ·
+          {{ data.kpis.month_gone_pct }}% of month gone · on pace for {{ compact(data.kpis.pace) }} ({{ data.kpis.pace_pct }}%)
+        </div>
+        <div class="k-s" *ngIf="data.kpis.target > 0 && data.kpis.month_done">
+          <b class="neg">{{ compact(data.kpis.collection_excl_tax) }} in ({{ data.kpis.target_pct }}%)</b> ·
+          {{ data.kpis.target_gap > 0 ? 'short by ' + compact(data.kpis.target_gap) : 'ahead by ' + compact(-data.kpis.target_gap) }}
+        </div>
+        <div class="k-s" *ngIf="!(data.kpis.target > 0)">No monthly target is set for this centre.</div>
+      </div>
+      <div class="k k-blue"><div class="k-l">Collection (excl. tax)</div><div class="k-v">{{ inr(data.kpis.collection_excl_tax) }}</div>
+        <div class="k-s">redemptions out, advances in · after {{ inr(data.kpis.discounts) }} of discounts</div></div>
+      <div class="k"><div class="k-l">Tax collected</div><div class="k-v">{{ inr(data.kpis.gst) }}</div>
+        <div class="k-s">blended {{ data.kpis.gst_rate }}% · rates differ by item</div></div>
+      <div class="k"><div class="k-l">Total collection</div><div class="k-v">{{ inr(data.kpis.total_collection) }}</div>
+        <div class="k-s">{{ inr(data.kpis.desk) }} at the desk<ng-container *ngIf="data.kpis.advance_used > 0"> · {{ inr(data.kpis.advance_used) }} from advances deposited earlier</ng-container></div></div>
+      <div class="k"><div class="k-l">Redemptions</div><div class="k-v">{{ inr(data.kpis.redeemed) }}</div>
+        <div class="k-s">{{ pct(data.kpis.redeemed_share) }} of what was sold · not money in</div></div>
+      <div class="k"><div class="k-l">Invoices</div><div class="k-v">{{ num(data.kpis.invoices) }}</div>
+        <div class="k-s">{{ data.period.days }} days · {{ data.kpis.per_day }} per day</div></div>
+      <div class="k"><div class="k-l">Avg bill</div><div class="k-v">{{ inr(data.kpis.avg_bill) }}</div>
+        <div class="k-s">total collection ÷ invoices</div></div>
+    </div>
+
+    <div class="an-grid g-main">
+      <div class="ac">
+        <div class="card-top"><div><h3>Daily sales</h3><p class="sub">Pre-tax sales value per day</p></div>
+          <div class="seg"><button [class.on]="rev['daily'] === 'bar'" (click)="setMode('daily','bar')" title="Bars">▮▮ Bar</button><button [class.on]="rev['daily'] === 'line'" (click)="setMode('daily','line')" title="Line">⁄ Line</button></div></div>
+        <div class="chart"><canvas id="anDaily"></canvas></div>
+        <div class="legend"><i style="background:#2aa3ae"></i>Weekday <i style="background:#e11d48"></i>Weekend</div>
+      </div>
+      <div class="ac">
+        <h3>Reconciliation to Finance</h3><p class="sub">The same walk the register summary makes, for these dates</p>
+        <table class="rec">
+          <tr class="strong"><td>Sales value — everything sold, before tax</td><td>{{ inr(data.reconciliation.sales_value) }}</td></tr>
+          <tr class="ind" *ngIf="data.reconciliation.advance_in > 0"><td>of which advances deposited</td><td>{{ inr(data.reconciliation.advance_in) }}</td></tr>
+          <tr class="ind"><td>less redeemed from value cards<ng-container *ngIf="data.reconciliation.redeemed_cashback > 0"> and cashback</ng-container></td><td>−{{ inr(data.reconciliation.redeemed_value_cards + data.reconciliation.redeemed_cashback) }}</td></tr>
+          <tr class="band strong"><td>Collection excl. tax</td><td>{{ inr(data.reconciliation.collection_excl_tax) }}</td></tr>
+          <tr class="ind"><td>plus GST</td><td>{{ inr(data.reconciliation.gst) }}</td></tr>
+          <tr class="ind" *ngIf="data.reconciliation.round_off != 0"><td>plus round-off</td><td>{{ inr(data.reconciliation.round_off, 2) }}</td></tr>
+          <tr class="band strong"><td>Total collection</td><td>{{ inr(data.reconciliation.total_collection) }}</td></tr>
+          <tr class="ind"><td>less settled from advances deposited earlier</td><td>−{{ inr(data.reconciliation.advance_used) }}</td></tr>
+          <tr class="blue"><td>Received at the desk (cash, card, UPI, other)</td><td>{{ inr(data.reconciliation.desk) }}</td></tr>
+          <tr class="ind" *ngIf="data.reconciliation.refunds > 0"><td>Refunds issued (shown here, not deducted)</td><td>{{ inr(data.reconciliation.refunds) }}</td></tr>
+          <tr class="ind" *ngIf="data.reconciliation.to_collect > 0"><td>still to collect on part-paid bills</td><td>{{ inr(data.reconciliation.to_collect) }}</td></tr>
+        </table>
+        <p class="foot">Line items are allocated per bill line, so they can differ from the totals by about ₹1 per bill. Finance › Register Summary takes advances settled off one step earlier: its "collection before tax" is this collection less advances settled, and its "Including Tax" equals "Received at the desk" here.</p>
+        <button class="help" (click)="showHelp = !showHelp"><span class="q">?</span> How these numbers are counted</button>
+        <div class="help-box" *ngIf="showHelp">
+          <p class="hnote">All billing figures come from live bills · up to now, today included.</p>
+          <dl class="defs">
+            <dt>Collection (excl. tax)</dt>
+            <dd>Money that came in against these bills with GST taken out. It excludes value cards and packages the client had already paid for, and it includes amounts settled from advances the client deposited earlier, because an advance is money. This is what the monthly target is measured on.</dd>
+            <dt>Tax collected</dt>
+            <dd>The GST inside that collection. Collection excl. tax plus tax collected is exactly total collection (a bill's rounding paise, when there are any, are shown as their own line).</dd>
+            <dt>Total collection</dt>
+            <dd>Money in against these bills including GST. The sum of the two tiles before it.</dd>
+            <dt>Redemptions</dt>
+            <dd>The part of what was sold that the client paid from value cards and service balances bought earlier. Not money received in this period — it arrived when the card or package was sold.</dd>
+            <dt>Sales value</dt>
+            <dd>Everything sold at full value before tax — services, products, value cards, memberships, advances deposited — including the part a client paid from a value card or package. The top line of the Finance register. Shown in the reconciliation card rather than as a tile.</dd>
+            <dt>Received at the desk</dt>
+            <dd>Total collection, less the part settled from earlier advances. This is the register's "Total received" — cash, card, UPI and other payments.</dd>
+            <dt>Monthly target</dt>
+            <dd>Collection excl. tax for the month against the target set under Admin › Centers. "On pace" projects the month-to-date figure over the whole month. Note this differs from the Finance register's "collection before tax", which also excludes advances settled from earlier deposits.</dd>
+            <dt>Refunds</dt>
+            <dd>Shown in the reconciliation card and not deducted from any tile. Refunds on cancelled bills are excluded because the bill itself is already out of every figure.</dd>
+            <dt>Previous period</dt>
+            <dd>For a month to date, the same days of the previous month. For any other range, the equal-length window immediately before it.</dd>
+            <dt>Day of the week</dt>
+            <dd>Average sales for each weekday across the period. A day the salon was closed counts as zero.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="an-grid g-3">
+      <div class="ac">
+        <div class="card-top"><div><h3>Day of the week</h3><p class="sub">Average pre-tax sales per day</p></div>
+          <div class="seg"><button [class.on]="rev['dow'] === 'bar'" (click)="setMode('dow','bar')">▮▮ Bar</button><button [class.on]="rev['dow'] === 'line'" (click)="setMode('dow','line')">⁄ Line</button></div></div>
+        <div class="chart sm"><canvas id="anDow"></canvas></div>
+        <p class="foot" *ngIf="data.best_day">Best day {{ data.best_day.label }} ({{ data.best_day.weekday }}) {{ inr(data.best_day.value) }}<ng-container *ngIf="data.quietest_day"> · quietest {{ data.quietest_day.label }} {{ inr(data.quietest_day.value) }}</ng-container></p>
+      </div>
+      <div class="ac">
+        <h3>Versus previous period</h3><p class="sub">vs {{ dmy(data.period.prev_start) }} – {{ dmy(data.period.prev_end) }}</p>
+        <table class="tbl">
+          <thead><tr><th></th><th class="r">This period</th><th class="r">Previous</th><th class="r">Change</th></tr></thead>
+          <tbody><tr *ngFor="let r of data.versus_previous">
+            <td>{{ r.label }}</td>
+            <td class="r">{{ r.money ? inr(r.cur) : num(r.cur) }}</td>
+            <td class="r">{{ r.money ? inr(r.prev) : num(r.prev) }}</td>
+            <td class="r"><span class="chg" [class.up]="r.change !== null && r.change >= 0" [class.down]="r.change !== null && r.change < 0">{{ change(r.change) }}</span></td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div class="ac">
+        <h3>Sales by type</h3><p class="sub">Share of pre-tax sales value</p>
+        <div class="stack"><span *ngFor="let t of data.sales_by_type; let i = index" [style.width.%]="t.share" [style.background]="color(i)"></span></div>
+        <table class="tbl">
+          <thead><tr><th>Type</th><th class="r">Lines</th><th class="r">Sales value</th><th class="r">Share</th></tr></thead>
+          <tbody><tr *ngFor="let t of data.sales_by_type; let i = index">
+            <td><i class="dot" [style.background]="color(i)"></i>{{ t.type }}</td><td class="r">{{ num(t.lines) }}</td><td class="r">{{ inr(t.value) }}</td><td class="r">{{ pct(t.share) }}</td>
+          </tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="an-grid g-3">
+      <div class="ac span2">
+        <div class="card-top"><div><h3>Monthly trend</h3><p class="sub">12 months to {{ dmy(data.period.end) }} · collection excl. tax · the last month is to date</p></div>
+          <div class="seg"><button [class.on]="rev['trend'] === 'bar'" (click)="setMode('trend','bar')">▮▮ Bar</button><button [class.on]="rev['trend'] === 'line'" (click)="setMode('trend','line')">⁄ Line</button></div></div>
+        <div class="chart"><canvas id="anTrend"></canvas></div>
+        <p class="foot">* to {{ dmy(data.period.end) }} only</p>
+      </div>
+      <div class="ac">
+        <div class="card-top"><div><h3>Busiest hours</h3><p class="sub">Invoices closed by hour of day</p></div>
+          <div class="seg"><button [class.on]="rev['hours'] === 'bar'" (click)="setMode('hours','bar')">▮▮ Bar</button><button [class.on]="rev['hours'] === 'line'" (click)="setMode('hours','line')">⁄ Line</button></div></div>
+        <div class="chart sm"><canvas id="anHours"></canvas></div>
+        <div class="legend"><i style="background:#2aa3ae"></i>Top 3 hours: {{ pct(data.top3_hours_share) }} of invoices</div>
+      </div>
+    </div>
+
+    <div class="ac">
+      <h3>Collected by mode</h3><p class="sub">How the money came in</p>
+      <table class="tbl modes">
+        <tbody>
+          <tr *ngFor="let m of data.modes"><td>{{ modeLabel(m.mode) }}</td>
+            <td class="bw"><div class="bar"><span [style.width.%]="m.share"></span></div></td>
+            <td class="r">{{ inr(m.amount) }}</td><td class="r">{{ pct(m.share) }}</td></tr>
+          <tr *ngIf="!data.modes.length"><td colspan="4" class="empty">No payments in this period.</td></tr>
+          <tr class="sep" *ngFor="let m of data.from_balances"><td class="mut">{{ modeLabel(m.mode) }} <small>(spends a balance, not new money)</small></td>
+            <td class="bw"><div class="bar"><span class="alt" [style.width.%]="0"></span></div></td><td class="r mut">{{ inr(m.amount) }}</td><td class="r"></td></tr>
+        </tbody>
+      </table>
+      <p class="foot">Mode split is allocated per payment and may differ from collection by about ₹1 per bill. Tips are left out. Advances received in the period: {{ inr(data.reconciliation.advance_in) }}.</p>
+    </div>
+  </ng-container>
+
+  <!-- ===================== CLIENTS ===================== -->
+  <ng-container *ngIf="tab === 'clients'">
+    <div class="an-kpis">
+      <div class="k k-blue"><div class="k-l">Footfall</div><div class="k-v">{{ num(data.kpis.footfall) }}</div><div class="k-s">invoices, incl. walk-ins with no phone</div></div>
+      <div class="k"><div class="k-l">Unique clients</div><div class="k-v">{{ num(data.kpis.unique) }}</div><div class="k-s">{{ data.kpis.visits_per_client }} visits per client</div></div>
+      <div class="k"><div class="k-l">New clients</div><div class="k-v">{{ num(data.kpis.new) }}</div><div class="k-s">{{ pct(data.kpis.new_share) }} of unique · first visit ever</div></div>
+      <div class="k"><div class="k-l">Repeat clients</div><div class="k-v">{{ num(data.kpis.repeat) }}</div><div class="k-s">{{ pct(data.kpis.repeat_share) }} of unique · seen here before</div></div>
+      <div class="k"><div class="k-l">Spend per client</div><div class="k-v">{{ inr(data.kpis.spend_per_client) }}</div><div class="k-s">pre-tax sales ÷ unique clients</div></div>
+      <div class="k"><div class="k-l">Returned after 90+ days</div><div class="k-v">{{ num(data.kpis.winback) }}</div><div class="k-s">{{ pct(data.kpis.winback_share) }} of unique clients</div></div>
+    </div>
+    <div class="an-grid g-main">
+      <div class="ac">
+        <h3>New vs repeat, by week</h3><p class="sub">Unique clients per week · weeks start Monday · first and last weeks may be partial</p>
+        <div class="chart"><canvas id="anWeeks"></canvas></div>
+        <button class="help" (click)="showHelp = !showHelp">? How we count clients</button>
+        <div class="help-box" *ngIf="showHelp">
+          <b>Footfall</b> is the number of settled bills. <b>Unique clients</b> are people with a phone on file who billed at least once.
+          A client is <b>new</b> when they had no settled bill here before the period started, otherwise <b>repeat</b>.
+          Visit frequency is the gap between a client's first bill in the period and their bill before it.
+        </div>
+      </div>
+      <div>
+        <div class="ac">
+          <h3>Who they are</h3><p class="sub">Unique clients by gender</p>
+          <table class="tbl"><tbody><tr *ngFor="let g of data.genders">
+            <td>{{ g.gender }}</td><td class="bw"><div class="bar"><span [style.width.%]="g.share"></span></div></td>
+            <td class="r">{{ num(g.clients) }}</td><td class="r">{{ pct(g.share) }}</td><td class="r">{{ inr(g.sales) }}</td></tr></tbody></table>
+        </div>
+        <div class="ac">
+          <h3>Visit frequency</h3><p class="sub">Gap since each client's previous visit here</p>
+          <table class="tbl"><tbody><tr *ngFor="let f of data.frequency">
+            <td>{{ f.label }}</td><td class="bw"><div class="bar"><span [style.width.%]="f.share"></span></div></td>
+            <td class="r">{{ num(f.clients) }}</td><td class="r">{{ pct(f.share) }}</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="ac">
+      <h3>Top clients this period</h3><p class="sub">By pre-tax sales value · top 25</p>
+      <table class="tbl">
+        <thead><tr><th>#</th><th>Client</th><th class="r">Visits</th><th class="r">Sales value</th><th class="r">Redeemed</th><th class="r">Last visit</th></tr></thead>
+        <tbody><tr *ngFor="let c of data.top_clients"><td class="mut">{{ c.rank }}</td><td>{{ c.name }}</td><td class="r">{{ c.visits }}</td>
+          <td class="r">{{ inr(c.sales) }}</td><td class="r">{{ inr(c.redeemed) }}</td><td class="r">{{ c.last_visit }}</td></tr>
+          <tr *ngIf="!data.top_clients.length"><td colspan="6" class="empty">No clients with a phone number billed in this period.</td></tr></tbody>
+      </table>
+    </div>
+  </ng-container>
+
+  <!-- ===================== SERVICES ===================== -->
+  <ng-container *ngIf="tab === 'services'">
+    <div class="an-kpis">
+      <div class="k k-blue"><div class="k-l">Service sales</div><div class="k-v">{{ inr(data.kpis.sales) }}</div><div class="k-s">pre-tax, incl. redemptions</div></div>
+      <div class="k"><div class="k-l">Services done</div><div class="k-v">{{ num(data.kpis.done) }}</div><div class="k-s">{{ num(data.kpis.lines) }} lines billed · {{ data.kpis.per_day }} per day</div></div>
+      <div class="k"><div class="k-l">Per invoice</div><div class="k-v">{{ data.kpis.per_invoice }}</div><div class="k-s">services per bill</div></div>
+      <div class="k"><div class="k-l">Avg service price</div><div class="k-v">{{ inr(data.kpis.avg_price) }}</div><div class="k-s">after discount</div></div>
+      <div class="k"><div class="k-l">Discounted</div><div class="k-v">{{ pct(data.kpis.discounted_share) }}</div><div class="k-s">{{ num(data.kpis.discounted_lines) }} of {{ num(data.kpis.lines) }} lines carried a discount</div></div>
+      <div class="k"><div class="k-l">Distinct services</div><div class="k-v">{{ num(data.kpis.distinct) }}</div><div class="k-s">sold in this range · {{ num(data.kpis.idle_90) }} of {{ num(data.kpis.listed) }} listed services idle 90+ days</div></div>
+    </div>
+    <div class="an-grid g-main">
+      <div class="ac">
+        <h3>Top services</h3><p class="sub">By sales value · movement is against the equal-length period before</p>
+        <div class="scroll">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Service</th><th>Category</th><th class="r">Done</th><th class="r">Sales value</th><th>Share</th><th class="r">vs previous</th></tr></thead>
+          <tbody><tr *ngFor="let s of data.top"><td class="mut">{{ s.rank }}</td><td>{{ s.name }}</td><td class="mut">{{ s.category }}</td><td class="r">{{ s.done }}</td>
+            <td class="r">{{ inr(s.value) }}</td><td class="bw"><div class="bar"><span [style.width.%]="s.share * 3"></span></div></td>
+            <td class="r"><span class="chg" [ngClass]="move(s.move).cls">{{ move(s.move).text }}</span></td></tr>
+            <tr *ngIf="!data.top.length"><td colspan="7" class="empty">No services sold in this period.</td></tr></tbody>
+        </table></div>
+        <p class="foot">Top {{ data.top.length }} services sold · "new" means nothing was sold in the previous period</p>
+        <h4 *ngIf="data.dropped.length">Sold last period, not this one</h4>
+        <p class="sub" *ngIf="data.dropped.length">{{ data.dropped_total }} services · the biggest by previous-period sales</p>
+        <table class="tbl" *ngIf="data.dropped.length"><tbody><tr *ngFor="let s of data.dropped"><td>{{ s.name }}</td><td class="mut">{{ s.category }}</td><td class="r">{{ s.done }} done</td><td class="r">{{ inr(s.value) }}</td></tr></tbody></table>
+      </div>
+      <div>
+        <div class="ac">
+          <h3>By category</h3><p class="sub">Share of service sales</p>
+          <div class="stack"><span *ngFor="let c of data.categories; let i = index" [style.width.%]="c.share" [style.background]="color(i)"></span></div>
+          <table class="tbl"><thead><tr><th>Category</th><th class="r">Done</th><th class="r">Sales value</th><th class="r">Share</th></tr></thead>
+            <tbody><tr *ngFor="let c of data.categories; let i = index"><td><i class="dot" [style.background]="color(i)"></i>{{ c.category }}</td><td class="r">{{ c.done }}</td><td class="r">{{ inr(c.value) }}</td><td class="r">{{ pct(c.share) }}</td></tr></tbody></table>
+        </div>
+        <div class="ac">
+          <h3>Quiet on the menu</h3><p class="sub">Priced for this salon, no sale in the 90 days to {{ dmy(data.period.end) }}</p>
+          <table class="tbl"><thead><tr><th>Service</th><th class="r">Price</th><th class="r">Last sold</th></tr></thead>
+            <tbody><tr *ngFor="let s of data.idle"><td>{{ s.name }}<div class="mut sm-t">{{ s.category }}</div></td><td class="r">{{ inr(s.price) }}</td>
+              <td class="r"><span class="chg" [class.down]="!s.last_sold">{{ s.last_sold || 'never' }}</span></td></tr></tbody></table>
+          <p class="foot">{{ num(data.kpis.idle_90) }} listed services with no sale in 90 days, {{ num(data.idle_never) }} never sold · showing the 10 longest idle</p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ===================== PRODUCTS ===================== -->
+  <ng-container *ngIf="tab === 'products'">
+    <div class="an-kpis">
+      <div class="k k-blue"><div class="k-l">Retail sales</div><div class="k-v">{{ inr(data.kpis.sales) }}</div><div class="k-s">pre-tax, incl. redemptions</div></div>
+      <div class="k"><div class="k-l">Units sold</div><div class="k-v">{{ num(data.kpis.units) }}</div><div class="k-s">retail units</div></div>
+      <div class="k"><div class="k-l">Attach rate</div><div class="k-v">{{ pct(data.kpis.attach_rate) }}</div><div class="k-s">{{ data.kpis.attach_invoices }} of {{ data.kpis.invoices }} invoices included a product</div></div>
+      <div class="k"><div class="k-l">Distinct products</div><div class="k-v">{{ num(data.kpis.distinct) }}</div><div class="k-s">sold in this range</div></div>
+      <div class="k"><div class="k-l">Used in services</div><div class="k-v">{{ data.kpis.used_products }}</div><div class="k-s">{{ data.kpis.used_products }} products · {{ data.kpis.used_checkouts }} check-outs</div></div>
+      <div class="k" [class.k-warn]="data.kpis.negative > 0"><div class="k-l">Negative stock</div><div class="k-v">{{ data.kpis.negative }}</div><div class="k-s">products sold beyond booked stock · book the stock in</div></div>
+    </div>
+    <div class="an-grid g-main">
+      <div class="ac">
+        <h3>Top products sold</h3><p class="sub">Retail, by sales value · stock is current on-hand</p>
+        <div class="scroll">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Product</th><th>Brand</th><th class="r">Units</th><th class="r">Sales value</th><th>Share</th><th class="r">In stock</th></tr></thead>
+          <tbody><tr *ngFor="let p of data.top"><td class="mut">{{ p.rank }}</td><td>{{ p.name }}<div class="mut sm-t">{{ p.sub }}</div></td><td class="mut">{{ p.brand }}</td>
+            <td class="r">{{ p.units }}</td><td class="r">{{ inr(p.value) }}</td><td class="bw"><div class="bar"><span [style.width.%]="p.share * 3"></span></div></td>
+            <td class="r" [class.neg]="p.in_stock !== null && p.in_stock <= 0">{{ p.in_stock === null ? '—' : p.in_stock }}</td></tr>
+            <tr *ngIf="!data.top.length"><td colspan="7" class="empty">No products sold in this period.</td></tr></tbody>
+        </table></div>
+        <p class="foot">{{ data.kpis.distinct }} products sold · a negative stock figure means more was sold or checked out than was ever booked in</p>
+      </div>
+      <div>
+        <div class="ac"><h3>By category</h3><p class="sub">Share of retail sales</p>
+          <div class="stack"><span *ngFor="let c of data.categories; let i = index" [style.width.%]="c.share" [style.background]="color(i)"></span></div>
+          <table class="tbl"><tbody><tr *ngFor="let c of data.categories; let i = index"><td><i class="dot" [style.background]="color(i)"></i>{{ c.name }}</td><td class="r">{{ c.units }}</td><td class="r">{{ inr(c.value) }}</td><td class="r">{{ pct(c.share) }}</td></tr></tbody></table></div>
+        <div class="ac"><h3>By brand</h3><p class="sub">Share of retail sales</p>
+          <div class="stack"><span *ngFor="let c of data.brands; let i = index" [style.width.%]="c.share" [style.background]="color(i)"></span></div>
+          <table class="tbl"><tbody><tr *ngFor="let c of data.brands; let i = index"><td><i class="dot" [style.background]="color(i)"></i>{{ c.name }}</td><td class="r">{{ c.units }}</td><td class="r">{{ inr(c.value) }}</td><td class="r">{{ pct(c.share) }}</td></tr></tbody></table></div>
+        <div class="ac"><h3>Stock problems</h3><p class="sub">Products sold this period with zero or negative stock on hand</p>
+          <table class="tbl"><thead><tr><th>Product</th><th class="r">Sold</th><th class="r">On hand</th></tr></thead>
+            <tbody><tr *ngFor="let p of data.problems"><td>{{ p.name }}</td><td class="r">{{ p.sold }}</td><td class="r neg">{{ p.on_hand }}</td></tr>
+              <tr *ngIf="!data.problems.length"><td colspan="3" class="empty">No stock problems among the products sold.</td></tr></tbody></table>
+          <p class="foot" *ngIf="data.problems_total">{{ data.problems_total }} products at or below zero</p></div>
+        <div class="ac"><h3>Used in services</h3><p class="sub">Backbar check-outs · valued at MRP, not cost</p>
+          <table class="tbl"><tbody>
+            <tr><td>Units checked out</td><td class="r">{{ data.used.units }}</td></tr>
+            <tr><td>Distinct products</td><td class="r">{{ data.used.products }}</td></tr>
+            <tr><td>Check-out transactions</td><td class="r">{{ data.used.checkouts }}</td></tr>
+            <tr><td>Worth at MRP</td><td class="r">{{ inr(data.used.value) }}</td></tr></tbody></table>
+          <p class="foot">What these units would have sold for at MRP. Purchase cost is not recorded per lot, so a true cost figure is not available.</p></div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ===================== MEMBERSHIPS ===================== -->
+  <ng-container *ngIf="tab === 'memberships'">
+    <div class="an-kpis">
+      <div class="k k-blue"><div class="k-l">Members among my clients</div><div class="k-v">{{ pct(data.kpis.members_share) }}</div><div class="k-s">{{ num(data.kpis.members) }} of {{ num(data.kpis.clients_ever) }} clients ever billed here</div></div>
+      <div class="k"><div class="k-l">Member visits</div><div class="k-v">{{ num(data.kpis.member_visits) }}</div><div class="k-s">{{ pct(data.kpis.visit_share) }} of invoices · {{ data.kpis.members_visited }} members visited</div></div>
+      <div class="k"><div class="k-l">Memberships sold</div><div class="k-v">{{ num(data.kpis.sold) }}</div><div class="k-s">{{ inr(data.kpis.sold_value) }} in membership sales</div></div>
+      <div class="k"><div class="k-l">Saved by members</div><div class="k-v">{{ inr(data.kpis.saved) }}</div><div class="k-s">{{ inr(data.kpis.saved_per_visit) }} per member visit</div></div>
+      <div class="k"><div class="k-l">Spend per visit</div><div class="k-v">{{ inr(data.kpis.spend_member) }}</div>
+        <div class="k-s">members · non-members {{ inr(data.kpis.spend_other) }} <span class="chg" *ngIf="data.kpis.spend_change !== null" [class.up]="data.kpis.spend_change >= 0" [class.down]="data.kpis.spend_change < 0">{{ change(data.kpis.spend_change) }}</span></div></div>
+      <div class="k" [class.k-warn]="data.kpis.expiring_30 > 0"><div class="k-l">Expiring in 30 days</div><div class="k-v">{{ num(data.kpis.expiring_30) }}</div><div class="k-s">{{ num(data.kpis.lapsed_year) }} lapsed in the last year</div></div>
+    </div>
+    <div class="an-grid g-main">
+      <div class="ac">
+        <h3>Savings and membership sales</h3><p class="sub">Last 12 months · what members saved against what memberships brought in</p>
+        <div class="chart"><canvas id="anMemChart"></canvas></div>
+        <p class="foot">12 months: saved {{ inr(data.chart_saved_12m) }}, memberships sold {{ inr(data.chart_sold_12m) }} · * to {{ dmy(data.period.end) }} only</p>
+        <button class="help" (click)="showHelp = !showHelp">? How we count memberships</button>
+        <div class="help-box" *ngIf="showHelp">
+          A <b>member</b> is a client holding a membership on the day of the bill. <b>Saved</b> is the discount given on bills that applied a membership.
+          <b>Expiring</b> means a membership still valid that ends within 30 days; <b>lapsed</b> means it ended and the client holds no other.
+          Bills with no client phone are left out of the member and non-member columns.
+        </div>
+      </div>
+      <div>
+        <div class="ac"><h3>Members vs everyone else</h3><p class="sub">This period</p>
+          <table class="tbl"><thead><tr><th></th><th class="r">Members</th><th class="r">Non-members</th></tr></thead><tbody>
+            <tr><td>Clients who visited</td><td class="r">{{ data.compare.clients[0] }}</td><td class="r">{{ data.compare.clients[1] }}</td></tr>
+            <tr><td>Visits</td><td class="r">{{ data.compare.visits[0] }}</td><td class="r">{{ data.compare.visits[1] }}</td></tr>
+            <tr><td>Visits per client</td><td class="r">{{ data.compare.visits_per_client[0] }}</td><td class="r">{{ data.compare.visits_per_client[1] }}</td></tr>
+            <tr><td>Spend per client</td><td class="r">{{ inr(data.compare.spend_per_client[0]) }}</td><td class="r">{{ inr(data.compare.spend_per_client[1]) }}</td></tr>
+            <tr><td>Sales value</td><td class="r">{{ inr(data.compare.sales[0]) }}</td><td class="r">{{ inr(data.compare.sales[1]) }}</td></tr></tbody></table>
+          <p class="foot">Bills with no mobile number are left out of both columns.</p></div>
+        <div class="ac"><h3>What members buy</h3><p class="sub">Share of sales by type, against non-members</p>
+          <table class="tbl"><thead><tr><th>Type</th><th class="r">Members</th><th class="r">Share</th><th class="r">Non-members</th></tr></thead><tbody>
+            <tr *ngFor="let b of data.buy"><td>{{ b.type }}</td><td class="r">{{ inr(b.members) }}</td><td class="r">{{ pct(b.members_share) }} <span class="mut">vs {{ pct(b.others_share) }}</span></td><td class="r">{{ inr(b.others) }}</td></tr>
+            <tr *ngIf="!data.buy.length"><td colspan="4" class="empty">No sales in this period.</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <div class="an-grid g-2">
+      <div class="ac"><h3>Top services for members</h3><p class="sub">On member bills · with the discount they carried</p>
+        <table class="tbl"><thead><tr><th>#</th><th>Service</th><th class="r">Done</th><th class="r">Sales value</th><th class="r">Saved</th></tr></thead><tbody>
+          <tr *ngFor="let s of data.top_services"><td class="mut">{{ s.rank }}</td><td>{{ s.name }}<div class="mut sm-t">{{ s.category }}</div></td><td class="r">{{ s.done }}</td><td class="r">{{ inr(s.value) }}</td><td class="r">{{ inr(s.saved) }}</td></tr>
+          <tr *ngIf="!data.top_services.length"><td colspan="5" class="empty">No member bills in this period.</td></tr></tbody></table></div>
+      <div class="ac"><h3>Renewal calls</h3><p class="sub">Expiring in the next 30 days, then lapsed — most recent first</p>
+        <div class="chips">
+          <button [class.on]="renewalFilter === 'soon'" (click)="renewalFilter = 'soon'">Expiring + lapsed ≤ 90 days</button>
+          <button [class.on]="renewalFilter === 'expiring'" (click)="renewalFilter = 'expiring'">Expiring only</button>
+          <button [class.on]="renewalFilter === 'lapsed'" (click)="renewalFilter = 'lapsed'">All lapsed, up to a year</button>
+        </div>
+        <div class="scroll tall">
+          <div class="empty box" *ngIf="!expiringList.length && renewalFilter !== 'lapsed'">Nothing expiring in the next 30 days.</div>
+          <table class="tbl" *ngIf="expiringList.length"><thead><tr><th>Client</th><th>Phone</th><th>Membership</th><th class="r">Expires</th><th class="r">In</th><th class="r">Last visit</th><th class="r">Spend, 12 months</th></tr></thead><tbody>
+            <tr *ngFor="let r of expiringList"><td>{{ r.name }}</td><td class="mut">{{ r.phone }}</td><td>{{ r.membership }}</td><td class="r">{{ r.expires }}</td><td class="r"><span class="chg warn">{{ r.days }} days</span></td><td class="r">{{ r.last_visit || '—' }}</td><td class="r">{{ inr(r.spend_12m) }}</td></tr></tbody></table>
+          <h4 *ngIf="renewalFilter !== 'expiring'">Lapsed <span class="pill">{{ lapsedList.length }}</span></h4>
+          <table class="tbl" *ngIf="renewalFilter !== 'expiring'"><thead><tr><th>Client</th><th>Phone</th><th>Membership</th><th class="r">Expired</th><th class="r">How long ago</th><th class="r">Last visit</th><th class="r">Spend, 12 months</th></tr></thead><tbody>
+            <tr *ngFor="let r of lapsedList"><td>{{ r.name }}</td><td class="mut">{{ r.phone }}</td><td>{{ r.membership }}</td><td class="r">{{ r.expires }}</td><td class="r"><span class="chg down">{{ r.days }} days ago</span></td><td class="r">{{ r.last_visit || '—' }}</td><td class="r">{{ inr(r.spend_12m) }}</td></tr>
+            <tr *ngIf="!lapsedList.length"><td colspan="7" class="empty">No lapsed memberships.</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ===================== VALUE CARDS ===================== -->
+  <ng-container *ngIf="tab === 'value-cards'">
+    <div class="an-kpis">
+      <div class="k k-blue"><div class="k-l">Outstanding balance</div><div class="k-v">{{ inr(data.kpis.outstanding) }}</div><div class="k-s">{{ num(data.kpis.live_cards) }} live cards · {{ num(data.kpis.live_clients) }} clients · as of today</div></div>
+      <div class="k"><div class="k-l">Spent on services</div><div class="k-v">{{ inr(data.kpis.spent) }}</div><div class="k-s">{{ num(data.kpis.spent_invoices) }} invoices · {{ inr(data.kpis.spent_per_invoice) }} per invoice</div></div>
+      <div class="k"><div class="k-l">Cards sold</div><div class="k-v">{{ num(data.kpis.sold) }}</div><div class="k-s">{{ inr(data.kpis.sold_value) }} received</div></div>
+      <div class="k"><div class="k-l">Clients redeeming</div><div class="k-v">{{ num(data.kpis.redeeming_clients) }}</div><div class="k-s">used a card here in this period</div></div>
+      <div class="k" [class.k-warn]="data.kpis.expiring_cards > 0"><div class="k-l">Expiring in 30 days</div><div class="k-v">{{ inr(data.kpis.expiring_value) }}</div><div class="k-s">{{ data.kpis.expiring_cards }} cards with a balance left</div></div>
+      <div class="k"><div class="k-l">Expired with balance</div><div class="k-v">{{ inr(data.kpis.expired_value) }}</div><div class="k-s">{{ data.kpis.expired_cards }} cards in the last 30 days · no longer redeemable at the desk</div></div>
+    </div>
+    <div class="an-grid g-main">
+      <div class="ac"><h3>Cards sold and credit spent</h3><p class="sub">Last 12 months · what came in against what was used (face value)</p>
+        <div class="chart"><canvas id="anCardChart"></canvas></div>
+        <p class="foot">12 months: sold {{ inr(data.chart_sold_12m) }}, spent {{ inr(data.chart_spent_12m) }} · * to {{ dmy(data.period.end) }} only</p></div>
+      <div class="ac"><h3>Top balances</h3><p class="sub">Clients with the most unspent credit on cards this salon sold</p>
+        <div class="scroll tall"><table class="tbl"><thead><tr><th>#</th><th>Client</th><th class="r">Cards</th><th class="r">Balance</th><th class="r">Nearest expiry</th><th class="r">Last visit</th></tr></thead><tbody>
+          <tr *ngFor="let b of data.top_balances"><td class="mut">{{ b.rank }}</td><td>{{ b.name }}</td><td class="r">{{ b.cards }}</td><td class="r">{{ inr(b.balance) }}</td><td class="r">{{ b.nearest_expiry }}</td><td class="r">{{ b.last_visit || '—' }}</td></tr>
+          <tr *ngIf="!data.top_balances.length"><td colspan="6" class="empty">No live value cards.</td></tr></tbody></table></div></div>
+    </div>
+    <div class="an-grid g-main">
+      <div class="ac"><h3>Where card credit goes</h3><p class="sub">Share of value-card spend by service category, this period</p>
+        <div class="stack"><span *ngFor="let c of data.spend_categories; let i = index" [style.width.%]="c.share" [style.background]="color(i)"></span></div>
+        <table class="tbl"><tbody><tr *ngFor="let c of data.spend_categories; let i = index"><td><i class="dot" [style.background]="color(i)"></i>{{ c.category }}</td><td class="r">{{ c.lines }}</td><td class="r">{{ inr(c.face) }}</td><td class="r">{{ pct(c.share) }}</td></tr>
+          <tr *ngIf="!data.spend_categories.length"><td class="empty">No card spend in this period.</td></tr></tbody></table>
+        <p class="foot" *ngIf="data.spend_categories.length">Top {{ data.spend_categories.length }} of {{ data.spend_categories_total }} categories · {{ inr(data.spend_total) }} of card credit used</p>
+        <button class="help" (click)="showHelp = !showHelp">? How we count value cards</button>
+        <div class="help-box" *ngIf="showHelp">
+          <b>Outstanding balance</b> is the face value left on live cards. <b>Spent</b> is the face value taken off cards on settled bills in the period.
+          <b>Liability change</b> is face value sold minus face value spent: positive means more credit is owed to clients than before.
+          <b>Expiring</b> and <b>expired</b> cards list the unspent balance that can still, or could no longer, be redeemed.
+        </div>
+      </div>
+      <div class="ac"><h3>Card economics</h3><p class="sub">This period, and the last 12 months</p>
+        <table class="tbl"><tbody>
+          <tr><td>Average card sold<div class="mut sm-t">{{ data.economics.sold_cards }} cards</div></td><td class="r">{{ inr(data.economics.avg_card_sold) }}</td></tr>
+          <tr><td>Credit used per invoice<div class="mut sm-t">{{ data.economics.invoices }} invoices</div></td><td class="r">{{ inr(data.economics.per_invoice) }}</td></tr>
+          <tr><td>Credit used per client<div class="mut sm-t">{{ data.economics.clients }} clients</div></td><td class="r">{{ inr(data.economics.per_client) }}</td></tr>
+          <tr><td>Liability change this period<div class="mut sm-t">clients drew down credit</div></td><td class="r" [class.neg]="data.economics.liability_change < 0">{{ inr(data.economics.liability_change) }}</td></tr>
+          <tr><td>12-month liability change<div class="mut sm-t">sold {{ inr(data.chart_sold_12m) }} · spent {{ inr(data.chart_spent_12m) }}</div></td><td class="r" [class.neg]="data.economics.liability_change_12m < 0">{{ inr(data.economics.liability_change_12m) }}</td></tr>
+          <tr><td>Average month<div class="mut sm-t">{{ inr(data.economics.avg_month_sold) }} sold</div></td><td class="r">{{ inr(data.economics.avg_month_spent) }} spent</td></tr>
+          <tr><td>Best month for card sales<div class="mut sm-t">{{ inr(data.economics.best_month_value) }}</div></td><td class="r">{{ data.economics.best_month || '—' }}</td></tr></tbody></table></div>
+    </div>
+    <div class="an-grid g-2">
+      <div class="ac"><h3>Services paid with value cards</h3><p class="sub">This period · credit used per service</p>
+        <div class="scroll tall"><table class="tbl"><thead><tr><th>#</th><th>Service</th><th class="r">Done</th><th class="r">Paid by card</th><th class="r">Of sales value</th></tr></thead><tbody>
+          <tr *ngFor="let s of data.services; let i = index"><td class="mut">{{ i + 1 }}</td><td>{{ s.name }}<div class="mut sm-t">{{ s.category }}</div></td><td class="r">{{ s.done }}</td><td class="r">{{ inr(s.paid) }}</td><td class="r">{{ pct(s.of_sales) }}</td></tr>
+          <tr *ngIf="!data.services.length"><td colspan="5" class="empty">No services were paid with value cards in this period.</td></tr></tbody></table></div>
+        <p class="foot" *ngIf="data.services.length">Top {{ data.services.length }} of {{ data.services_total }} services</p></div>
+      <div class="ac"><h3>Cards to call about</h3><p class="sub">Expiring in the next 30 days, and expired in the last 30 with a balance left</p>
+        <div class="chips">
+          <button [class.on]="cardCallFilter === 'expiring'" (click)="cardCallFilter = 'expiring'">Expiring in 30 days</button>
+          <button [class.on]="cardCallFilter === 'expired'" (click)="cardCallFilter = 'expired'">Expired in the last 30 days</button>
+        </div>
+        <div class="scroll tall"><table class="tbl"><thead><tr><th>Client</th><th>Phone</th><th>Card</th><th class="r">Balance</th><th class="r">Expires</th><th class="r">When</th><th class="r">Last visit</th></tr></thead><tbody>
+          <tr *ngFor="let r of cardCalls"><td>{{ r.name }}</td><td class="mut">{{ r.phone }}</td><td>{{ r.card }}</td><td class="r">{{ inr(r.balance) }}</td><td class="r">{{ r.expires }}</td>
+            <td class="r"><span class="chg" [ngClass]="cardCallFilter === 'expired' ? 'down' : 'warn'">{{ cardCallFilter === 'expired' ? r.days + ' days ago' : 'in ' + r.days + ' days' }}</span></td><td class="r">{{ r.last_visit || '—' }}</td></tr>
+          <tr *ngIf="!cardCalls.length"><td colspan="7" class="empty">No cards to call about.</td></tr></tbody></table></div></div>
+    </div>
+  </ng-container>
+</div>

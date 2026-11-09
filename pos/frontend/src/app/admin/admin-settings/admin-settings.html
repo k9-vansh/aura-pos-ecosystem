@@ -1,0 +1,77 @@
+<div class="settings-page">
+  <div class="settings-bar">
+    <div class="settings-scope">
+      <span *ngIf="centerId === null && (canChangeGlobal || !canUpdate)">Showing the values every centre uses. Pick a centre above to set a value for that centre only.</span>
+      <span *ngIf="centerId === null && !canChangeGlobal && canUpdate">Your role covers specific centres, so the all-centres values are read-only. Pick your centre above to change its values.</span>
+      <span *ngIf="centerId !== null">Showing this centre's values. A centre with no value of its own uses the all-centres value.</span>
+    </div>
+    <div class="settings-actions" *ngIf="canUpdate">
+      <button class="btn btn-outline" (click)="discard()" [disabled]="!hasEdits || isSaving">Discard</button>
+      <button class="btn btn-primary black-btn" (click)="save()" [disabled]="!hasEdits || isSaving">
+        {{ isSaving ? 'Saving...' : 'Save changes' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading">Loading...</div>
+  <div class="settings-error" *ngIf="loadError">{{ loadError }}</div>
+
+  <div class="settings-group" *ngFor="let group of groups; trackBy: trackByIndex">
+    <div class="date-divider">{{ group | uppercase }}</div>
+
+    <div class="setting-row" *ngFor="let s of settingsIn(group); trackBy: trackByKey">
+      <div class="setting-text">
+        <div class="setting-label">{{ s.label }}</div>
+        <div class="setting-help">{{ s.help }}</div>
+        <div class="setting-meta">
+          Default: {{ display(s, s.server_default) }}
+          <span *ngIf="!s.per_branch"> · Same for every centre</span>
+        </div>
+        <div class="setting-field-error" *ngIf="fieldErrors[s.key]">{{ fieldErrors[s.key] }}</div>
+      </div>
+
+      <!-- One control per scope: all centres, and the picked centre when the setting can differ. -->
+      <ng-container *ngFor="let scope of (centerId !== null && s.per_branch ? ['global', 'branch'] : ['global']); trackBy: trackByIndex">
+        <div class="setting-control" [class.edited]="isEdited(s, $any(scope))">
+          <div class="setting-scope-label">{{ scope === 'branch' ? 'This centre' : 'All centres' }}</div>
+
+          <label class="flat-checkbox-row" *ngIf="s.type === 'bool'">
+            <input type="checkbox" class="flat-checkbox"
+              [ngModel]="shown(s, $any(scope))"
+              (ngModelChange)="onChange(s, $any(scope), $event)"
+              [disabled]="!canEdit($any(scope))">
+            <span class="flat-checkbox-text">{{ shown(s, $any(scope)) ? 'On' : 'Off' }}</span>
+          </label>
+
+          <select class="form-input" *ngIf="s.type === 'choice'"
+            [ngModel]="shown(s, $any(scope))"
+            (ngModelChange)="onChange(s, $any(scope), $event)"
+            [disabled]="!canEdit($any(scope))">
+            <option *ngFor="let c of s.choices; trackBy: trackByIndex" [ngValue]="c.value">{{ c.label }}</option>
+          </select>
+
+          <input type="text" class="form-input" *ngIf="s.type === 'text'" maxlength="30"
+            [ngModel]="shown(s, $any(scope))"
+            (ngModelChange)="onChange(s, $any(scope), $event)"
+            [readonly]="!canEdit($any(scope))">
+
+          <div class="number-wrap" *ngIf="s.type === 'int' || s.type === 'decimal'">
+            <input type="number" class="form-input"
+              [attr.min]="s.min" [attr.max]="s.max" [attr.step]="s.type === 'int' ? 1 : 0.01"
+              [ngModel]="shown(s, $any(scope))"
+              (ngModelChange)="onChange(s, $any(scope), $event)"
+              [readonly]="!canEdit($any(scope))">
+            <span class="unit" *ngIf="s.unit">{{ s.unit }}</span>
+          </div>
+
+          <button class="link-btn" *ngIf="canEdit($any(scope)) && isSet(s, $any(scope))" (click)="reset(s, $any(scope))">
+            {{ scope === 'branch' ? 'Use all-centres value' : 'Back to default' }}
+          </button>
+          <div class="setting-meta" *ngIf="scope === 'branch' && !isSet(s, 'branch')">Using the all-centres value</div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="text-muted" *ngIf="!isLoading && !loadError && settings.length === 0">No settings available.</div>
+</div>

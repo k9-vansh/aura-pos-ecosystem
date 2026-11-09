@@ -1,0 +1,65 @@
+<div class="bills-page">
+      <div class="bills-layout-grid">
+    <!-- Left Column: Discounts Table -->
+    <div class="bills-list">
+      <app-admin-range-bar></app-admin-range-bar>
+      <div class="loading-overlay" *ngIf="isLoading">Loading...</div>
+
+      <div class="date-divider" *ngIf="invoices.length > 0">DISCOUNTS FOUND</div>
+
+      <table class="modern-bills-table" *ngIf="invoices.length > 0">
+        <thead>
+          <tr>
+            <th>Invoice No</th>
+            <th>Date/Time</th>
+            <th>Client</th>
+            <th>Phone</th>
+            <th>Type</th>
+            <th>Item</th>
+            <th>Billed By</th>
+            <th>Price</th>
+            <th>Discount</th>
+            <th>Discount %</th>
+            <th>Net Price</th>
+          </tr>
+        </thead>
+        <tbody *ngFor="let inv of invoices; trackBy: trackById">
+          
+          <!-- Item Level Discounts -->
+          <ng-container *ngFor="let item of inv.items; trackBy: trackByIndex">
+            <tr *ngIf="item.manager_discount > 0">
+              <td class="font-bold"><span class="invoice-tag" style="background:#e0e7ff; color:#4f46e5; padding:4px 8px; border-radius:6px;">#{{ inv.id }}</span></td>
+              <td class="text-secondary">{{ inv.created_at | date:'dd-MM-yyyy, HH:mm' }}</td>
+              <td class="font-semibold">{{ getClientName(inv) }}</td>
+              <td class="text-secondary">{{ getClientPhone(inv) }}</td>
+              <td>{{ typeLabel(item) }}</td>
+              <td>{{ item.description || 'Item' }}</td>
+              <td class="font-semibold">{{ billedBy(inv) }}</td>
+              <td>₹{{ item.unit_price | number:'1.0-2' }}</td>
+              <td class="font-bold amount-pop" style="color: #ef4444;">₹{{ item.manager_discount | number:'1.0-2' }}</td>
+              <td><span class="status-badge badge-refunded">{{ itemPercent(item, item.manager_discount) | number:'1.0-2' }}%</span></td>
+              <td class="font-bold amount-pop">₹{{ item.total_price | number:'1.0-2' }}</td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+
+      <div class="no-bills-msg" *ngIf="invoices.length === 0 && !isLoading">
+        No manager discounts found for this salon.
+      </div>
+    </div>
+
+    <!-- Right Column: KPI Snapshot -->
+    <div class="bills-sidebar">
+      <div class="kpi-card-dark">
+        <div class="kpi-label">Invoices Affected</div>
+        <div class="kpi-value">{{ getTotalDiscountsCount() }}</div>
+      </div>
+
+      <div class="kpi-card-light" style="border-left: 4px solid #ef4444;">
+        <div class="kpi-label">Total Discount</div>
+        <div class="kpi-value-small" style="color: #ef4444;">₹{{ getTotalDiscountValue() | number:'1.0-2' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
