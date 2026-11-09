@@ -1,0 +1,1 @@
+import{In as g,Pr as ve,R as Hm,jt as S}from"./chunk-Do2lZWs2.js";function w(t){t||(t=g(ve));let i=new S(e=>{if(t.destroyed){e.next();return}return t.onDestroy(e.next.bind(e))});return e=>e.pipe(Hm(i))}export{w as t};

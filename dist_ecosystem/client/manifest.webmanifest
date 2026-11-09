@@ -1,0 +1,10 @@
+{
+  "name": "Aura Salon — Client Portal",
+  "short_name": "Aura Client",
+  "description": "Your wallet, bills, visits and PIN at your salon.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f2ed",
+  "theme_color": "#f6c9b8",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

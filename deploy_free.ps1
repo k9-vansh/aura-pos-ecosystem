@@ -34,3 +34,4 @@ git push -u origin main
 
 Write-Host "`n[SUCCESS] Code pushed to GitHub!" -ForegroundColor Green
 Write-Host "Render and Vercel will now automatically build and deploy your free instances." -ForegroundColor Cyan
+

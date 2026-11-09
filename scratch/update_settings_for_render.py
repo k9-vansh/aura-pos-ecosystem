@@ -45,3 +45,4 @@ c = c.replace(old_redis, new_redis)
 with open(path, 'w', encoding='utf-8') as f:
     f.write(c)
 print('settings.py updated for Render/production deployment!')
+

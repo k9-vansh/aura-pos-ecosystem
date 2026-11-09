@@ -1,0 +1,1 @@
+var n=`Type at least 3 letters or 4 digits to search`;function r(s){let t=(s||``).trim();return t?/^[\d\s+\-().]+$/.test(t)?t.replace(/\D/g,``).length>=4:t.split(/\s+/).some(e=>/^\d+$/.test(e)?e.length>=4:e.length>=3):!1}export{r as n,n as t};

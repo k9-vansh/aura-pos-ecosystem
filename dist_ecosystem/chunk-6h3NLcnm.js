@@ -1,0 +1,3 @@
+import{k as F}from"./chunk-Do2lZWs2.js";var p=class n{exportToCsv(e,o,r){let i=`﻿`+o.map(c=>`"${c}"`).join(`,`)+`
+`;r&&r.length&&r.forEach(c=>{let f=c.map(a=>a==null?`""`:`"${String(a).replace(/"/g,`""`)}"`);i+=f.join(`,`)+`
+`});let u=new Blob([i],{type:`text/csv;charset=utf-8;`}),s=URL.createObjectURL(u),t=document.createElement(`a`);t.href=s,t.download=e.endsWith(`.csv`)?e:`${e}.csv`,document.body.appendChild(t),t.click(),document.body.removeChild(t),URL.revokeObjectURL(s)}static ɵfac=function(o){return new(o||n)};static ɵprov=F({token:n,factory:n.ɵfac,providedIn:`root`})};export{p as t};

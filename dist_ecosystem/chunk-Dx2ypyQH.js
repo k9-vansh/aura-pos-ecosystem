@@ -1,0 +1,1 @@
+function s(){let n=typeof process<`u`&&process?.env?process.env.API_URL:void 0;if(n)return r(n);let e=globalThis?.__POS_API_URL__;return typeof e==`string`&&e.length>0?r(e):``}function r(n){return n.replace(/\/+$/,``)}var t={production:!0,apiUrl:s()};export{t};

@@ -1,7 +1,7 @@
 import os
 import shutil
 
-root_dir = r'c:\Users\k9van\OneDrive\Desktop\test\fullgeetanjali-2026-11-02\fullgeetanjali'
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out_dir = os.path.join(root_dir, 'dist_ecosystem')
 
 if os.path.exists(out_dir):
@@ -37,13 +37,10 @@ vercel_json = """{
   "version": 2,
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/owner/(.*)", "destination": "/owner/$1" },
-    { "source": "/owner", "destination": "/owner/index.html" },
-    { "source": "/staff/(.*)", "destination": "/staff/$1" },
-    { "source": "/staff", "destination": "/staff/index.html" },
-    { "source": "/client/(.*)", "destination": "/client/$1" },
-    { "source": "/client", "destination": "/client/index.html" },
-    { "source": "/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/$1" },
+    { "source": "/owner/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/owner/api/$1" },
+    { "source": "/team/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/team/api/$1" },
+    { "source": "/client/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/client/api/$1" },
+    { "source": "/staff/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/staff/$1" },
     { "source": "/accounts/(.*)", "destination": "https://aura-pos-backend.onrender.com/accounts/$1" },
     { "source": "/billing/(.*)", "destination": "https://aura-pos-backend.onrender.com/billing/$1" },
     { "source": "/finance/(.*)", "destination": "https://aura-pos-backend.onrender.com/finance/$1" },
@@ -51,12 +48,21 @@ vercel_json = """{
     { "source": "/appointments/(.*)", "destination": "https://aura-pos-backend.onrender.com/appointments/$1" },
     { "source": "/clients/(.*)", "destination": "https://aura-pos-backend.onrender.com/clients/$1" },
     { "source": "/services/(.*)", "destination": "https://aura-pos-backend.onrender.com/services/$1" },
-    { "source": "/staff_api/(.*)", "destination": "https://aura-pos-backend.onrender.com/team/api/$1" },
-    { "source": "/team/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/team/api/$1" },
+    { "source": "/marketing/(.*)", "destination": "https://aura-pos-backend.onrender.com/marketing/$1" },
     { "source": "/salon_admin/(.*)", "destination": "https://aura-pos-backend.onrender.com/salon_admin/$1" },
-    { "source": "/owner/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/owner/api/$1" },
-    { "source": "/client/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/client/api/$1" },
+    { "source": "/approvals/(.*)", "destination": "https://aura-pos-backend.onrender.com/approvals/$1" },
+    { "source": "/audit_logs/(.*)", "destination": "https://aura-pos-backend.onrender.com/audit_logs/$1" },
+    { "source": "/notifications/(.*)", "destination": "https://aura-pos-backend.onrender.com/notifications/$1" },
+    { "source": "/app-settings/(.*)", "destination": "https://aura-pos-backend.onrender.com/app-settings/$1" },
+    { "source": "/sap-sync/(.*)", "destination": "https://aura-pos-backend.onrender.com/sap-sync/$1" },
     { "source": "/admin/(.*)", "destination": "https://aura-pos-backend.onrender.com/admin/$1" },
+    { "source": "/media/(.*)", "destination": "https://aura-pos-backend.onrender.com/media/$1" },
+    { "source": "/owner/(.*)", "destination": "/owner/$1" },
+    { "source": "/owner", "destination": "/owner/index.html" },
+    { "source": "/staff/(.*)", "destination": "/staff/$1" },
+    { "source": "/staff", "destination": "/staff/index.html" },
+    { "source": "/client/(.*)", "destination": "/client/$1" },
+    { "source": "/client", "destination": "/client/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }"""
@@ -64,8 +70,7 @@ vercel_json = """{
 with open(os.path.join(out_dir, 'vercel.json'), 'w', encoding='utf-8') as f:
     f.write(vercel_json)
 
-# Also write vercel.json at root for root deploys
 with open(os.path.join(root_dir, 'vercel.json'), 'w', encoding='utf-8') as f:
     f.write(vercel_json)
 
-print('Generated vercel.json successfully in dist_ecosystem and project root!')
+print('Generated ecosystem and vercel.json successfully!')

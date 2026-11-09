@@ -16,7 +16,6 @@ env/
 .angular/
 .vite/
 dist/
-dist_ecosystem/
 scratch/*.png
 scratch/*.jpg
 
