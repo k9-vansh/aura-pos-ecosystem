@@ -21,12 +21,15 @@
     { "source": "/sap-sync/(.*)", "destination": "https://aura-pos-backend.onrender.com/sap-sync/$1" },
     { "source": "/django-admin/(.*)", "destination": "https://aura-pos-backend.onrender.com/admin/$1" },
     { "source": "/media/(.*)", "destination": "https://aura-pos-backend.onrender.com/media/$1" },
-    { "source": "/owner/(.*)", "destination": "/owner/$1" },
+    { "source": "/owner/assets/(.*)", "destination": "/owner/assets/$1" },
     { "source": "/owner", "destination": "/owner/index.html" },
-    { "source": "/staff/(.*)", "destination": "/staff/$1" },
+    { "source": "/owner/(.*)", "destination": "/owner/index.html" },
+    { "source": "/staff/assets/(.*)", "destination": "/staff/assets/$1" },
     { "source": "/staff", "destination": "/staff/index.html" },
-    { "source": "/client/(.*)", "destination": "/client/$1" },
+    { "source": "/staff/(.*)", "destination": "/staff/index.html" },
+    { "source": "/client/assets/(.*)", "destination": "/client/assets/$1" },
     { "source": "/client", "destination": "/client/index.html" },
+    { "source": "/client/(.*)", "destination": "/client/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

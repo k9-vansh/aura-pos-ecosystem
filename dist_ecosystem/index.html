@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="en" data-beasties-container>
-<head><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<head>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      for (var r of regs) { r.unregister(); }
+    });
+  }
+</script><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <meta charset="utf-8">
   <title>AURA SALON &amp; SPA</title>
   <base href="/">

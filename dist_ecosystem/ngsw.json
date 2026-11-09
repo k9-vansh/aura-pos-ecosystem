@@ -184,6 +184,10 @@
     },
     {
       "positive": false,
+      "regex": "^\\/(?:owner|staff|client|django-admin)(?:\\/.*)?$"
+    },
+    {
+      "positive": false,
       "regex": "^\\/(?:.+\\/)?[^/]*\\.[^/]*$"
     },
     {
