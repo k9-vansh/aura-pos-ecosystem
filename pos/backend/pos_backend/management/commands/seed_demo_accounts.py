@@ -27,67 +27,74 @@ class Command(BaseCommand):
             )
             self.stdout.write(f"Created fallback center: {center}")
 
-        # 2. Get or create Superuser Role
-        role = Role.objects.filter(name="Super Admin").first()
-        if not role:
-            role, _ = Role.objects.get_or_create(
-                name="Super Admin",
-                defaults={
-                    "description": "Full enterprise administrator with all modules",
-                    "permissions": {
-                        "owner_app": {"read": ["today", "month", "invoices", "staff", "ai_report", "settings"]},
-                        "billing": {"read": True, "create": True, "update": True, "delete": True},
-                        "inventory": {"read": True, "create": True, "update": True, "delete": True},
-                        "finance": {"read": True, "create": True, "update": True, "delete": True},
-                        "staff": {"read": True, "create": True, "update": True, "delete": True},
-                        "appointments": {"read": True, "create": True, "update": True, "delete": True},
-                        "clients": {"read": True, "create": True, "update": True, "delete": True},
-                        "marketing": {"read": True, "create": True, "update": True, "delete": True},
-                        "salon_admin": {"read": True, "create": True, "update": True, "delete": True}
-                    }
-                }
-            )
+        # 2. Get or create Super Admin Role with full permissions across all modules
+        role, _ = Role.objects.get_or_create(
+            name="Super Admin",
+            defaults={
+                "description": "Full enterprise administrator with all modules",
+                "permissions": {}
+            }
+        )
 
-        # Ensure role has owner_app permissions
-        if isinstance(role.permissions, dict):
-            role.permissions.setdefault("owner_app", {})["read"] = ["today", "month", "invoices", "staff", "ai_report", "settings"]
-            role.save()
+        role.permissions = {
+            "owner_app": {
+                "today": {"read": True},
+                "month": {"read": True},
+                "invoices": {"read": True},
+                "staff": {"read": True},
+                "ai_report": {"read": True},
+                "settings": {"read": True}
+            },
+            "billing": {"invoices": {"read": True, "create": True, "update": True, "delete": True}, "new_invoice": {"create": True}},
+            "inventory": {"products": {"read": True, "create": True, "update": True, "delete": True}, "stock_requests": {"read": True, "create": True, "update": True, "delete": True}},
+            "finance": {"register_summary": {"read": True, "create": True, "update": True, "delete": True}, "monthly_sales": {"read": True}},
+            "staff": {"directory": {"read": True, "create": True, "update": True, "delete": True}, "payrolls": {"read": True, "update": True}},
+            "appointments": {"calendar": {"read": True, "create": True, "update": True, "delete": True}},
+            "clients": {"clients": {"read": True, "create": True, "update": True, "delete": True}},
+            "marketing": {"promotions": {"read": True, "create": True, "update": True, "delete": True}},
+            "salon_admin": {"centers": {"read": True, "create": True, "update": True, "delete": True}, "users": {"read": True, "create": True, "update": True, "delete": True}, "roles": {"read": True, "create": True, "update": True, "delete": True}},
+            "admin": {"users": {"read": True, "create": True, "update": True, "delete": True}, "roles": {"read": True, "create": True, "update": True, "delete": True}, "centers": {"read": True, "create": True, "update": True, "delete": True}}
+        }
+        role.save()
 
         # 3. Demo User 1: POS Till & Back-Office
         # Email: admin@aurasalon.io / Password: admin123
-        user, created = CustomUser.objects.get_or_create(
-            email="admin@aurasalon.io",
-            defaults={
-                "full_name": "Aura Executive Admin",
-                "is_superuser": True,
-                "is_staff": True,
-                "is_active": True,
-                "center": center,
-                "role": role,
-                "designation": "Executive Director"
-            }
-        )
-        user.set_password("admin123")
-        user.is_superuser = True
-        user.is_staff = True
-        user.is_active = True
-        user.center = center
-        user.role = role
-        user.save()
+        user = CustomUser.objects.filter(email="admin@aurasalon.io").first()
+        if not user:
+            user = CustomUser.objects.create_user(
+                email="admin@aurasalon.io",
+                password="admin123",
+                full_name="Aura Executive Admin",
+                is_superuser=True,
+                is_staff=True,
+                is_active=True,
+                center=center,
+                role=role,
+                designation="Executive Director"
+            )
+        else:
+            user.set_password("admin123")
+            user.is_superuser = True
+            user.is_staff = True
+            user.is_active = True
+            user.center = center
+            user.role = role
+            user.save()
         user.centers.set(Center.objects.filter(is_active=True))
         self.stdout.write(self.style.SUCCESS("[OK] POS Till user: admin@aurasalon.io / admin123 (Ready)"))
 
         # 4. Demo User 2: Owner Analytics Dashboard
         # Phone: 9811122233 / Password: admin123
-        owner, o_created = OwnerAccount.objects.get_or_create(
-            phone="9811122233",
-            defaults={
-                "name": "Vikramaditya Oberoi",
-                "email": "owner@aurasalon.io",
-                "role": role,
-                "is_active": True
-            }
-        )
+        owner = OwnerAccount.objects.filter(phone="9811122233").first()
+        if not owner:
+            owner = OwnerAccount.objects.create(
+                phone="9811122233",
+                name="Vikramaditya Oberoi",
+                email="owner@aurasalon.io",
+                role=role,
+                is_active=True
+            )
+        owner.name = "Vikramaditya Oberoi"
         owner.set_password("admin123")
         owner.role = role
         owner.is_active = True
@@ -101,20 +108,22 @@ class Command(BaseCommand):
             name="Senior Stylist & Art Director",
             defaults={"salary": 45000, "commission_percentage": 15.0}
         )
-        staff, s_created = StaffMember.objects.get_or_create(
-            phone="9000100001",
-            defaults={
-                "first_name": "Rahul",
-                "last_name": "Kapoor",
-                "center": center,
-                "designation": designation.name,
-                "designation_fk": designation,
-                "staff_code": "STF-001",
-                "is_active": True,
-                "salary": 45000,
-                "commission_percentage": 15.0
-            }
-        )
+        staff = StaffMember.objects.filter(phone="9000100001").first()
+        if not staff:
+            staff = StaffMember.objects.create(
+                phone="9000100001",
+                first_name="Rahul",
+                last_name="Kapoor",
+                center=center,
+                designation=designation.name,
+                designation_fk=designation,
+                staff_code="STF-001",
+                is_active=True,
+                salary=45000,
+                commission_percentage=15.0
+            )
+        staff.first_name = "Rahul"
+        staff.last_name = "Kapoor"
         staff.app_password = make_password("1234")
         staff.is_active = True
         staff.center = center
