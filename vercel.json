@@ -1,6 +1,8 @@
 {
   "version": 2,
   "rewrites": [
+    { "source": "/", "destination": "/hub.html" },
+    { "source": "/hub", "destination": "/hub.html" },
     { "source": "/owner/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/owner/api/$1" },
     { "source": "/team/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/team/api/$1" },
     { "source": "/client/api/(.*)", "destination": "https://aura-pos-backend.onrender.com/client/api/$1" },

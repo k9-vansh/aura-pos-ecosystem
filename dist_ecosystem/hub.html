@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura POS — Enterprise Multi-Location Salon Ecosystem</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(17, 24, 39, 0.72);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(212, 175, 55, 0.45);
+      --gold: #d4af37;
+      --gold-light: #fef08a;
+      --gold-glow: rgba(212, 175, 55, 0.22);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-green: #34d399;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-serif: 'Playfair Display', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(52, 211, 153, 0.04) 0%, transparent 50%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px;
+      line-height: 1.5;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1120px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      position: relative;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 16px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent-green);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 9999px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(8px);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 12px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(34px, 5vw, 46px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #ffffff;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 60%, var(--gold-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 36px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: var(--card-hover-border);
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 24px var(--gold-glow);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .card-icon {
+      font-size: 26px;
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card-tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card-title {
+      font-size: 21px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 22px;
+    }
+
+    /* Credentials Box */
+    .cred-panel {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cred-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .cred-label {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .copy-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      color: var(--gold-light);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-chip:hover {
+      background: rgba(212, 175, 55, 0.18);
+      border-color: var(--gold);
+      transform: translateY(-1px);
+    }
+
+    .copy-chip.copied {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: var(--accent-green);
+    }
+
+    /* Launch Button */
+    .btn-launch {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 20px;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.9) 0%, rgba(180, 140, 30, 0.95) 100%);
+      color: #0b0f19;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+    }
+
+    .btn-launch:hover {
+      background: linear-gradient(135deg, #fef08a 0%, #d4af37 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    }
+
+    /* Admin Bar */
+    .admin-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .admin-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    .admin-btn {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .admin-btn:hover {
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #0f172a;
+      border: 1px solid var(--gold);
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      opacity: 0;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        Unified Multi-Platform Cloud Ecosystem Live
+      </div>
+      <h1>AURA SALON &amp; SPA</h1>
+      <p class="subtitle">
+        Enterprise multi-location Point-of-Sale, analytics suite, and mobile workforce ecosystem.
+        Select any portal below to launch the live application with pre-configured demo credentials.
+      </p>
+    </header>
+
+    <div class="grid">
+      <!-- 1. POS Till -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div class="card-icon">&#128187;</div>
+            <span class="card-tag">Angular 18 SPA</span>
+          </div>
+          <h2 class="card-title">POS Till &amp; Back-Office</h2>
+          <p class="card-desc">
+            High-speed register checkout, multi-calendar scheduler grid, BOM consumable inventory tracking, itemized billing, and role permissions.
+          </p>
+        </div>
+
+        <div>
+          <div class="cred-panel">
+            <div class="cred-row">
+              <span class="cred-label">Login User:</span>
+              <span class="copy-chip" onclick="copyCred(this, 'admin@aurasalon.io')">admin@aurasalon.io &#128203;</span>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Password:</span>
+              <span class="copy-chip" onclick="copyCred(this, 'admin123')">admin123 &#128203;</span>
+            </div>
+          </div>
+          <a href="/login" target="_blank" class="btn-launch">
+            Launch POS Till &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- 2. Owner App -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div class="card-icon">&#128081;</div>
+            <span class="card-tag">React + Vite</span>
+          </div>
+          <h2 class="card-title">Owner Analytics Dashboard</h2>
+          <p class="card-desc">
+            Real-time multi-salon revenue metrics, cross-branch benchmarking, stylist commission leaderboards, and daily master PIN access control.
+          </p>
+        </div>
+
+        <div>
+          <div class="cred-panel">
+            <div class="cred-row">
+              <span class="cred-label">Mobile No:</span>
+              <span class="copy-chip" onclick="copyCred(this, '9811122233')">9811122233 &#128203;</span>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Password:</span>
+              <span class="copy-chip" onclick="copyCred(this, 'admin123')">admin123 &#128203;</span>
+            </div>
+          </div>
+          <a href="/owner/" target="_blank" class="btn-launch">
+            Launch Owner App &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- 3. Staff App -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div class="card-icon">&#128241;</div>
+            <span class="card-tag">React + Vite PWA</span>
+          </div>
+          <h2 class="card-title">Staff Mobile Portal</h2>
+          <p class="card-desc">
+            Individual digital job card, scheduled client roster, live service duration counters, commission tier breakdowns, and personal attendance.
+          </p>
+        </div>
+
+        <div>
+          <div class="cred-panel">
+            <div class="cred-row">
+              <span class="cred-label">Mobile No:</span>
+              <span class="copy-chip" onclick="copyCred(this, '9000100001')">9000100001 &#128203;</span>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Master PIN:</span>
+              <span class="copy-chip" onclick="copyCred(this, '1234')">1234 &#128203;</span>
+            </div>
+          </div>
+          <a href="/staff/" target="_blank" class="btn-launch">
+            Launch Staff Portal &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- 4. Client App -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div class="card-icon">&#127915;</div>
+            <span class="card-tag">React + Vite PWA</span>
+          </div>
+          <h2 class="card-title">Client Self-Service App</h2>
+          <p class="card-desc">
+            Client prepaid wallet (advance deposits, cashback, package vouchers), appointment self-booking, and itemized GST invoice downloads.
+          </p>
+        </div>
+
+        <div>
+          <div class="cred-panel">
+            <div class="cred-row">
+              <span class="cred-label">Mobile No:</span>
+              <span class="copy-chip" onclick="copyCred(this, '9876543210')">9876543210 &#128203;</span>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">OTP / PIN:</span>
+              <span class="copy-chip" onclick="copyCred(this, '1234')">1234 &#128203;</span>
+            </div>
+          </div>
+          <a href="/client/" target="_blank" class="btn-launch">
+            Launch Client App &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Django Admin Bar -->
+    <div class="admin-bar">
+      <div class="admin-bar-left">
+        <span>&#9881;</span>
+        <span><strong>Django ASGI Backend API Gateway:</strong> Real-time WebSocket subscriptions, multi-tenant SQLite database, and audit log tracking.</span>
+      </div>
+      <a href="https://aura-pos-backend.onrender.com/admin/" target="_blank" class="admin-btn">
+        Open Django Admin Panel &rarr;
+      </a>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Copied to clipboard!</div>
+
+  <script>
+    // Clean up any rogue service workers on root domain
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) { r.unregister(); }
+      });
+    }
+
+    function copyCred(elem, val) {
+      navigator.clipboard.writeText(val).then(function() {
+        var originalText = elem.innerHTML;
+        elem.classList.add('copied');
+        elem.innerHTML = 'Copied! &#10003;';
+        showToast('Copied "' + val + '" to clipboard!');
+        setTimeout(function() {
+          elem.classList.remove('copied');
+          elem.innerHTML = originalText;
+        }, 1500);
+      });
+    }
+
+    function showToast(msg) {
+      var toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(function() {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+  </script>
+</body>
+</html>
