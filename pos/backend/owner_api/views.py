@@ -48,7 +48,7 @@ class OwnerLoginView(APIView):
             try:
                 call_command('seed_demo_accounts')
             except Exception:
-                pass''
+                pass
         if not who or not password:
             raise ValidationError({'detail': 'Enter your mobile number (or e-mail) and password.'})
         if '@' in who:
