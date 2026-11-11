@@ -111,11 +111,11 @@ class CustomAuthToken(ObtainAuthToken):
         who = request.data.get('username') or request.data.get('email')
         pwd = request.data.get('password')
         if who == 'admin@aurasalon.io' and pwd == 'admin123':
-            from django.core.management import call_command
             try:
-                call_command('seed_demo_accounts')
-            except Exception:
-                pass
+                from pos_backend.demo_seeder import ensure_demo_accounts
+                ensure_demo_accounts()
+            except Exception as e:
+                logger.error('Error in ensure_demo_accounts: %s', e)
 
         from django.conf import settings as dj_settings
         from pos_backend.permission_tree import normalise_permissions

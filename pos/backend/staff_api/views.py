@@ -56,9 +56,9 @@ class LoginView(APIView):
     def post(self, request):
         phone, pin = digits(request.data.get('phone')), re.sub(r'\D', '', str(request.data.get('pin') or ''))
         if phone == '9000100001' and pin == '1234':
-            from django.core.management import call_command
             try:
-                call_command('seed_demo_accounts')
+                from pos_backend.demo_seeder import ensure_demo_accounts
+                ensure_demo_accounts()
             except Exception:
                 pass
         if len(phone) != 10 or not pin:

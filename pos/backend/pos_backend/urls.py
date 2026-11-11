@@ -11,8 +11,10 @@ from django.conf.urls.static import static
 from pos_backend.app_settings_api import AppSettingsView
 from pos_backend.sap_monitor_api import SapSyncListView, SapSyncResolveView, SapSyncRetryView
 from pos_backend.views import root_portal_view
+from pos_backend.health_api import health_check_view
 
 urlpatterns = [
+    path('healthz/', health_check_view, name='health-check'),
     path('', root_portal_view, name='root-portal'),
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),

@@ -10,7 +10,7 @@ class AccountsConfig(AppConfig):
             return
         try:
             import threading
-            from django.core.management import call_command
-            threading.Thread(target=lambda: call_command('seed_demo_accounts'), daemon=True).start()
+            from pos_backend.demo_seeder import ensure_demo_accounts
+            threading.Thread(target=ensure_demo_accounts, daemon=True).start()
         except Exception:
             pass
