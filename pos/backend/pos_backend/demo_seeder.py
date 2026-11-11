@@ -25,7 +25,7 @@ def ensure_demo_accounts():
             center = Center.objects.create(
                 center_name="Aura Flagship",
                 display_name="Aura Salon & Spa (Flagship)",
-                code="AURA-01",
+                branch_code="AURA-01",
                 is_active=True
             )
 
